@@ -6,6 +6,7 @@ import (
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
 	"github.com/cloudbox/autoscan/triggers/radarr"
+	"github.com/cloudbox/autoscan/triggers/sonarr"
 )
 
 func main() {
@@ -18,8 +19,10 @@ func main() {
 	}
 
 	radarrTrigger := radarr.New()
+	sonarrTrigger := sonarr.New()
 
 	mux.Handle("/triggers/radarr", radarrTrigger(scans))
+	mux.Handle("/triggers/sonarr", sonarrTrigger(scans))
 	go proc.ProcessTriggers(scans)
 
 	http.ListenAndServe(":3000", mux)

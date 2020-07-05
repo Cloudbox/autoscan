@@ -37,6 +37,7 @@ type HTTPTrigger func(chan Scan) http.Handler
 type Target func(Scan)
 
 const (
+	TVDb = "tvdb"
 	TMDb = "tmdb"
 	IMDb = "imdb"
 )

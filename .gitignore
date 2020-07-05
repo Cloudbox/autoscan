@@ -2,3 +2,4 @@
 
 *.db
 /autoscan
+/config.yml

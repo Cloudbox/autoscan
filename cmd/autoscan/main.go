@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -18,7 +19,17 @@ type config struct {
 	} `yaml:"triggers"`
 }
 
+var (
+	// Release variables
+	Version   string
+	Timestamp string
+	GitCommit string
+)
+
 func main() {
+	// TODO: show this via a version command instead?
+	fmt.Printf("Version: %s (%s@%s)\n", Version, GitCommit, Timestamp)
+
 	scans := make(chan autoscan.Scan, 100)
 	mux := http.NewServeMux()
 

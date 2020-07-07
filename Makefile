@@ -4,18 +4,12 @@ TARGET         := $(shell go env GOOS)_$(shell go env GOARCH)
 DIST_PATH      := dist
 BUILD_PATH     := ${DIST_PATH}/${CMD}_${TARGET}
 GO_FILES       := $(shell find . -path ./vendor -prune -or -type f -name '*.go' -print)
-GO_PACKAGES    := $(shell go list -mod vendor ./...)
 GIT_COMMIT     := $(shell git rev-parse --short HEAD)
 TIMESTAMP      := $(shell date +%s)
 VERSION        ?= 0.0.0-dev
 CGO            := 1
 
 # Deps
-.PHONY: test
-test: ## Run tests
-	@echo "*** go test ***"
-	go test -cover -v -race ${GO_PACKAGES}
-
 .PHONY: vendor
 vendor: ## Vendor files and tidy go.mod
 	go mod vendor

@@ -6,7 +6,7 @@ linters:
     - bodyclose
 #    - goimports
     - unconvert
-#     - unparam
+    - unparam
     - scopelint
     - dupl
     - interfacer
@@ -14,7 +14,6 @@ linters:
 
 issues:
   exclude-rules:
-    # Exclude linter specific checks
     - linters:
         - stylecheck
       text: "ST1003:"

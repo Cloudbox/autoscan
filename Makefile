@@ -13,19 +13,10 @@ VERSION        ?= 0.0.0-dev
 CGO            := 1
 
 # Deps
-.PHONY: check_golangci
-check_golangci:
-	@command -v golangci-lint >/dev/null || (echo "golangci-lint is required."; exit 1)
-
 .PHONY: test
 test: ## Run tests
 	@echo "*** go test ***"
 	go test -cover -v -race ${GO_PACKAGES}
-
-.PHONY: lint
-lint: check_golangci ## Run linting
-	@echo "*** golangci-lint ***"
-	golangci-lint run --timeout 10m
 
 .PHONY: vendor
 vendor: ## Vendor files and tidy go.mod

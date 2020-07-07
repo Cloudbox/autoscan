@@ -63,5 +63,7 @@ func main() {
 
 	go proc.ProcessTriggers(scans)
 
-	http.ListenAndServe(":3000", mux)
+	if err := http.ListenAndServe(":3000", mux); err != nil {
+		panic(err)
+	}
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,16 +26,9 @@ var (
 	GitCommit string
 )
 
-func test() (string, error) {
-	return "test", errors.New("hmmm")
-}
-
 func main() {
 	// TODO: show this via a version command instead?
 	fmt.Printf("Version: %s (%s@%s)\n", Version, GitCommit, Timestamp)
-
-	s, err := test()
-	fmt.Println(s)
 
 	scans := make(chan autoscan.Scan, 100)
 	mux := http.NewServeMux()

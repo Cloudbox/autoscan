@@ -1,8 +1,6 @@
 .DEFAULT_GOAL  := build
 CMD            := autoscan
-GOARCH         := $(shell go env GOARCH)
-GOOS           := $(shell go env GOOS)
-TARGET         := ${GOOS}_${GOARCH}
+TARGET         := $(shell go env GOOS)_$(shell go env GOARCH)
 DIST_PATH      := dist
 BUILD_PATH     := ${DIST_PATH}/${CMD}_${TARGET}
 GO_FILES       := $(shell find . -path ./vendor -prune -or -type f -name '*.go' -print)

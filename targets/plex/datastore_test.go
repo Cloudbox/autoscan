@@ -35,7 +35,7 @@ func TestDatastore_Libraries(t *testing.T) {
 		t.Fatalf("Error getting libraries: %v", err)
 	}
 
-	if len(libraries) < 4 {
+	if len(libraries) != 4 {
 		t.Fatalf("Library counts do not match, expected: 4, got: %d", len(libraries))
 	}
 

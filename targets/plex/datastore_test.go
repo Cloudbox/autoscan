@@ -1,6 +1,7 @@
 package plex
 
 import (
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -16,33 +17,40 @@ func setupTest(t *testing.T) *Datastore {
 		t.Fatal("Could not create datastore")
 	}
 
+	if _, err := ds.db.Exec(`PRAGMA foreign_keys=ON;`); err != nil {
+		t.Fatal("Could not prepare datastore")
+	}
+
 	return ds
+}
+
+func setupDatabase(t *testing.T, ds *Datastore, paths []string) {
+	if len(paths) == 0 {
+		return
+	}
+
+	for _, path := range paths {
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			t.Fatalf("Could not read database test file %q: %v", path, err)
+		}
+
+		if _, err := ds.db.Exec(string(b)); err != nil {
+			t.Fatalf("Could not exec database test file data %q: %v", path, err)
+		}
+	}
 }
 
 func TestDatastore_Libraries(t *testing.T) {
 	type test struct {
-		schema string
-		data   string
-		size   int
-		want   []Library
+		sql  []string
+		size int
+		want []Library
 	}
 
 	tests := []test{
 		{
-			schema: `
-PRAGMA foreign_keys=ON;
-CREATE TABLE "section_locations" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "library_section_id" integer, "root_path" varchar(255), "available" boolean DEFAULT 't', "scanned_at" datetime, "created_at" datetime, "updated_at" datetime);
-CREATE TABLE "library_sections" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "library_id" integer, "name" varchar(255), "name_sort" varchar(255) COLLATE NOCASE, "section_type" integer, "language" varchar(255), "agent" varchar(255), "scanner" varchar(255), "user_thumb_url" varchar(255), "user_art_url" varchar(255), "user_theme_music_url" varchar(255), "public" boolean, "created_at" datetime, "updated_at" datetime, "scanned_at" datetime, "display_secondary_level" boolean, "user_fields" varchar(255), "query_xml" text, "query_type" integer, "uuid" varchar(255), "changed_at" integer(8) DEFAULT 0, 'content_changed_at' integer(8) default '0');
-`,
-			data: `
-INSERT INTO "section_locations" ("id", "library_section_id", "root_path", "available", "scanned_at", "created_at", "updated_at") VALUES
-('1', 1, '/data/Movies', '1', '2020-07-04 12:25:59', '2017-07-31 21:38:34', '2020-07-04 12:25:59'),
-('2', 2, '/data/TV', '1', '2020-07-04 13:22:52', '2017-08-01 23:20:31', '2020-07-04 13:22:52');
-
-INSERT INTO "library_sections" ("id", "library_id", "name", "name_sort", "section_type", "language", "agent", "scanner", "user_thumb_url", "user_art_url", "user_theme_music_url", "public", "created_at", "updated_at", "scanned_at", "display_secondary_level", "user_fields", "query_xml", "query_type", "uuid", "changed_at", "content_changed_at") VALUES
-('1', NULL, 'Movies', '', 1, 'en', 'com.plexapp.agents.imdb', 'Plex Movie Scanner', '', '', '', NULL, '2017-07-31 21:38:34', '2020-06-26 12:11:46', '2020-06-26 12:07:43', NULL, 'pr%3AcollectionMode=1&pr%3AenableBIFGeneration=0&pr%3AenableCinemaTrailers=0&pv%3AlastAddedAt=1593155849', '', NULL, 'b755029d-39a1-421f-8850-b4f11dde469e', '46005545', '47050956'),
-('2', NULL, 'TV', '', 2, 'en', 'com.plexapp.agents.thetvdb', 'Plex Series Scanner', '', '', '', NULL, '2017-08-01 23:20:31', '2020-06-26 12:19:56', '2020-06-24 09:41:56', NULL, 'pr%3AenableBIFGeneration=0&pv%3AlastAddedAt=1593162644', '', NULL, '5ac23cdc-5321-4aca-9d50-63f6e58b402e', '46005877', '47051099');
-`,
+			sql:  []string{"test_data/libraries_schema.sql", "test_data/libraries_data_1.sql"},
 			size: 2,
 			want: []Library{
 				{
@@ -60,16 +68,7 @@ INSERT INTO "library_sections" ("id", "library_id", "name", "name_sort", "sectio
 			},
 		},
 		{
-			schema: "",
-			data: `
-INSERT INTO "section_locations" ("id", "library_section_id", "root_path", "available", "scanned_at", "created_at", "updated_at") VALUES
-('10', 10, '/data/Music', '1', '2020-06-24 09:34:38', '2017-11-30 03:46:04', '2020-06-24 09:35:25'),
-('12', 12, '/data/4K/Movies', '1', '2020-07-04 06:10:51', '2018-05-06 01:57:32', '2020-07-04 06:10:51');
-
-INSERT INTO "library_sections" ("id", "library_id", "name", "name_sort", "section_type", "language", "agent", "scanner", "user_thumb_url", "user_art_url", "user_theme_music_url", "public", "created_at", "updated_at", "scanned_at", "display_secondary_level", "user_fields", "query_xml", "query_type", "uuid", "changed_at", "content_changed_at") VALUES
-('10', NULL, 'Music', '', 8, 'en', 'tv.plex.agents.music', 'Plex Music', '', '', '', NULL, '2017-11-30 03:46:04', '2020-06-24 09:38:35', '2020-06-24 09:35:25', NULL, 'pr%3Ahidden=1&pr%3ArespectTags=1&pv%3AfirstLoudnessScan=0&pv%3AlastAddedAt=1592984113', '', NULL, '68dd5a9f-b3eb-4439-8ade-06683a4f5cf9', '45659387', '45659199'),
-('12', NULL, '4K - Movies', '', 1, 'en', 'com.plexapp.agents.imdb', 'Plex Movie Scanner', '', '', '', NULL, '2018-05-06 01:57:32', '2020-06-24 09:32:38', '2020-06-24 09:31:42', NULL, 'pr%3AcollectionMode=1&pr%3AenableBIFGeneration=0&pr%3Ahidden=1&pv%3AlastAddedAt=1592885056', '', NULL, '1820f866-ca5f-4732-84d7-705f799bce22', '45659148', '47045075');
-`,
+			sql:  []string{"test_data/libraries_data_2.sql"},
 			size: 4,
 			want: []Library{
 				{
@@ -104,17 +103,7 @@ INSERT INTO "library_sections" ("id", "library_id", "name", "name_sort", "sectio
 
 	for _, tc := range tests {
 		// prepare
-		if tc.schema != "" {
-			if _, err := store.db.Exec(tc.schema); err != nil {
-				t.Fatalf("Error creating test schema: %v", err)
-			}
-		}
-
-		if tc.data != "" {
-			if _, err := store.db.Exec(tc.data); err != nil {
-				t.Fatalf("Error inserting test data: %v", err)
-			}
-		}
+		setupDatabase(t, store, tc.sql)
 
 		// test
 		libraries, err := store.Libraries()

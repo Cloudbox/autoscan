@@ -2,8 +2,7 @@ package autoscan
 
 import (
 	"net/http"
-	"path"
-	"strings"
+	"regexp"
 )
 
 // A Scan is at the core of Autoscan.
@@ -11,7 +10,9 @@ import (
 //
 // The Scan is used across Triggers, Targets and the Processor.
 type Scan struct {
-	Path     string
+	Folder   string
+	File     string
+	Size     int64
 	Priority int
 	Metadata Metadata
 }
@@ -23,26 +24,6 @@ type Scan struct {
 type Metadata struct {
 	Provider string
 	ID       string
-}
-
-// BaseConfig defines the base config all Triggers and Targets MUST support.
-type BaseConfig struct {
-	AddPrefix   string `yaml:"addPrefix"`
-	StripPrefix string `yaml:"stripPrefix"`
-}
-
-// TriggerConfig extends the BaseConfig and adds Trigger-specific fields.
-type TriggerConfig struct {
-	BaseConfig `yaml:",inline"`
-	Priority   int `yaml:"priority"`
-}
-
-// HTTPTriggerConfig extends the TriggerConfig and adds HTTP-related fields.
-type HTTPTriggerConfig struct {
-	TriggerConfig `yaml:",inline"`
-
-	// Name MUST be used by the router to separate instances of the same trigger.
-	Name string `yaml:"name"`
 }
 
 // A Trigger pushes new Scans to the given channel.
@@ -75,14 +56,30 @@ const (
 	IMDb = "imdb"
 )
 
-// AddPrefix adds the specified prefix to the given path.
-// If the prefix does not start with the slash, it gets added.
-func AddPrefix(prefix string, p string) string {
-	return path.Join("/", prefix, p)
+type Rewrite struct {
+	From string `yaml:"from"`
+	To   string `yaml:"to"`
 }
 
-// StripPrefix removes the specified prefix from the given path.
-// A slash at the end of the prefix will be ignored.
-func StripPrefix(prefix string, p string) string {
-	return path.Join("/", strings.TrimPrefix(p, prefix))
+type Rewriter func(string) string
+
+func NewRewriter(r Rewrite) (Rewriter, error) {
+	if r.From == "" || r.To == "" {
+		rewriter := func(input string) string {
+			return input
+		}
+
+		return rewriter, nil
+	}
+
+	re, err := regexp.Compile(r.From)
+	if err != nil {
+		return nil, err
+	}
+
+	rewriter := func(input string) string {
+		return re.ReplaceAllString(input, r.To)
+	}
+
+	return rewriter, nil
 }

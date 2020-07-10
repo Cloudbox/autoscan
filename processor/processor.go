@@ -28,7 +28,7 @@ func (p *Processor) ProcessTriggers(scans chan autoscan.Scan) {
 		fmt.Printf("%+v\n", scan)
 
 		// write to database
-		if err := p.store.addScan(scan); err != nil {
+		if err := p.store.AddScan(scan); err != nil {
 			panic(err)
 		}
 	}

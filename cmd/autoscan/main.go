@@ -52,12 +52,18 @@ func main() {
 	}
 
 	for _, t := range c.Triggers.Radarr {
-		trigger := radarr.New(t)
+		trigger, err := radarr.New(t)
+		if err != nil {
+			panic(err)
+		}
 		mux.Handle("/triggers/"+t.Name, trigger(scans))
 	}
 
 	for _, t := range c.Triggers.Sonarr {
-		trigger := sonarr.New(t)
+		trigger, err := sonarr.New(t)
+		if err != nil {
+			panic(err)
+		}
 		mux.Handle("/triggers/"+t.Name, trigger(scans))
 	}
 

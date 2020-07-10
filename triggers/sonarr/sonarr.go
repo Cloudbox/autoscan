@@ -3,26 +3,43 @@ package sonarr
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 
 	"github.com/cloudbox/autoscan"
 )
 
-// New creates an autoscan-compatible HTTP Trigger for Sonarr webhooks.
-func New(c Config) autoscan.HTTPTrigger {
-	return func(scans chan autoscan.Scan) http.Handler {
-		return &handler{config: c, scans: scans}
-	}
+type Config struct {
+	Name     string           `yaml:"name"`
+	Priority int              `yaml:"priority"`
+	Rewrite  autoscan.Rewrite `yaml:"rewrite"`
 }
 
-type Config struct {
-	autoscan.HTTPTriggerConfig `yaml:",inline"`
+// New creates an autoscan-compatible HTTP Trigger for Sonarr webhooks.
+func New(c Config) (trigger autoscan.HTTPTrigger, err error) {
+	rewriter, err := autoscan.NewRewriter(c.Rewrite)
+	if err != nil {
+		return
+	}
+
+	trigger = func(scans chan autoscan.Scan) http.Handler {
+		return &handler{
+			priority: c.Priority,
+			rewrite:  rewriter,
+			scans:    scans,
+			stat:     os.Stat,
+		}
+	}
+
+	return
 }
 
 type handler struct {
-	config Config
-	scans  chan autoscan.Scan
+	priority int
+	rewrite  autoscan.Rewriter
+	scans    chan autoscan.Scan
+	stat     func(string) (os.FileInfo, error)
 }
 
 type sonarrEvent struct {
@@ -59,19 +76,21 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Rewrite the path based on the provided AddPrefix and StripPrefix values.
-	filePath := path.Join(event.Series.Path, event.File.RelativePath)
-	if h.config.StripPrefix != "" {
-		filePath = autoscan.StripPrefix(h.config.StripPrefix, filePath)
-	}
+	// Rewrite the path based on the provided rewriter.
+	fullPath := h.rewrite(path.Join(event.Series.Path, event.File.RelativePath))
 
-	if h.config.AddPrefix != "" {
-		filePath = autoscan.AddPrefix(h.config.AddPrefix, filePath)
+	// Retrieve the size of the file.
+	size, err := fileSize(fullPath)
+	if err != nil {
+		rw.WriteHeader(404)
+		return
 	}
 
 	scan := autoscan.Scan{
-		Path:     filePath,
-		Priority: h.config.Priority,
+		File:     path.Base(fullPath),
+		Folder:   path.Dir(fullPath),
+		Priority: h.priority,
+		Size:     size,
 	}
 
 	if event.Series.TvdbID != 0 {
@@ -80,4 +99,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	h.scans <- scan
+}
+
+var fileSize func(string) (int64, error)
+
+func init() {
+	fileSize = func(name string) (int64, error) {
+		info, err := os.Stat(name)
+		if err != nil {
+			return 0, err
+		}
+
+		return info.Size(), nil
+	}
 }

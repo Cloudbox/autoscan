@@ -1,10 +1,10 @@
 package plex
 
 import (
+	"errors"
 	"io/ioutil"
 	"reflect"
 	"testing"
-
 	// database driver
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -37,6 +37,68 @@ func setupDatabase(t *testing.T, ds *Datastore, paths []string) {
 
 		if _, err := ds.db.Exec(string(b)); err != nil {
 			t.Fatalf("Could not exec database test file data %q: %v", path, err)
+		}
+	}
+}
+
+func TestDatastore_Media(t *testing.T) {
+	type expect struct {
+		item *MediaPart
+		err  error
+	}
+	type test struct {
+		sql  []string
+		item string
+		want expect
+	}
+
+	tests := []test{
+		{
+			sql:  []string{"test_data/media_schema.sql", "test_data/media_data_1.sql"},
+			item: "/data/Movies/10 Cloverfield Lane (2016)/10 Cloverfield Lane (2016) - Remux-1080p.x264.TrueHD-SiDMUX.mkv",
+			want: expect{
+				item: &MediaPart{
+					ID:          83073,
+					DirectoryID: 5,
+					File:        "/data/Movies/10 Cloverfield Lane (2016)/10 Cloverfield Lane (2016) - Remux-1080p.x264.TrueHD-SiDMUX.mkv",
+					Size:        24116451791,
+				},
+				err: nil,
+			},
+		},
+		{
+			item: "no such file.mkv",
+			want: expect{
+				err: ErrDatabaseRowNotFound,
+			},
+		},
+	}
+
+	store := setupTest(t)
+
+	for _, tc := range tests {
+		// prepare
+		setupDatabase(t, store, tc.sql)
+
+		mp, err := store.MediaPartByFile(tc.item)
+		if err != nil {
+			if errors.Is(err, tc.want.err) {
+				// expected this error
+				continue
+			} else if tc.want.err != nil {
+				// unexpected error
+				t.Log(tc.want.err)
+				t.Log(err)
+				t.Fatal("Error does not match")
+			}
+
+			t.Fatalf("Error selecting media part: %v", err)
+		}
+
+		if !reflect.DeepEqual(mp, tc.want.item) {
+			t.Log(mp)
+			t.Log(tc.want)
+			t.Errorf("MediaPart does not match")
 		}
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
 	// database driver
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -23,6 +22,7 @@ type Datastore struct {
 }
 
 var ErrDatabase = errors.New("datastore: database related error")
+var ErrDatabaseRowNotFound = errors.New("datastore: row not found")
 
 type LibraryType int
 
@@ -60,6 +60,31 @@ func (d *Datastore) Libraries() ([]Library, error) {
 	return libraries, nil
 }
 
+type MediaPart struct {
+	ID          int
+	DirectoryID int
+	File        string
+	Size        uint64
+}
+
+func (d *Datastore) MediaPartByFile(path string) (*MediaPart, error) {
+	mp := new(MediaPart)
+
+	row := d.db.QueryRow(sqlSelectMediaPart, path)
+	err := row.Scan(&mp.ID, &mp.DirectoryID, &mp.File, &mp.Size)
+
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, fmt.Errorf("scan media part row: %w", ErrDatabaseRowNotFound)
+	case err != nil:
+		return nil, fmt.Errorf("scan media part row: %w", ErrDatabase)
+	default:
+		break
+	}
+
+	return mp, nil
+}
+
 const (
 	sqlSelectLibraries = `
 SELECT
@@ -70,5 +95,16 @@ SELECT
 FROM
     library_sections ls
     JOIN section_locations sl ON sl.library_section_id = ls.id
+`
+	sqlSelectMediaPart = `
+SELECT
+    mp.id,
+    mp.directory_id,
+    mp.file,
+    mp.size
+FROM
+    media_parts mp
+WHERE
+    mp.file = $1
 `
 )

@@ -1,0 +1,11 @@
+{
+  "eventType": "Download",
+  "isUpgrade": false,
+  "episodeFile": {
+    "relativePath": "Season 1/Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv"
+  },
+  "series": {
+    "tvdbId": 296762,
+    "path": "/TV/Westworld"
+  }
+}

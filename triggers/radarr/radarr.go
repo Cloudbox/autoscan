@@ -23,11 +23,11 @@ func New(c Config) (trigger autoscan.HTTPTrigger, err error) {
 		return
 	}
 
-	trigger = func(scans chan autoscan.Scan) http.Handler {
+	trigger = func(callback autoscan.ProcessorFunc) http.Handler {
 		return &handler{
+			callback: callback,
 			priority: c.Priority,
 			rewrite:  rewriter,
-			scans:    scans,
 		}
 	}
 
@@ -37,7 +37,7 @@ func New(c Config) (trigger autoscan.HTTPTrigger, err error) {
 type handler struct {
 	priority int
 	rewrite  autoscan.Rewriter
-	scans    chan autoscan.Scan
+	callback autoscan.ProcessorFunc
 }
 
 type radarrEvent struct {
@@ -102,7 +102,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		scan.Metadata.ID = strconv.Itoa(event.Details.TmdbID)
 	}
 
-	h.scans <- scan
+	err = h.callback(scan)
+	if err != nil {
+		rw.WriteHeader(500)
+		return
+	}
 }
 
 var fileSize func(string) (int64, error)

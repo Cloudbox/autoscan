@@ -26,20 +26,15 @@ type Metadata struct {
 	ID       string
 }
 
-// A Trigger pushes new Scans to the given channel.
-//
-// The Trigger should be used for background processes
-// which fetch new events every x number of seconds.
-//
-// A Trigger MUST translate the original event into a Scan
-// and push it to the channel.
-type Trigger func(chan Scan)
+type ProcessorFunc func(Scan) error
+
+type Trigger func(ProcessorFunc)
 
 // A HTTPTrigger is a Trigger which does not run in the background,
 // and instead returns a http.Handler.
 //
 // This http.Handler should be added to the autoscan router in cmd/autoscan.
-type HTTPTrigger func(chan Scan) http.Handler
+type HTTPTrigger func(ProcessorFunc) http.Handler
 
 // A Target receives a Scan from the Processor and translates the Scan
 // into a format understood by the target.

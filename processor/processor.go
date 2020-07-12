@@ -1,8 +1,6 @@
 package processor
 
 import (
-	"fmt"
-
 	"github.com/cloudbox/autoscan"
 )
 
@@ -12,26 +10,18 @@ func New(dbPath string) (*Processor, error) {
 		return nil, err
 	}
 
-	return &Processor{store: store}, nil
+	proc := &Processor{
+		store: store,
+	}
+	return proc, nil
 }
 
 type Processor struct {
 	store *datastore
 }
 
-func (p *Processor) ProcessTriggers(scans chan autoscan.Scan) {
-	for {
-		scan, ok := <-scans
-		if !ok {
-			break
-		}
-		fmt.Printf("%+v\n", scan)
-
-		// write to database
-		if err := p.store.AddScan(scan); err != nil {
-			panic(err)
-		}
-	}
+func (p *Processor) AddScan(scan autoscan.Scan) error {
+	return p.store.AddScan(scan)
 }
 
 func (p *Processor) ProcessTargets(targets []autoscan.Target) {

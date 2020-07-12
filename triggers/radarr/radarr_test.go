@@ -1,6 +1,7 @@
 package radarr
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,36 +11,6 @@ import (
 	"github.com/cloudbox/autoscan"
 )
 
-func callHandler(t *testing.T, config Config, fixture string) (*http.Response, *autoscan.Scan) {
-	t.Helper()
-
-	trigger, err := New(config)
-	if err != nil {
-		t.Fatalf("Could not create Radarr Trigger: %v", err)
-	}
-
-	scans := make(chan autoscan.Scan, 1)
-	server := httptest.NewServer(trigger(scans))
-	defer server.Close()
-
-	request, err := os.Open(fixture)
-	if err != nil {
-		t.Fatalf("Could not open the fixture: %s", fixture)
-	}
-
-	res, err := http.Post(server.URL, "application/json", request)
-	if err != nil {
-		t.Fatalf("Request failed: %v", err)
-	}
-
-	select {
-	case scan := <-scans:
-		return res, &scan
-	default:
-		return res, nil
-	}
-}
-
 func TestHandler(t *testing.T) {
 	type Given struct {
 		Config  Config
@@ -48,7 +19,7 @@ func TestHandler(t *testing.T) {
 	}
 
 	type Expected struct {
-		Scan       *autoscan.Scan
+		Scan       autoscan.Scan
 		StatusCode int
 	}
 
@@ -77,7 +48,7 @@ func TestHandler(t *testing.T) {
 			},
 			Expected{
 				StatusCode: 200,
-				Scan: &autoscan.Scan{
+				Scan: autoscan.Scan{
 					File:   "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
 					Folder: "/mnt/unionfs/Media/Movies/Interstellar (2014)",
 					Metadata: autoscan.Metadata{
@@ -105,7 +76,7 @@ func TestHandler(t *testing.T) {
 			},
 			Expected{
 				StatusCode: 200,
-				Scan: &autoscan.Scan{
+				Scan: autoscan.Scan{
 					File:   "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
 					Folder: "/Media/Movies/Parasite (2019)",
 					Metadata: autoscan.Metadata{
@@ -145,16 +116,38 @@ func TestHandler(t *testing.T) {
 				return tc.Given.Size, nil
 			}
 
-			res, scan := callHandler(t, tc.Given.Config, tc.Given.Fixture)
-			defer res.Body.Close()
+			callback := func(scan autoscan.Scan) error {
+				if !reflect.DeepEqual(tc.Expected.Scan, scan) {
+					t.Log(scan)
+					t.Log(tc.Expected.Scan)
+					t.Errorf("Scans do not equal")
+					return errors.New("Scans do not equal")
+				}
 
-			if res.StatusCode != tc.Expected.StatusCode {
-				t.Errorf("Status codes do not match: %d vs %d", res.StatusCode, tc.Expected.StatusCode)
+				return nil
 			}
 
-			if !reflect.DeepEqual(tc.Expected.Scan, scan) {
-				t.Log(scan)
-				t.Errorf("Scans do not equal")
+			trigger, err := New(tc.Given.Config)
+			if err != nil {
+				t.Fatalf("Could not create Radarr Trigger: %v", err)
+			}
+
+			server := httptest.NewServer(trigger(callback))
+			defer server.Close()
+
+			request, err := os.Open(tc.Given.Fixture)
+			if err != nil {
+				t.Fatalf("Could not open the fixture: %s", tc.Given.Fixture)
+			}
+
+			res, err := http.Post(server.URL, "application/json", request)
+			if err != nil {
+				t.Fatalf("Request failed: %v", err)
+			}
+
+			defer res.Body.Close()
+			if res.StatusCode != tc.Expected.StatusCode {
+				t.Errorf("Status codes do not match: %d vs %d", res.StatusCode, tc.Expected.StatusCode)
 			}
 		})
 	}

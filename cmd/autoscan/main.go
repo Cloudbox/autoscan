@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
@@ -30,7 +29,6 @@ func main() {
 	// TODO: show this via a version command instead?
 	fmt.Printf("Version: %s (%s@%s)\n", Version, GitCommit, Timestamp)
 
-	scans := make(chan autoscan.Scan, 100)
 	mux := http.NewServeMux()
 
 	proc, err := processor.New("autoscan.db")
@@ -56,7 +54,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(scans))
+		mux.Handle("/triggers/"+t.Name, trigger(proc.AddScan))
 	}
 
 	for _, t := range c.Triggers.Sonarr {
@@ -64,10 +62,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(scans))
+		mux.Handle("/triggers/"+t.Name, trigger(proc.AddScan))
 	}
-
-	go proc.ProcessTriggers(scans)
 
 	if err := http.ListenAndServe(":3000", mux); err != nil {
 		panic(err)

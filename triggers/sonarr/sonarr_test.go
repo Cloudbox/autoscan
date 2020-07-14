@@ -19,7 +19,7 @@ func TestHandler(t *testing.T) {
 	}
 
 	type Expected struct {
-		Scan       autoscan.Scan
+		Scans      []autoscan.Scan
 		StatusCode int
 	}
 
@@ -48,15 +48,17 @@ func TestHandler(t *testing.T) {
 			},
 			Expected{
 				StatusCode: 200,
-				Scan: autoscan.Scan{
-					File:   "Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv",
-					Folder: "/mnt/unionfs/Media/TV/Westworld/Season 1",
-					Metadata: autoscan.Metadata{
-						ID:       "296762",
-						Provider: autoscan.TVDb,
+				Scans: []autoscan.Scan{
+					{
+						File:   "Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv",
+						Folder: "/mnt/unionfs/Media/TV/Westworld/Season 1",
+						Metadata: autoscan.Metadata{
+							ID:       "296762",
+							Provider: autoscan.TVDb,
+						},
+						Priority: 5,
+						Size:     38943275,
 					},
-					Priority: 5,
-					Size:     38943275,
 				},
 			},
 		},
@@ -88,10 +90,10 @@ func TestHandler(t *testing.T) {
 				return tc.Given.Size, nil
 			}
 
-			callback := func(scan autoscan.Scan) error {
-				if !reflect.DeepEqual(tc.Expected.Scan, scan) {
-					t.Log(scan)
-					t.Log(tc.Expected.Scan)
+			callback := func(scans ...autoscan.Scan) error {
+				if !reflect.DeepEqual(tc.Expected.Scans, scans) {
+					t.Log(scans)
+					t.Log(tc.Expected.Scans)
 					t.Errorf("Scans do not equal")
 					return errors.New("Scans do not equal")
 				}

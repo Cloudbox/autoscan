@@ -20,8 +20,8 @@ type Processor struct {
 	store *datastore
 }
 
-func (p *Processor) AddScan(scan autoscan.Scan) error {
-	return p.store.AddScan(scan)
+func (p *Processor) AddScans(scans ...autoscan.Scan) error {
+	return p.store.AddScans(scans)
 }
 
 func (p *Processor) ProcessTargets(targets []autoscan.Target) {

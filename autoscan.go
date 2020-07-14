@@ -26,7 +26,7 @@ type Metadata struct {
 	ID       string
 }
 
-type ProcessorFunc func(Scan) error
+type ProcessorFunc func(...Scan) error
 
 type Trigger func(ProcessorFunc)
 

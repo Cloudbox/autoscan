@@ -19,7 +19,7 @@ func TestHandler(t *testing.T) {
 	}
 
 	type Expected struct {
-		Scan       autoscan.Scan
+		Scans      []autoscan.Scan
 		StatusCode int
 	}
 
@@ -48,15 +48,17 @@ func TestHandler(t *testing.T) {
 			},
 			Expected{
 				StatusCode: 200,
-				Scan: autoscan.Scan{
-					File:   "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
-					Folder: "/mnt/unionfs/Media/Movies/Interstellar (2014)",
-					Metadata: autoscan.Metadata{
-						ID:       "tt0816692",
-						Provider: autoscan.IMDb,
+				Scans: []autoscan.Scan{
+					{
+						File:   "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
+						Folder: "/mnt/unionfs/Media/Movies/Interstellar (2014)",
+						Metadata: autoscan.Metadata{
+							ID:       "tt0816692",
+							Provider: autoscan.IMDb,
+						},
+						Priority: 5,
+						Size:     157336,
 					},
-					Priority: 5,
-					Size:     157336,
 				},
 			},
 		},
@@ -76,15 +78,17 @@ func TestHandler(t *testing.T) {
 			},
 			Expected{
 				StatusCode: 200,
-				Scan: autoscan.Scan{
-					File:   "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
-					Folder: "/Media/Movies/Parasite (2019)",
-					Metadata: autoscan.Metadata{
-						ID:       "496243",
-						Provider: autoscan.TMDb,
+				Scans: []autoscan.Scan{
+					{
+						File:   "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
+						Folder: "/Media/Movies/Parasite (2019)",
+						Metadata: autoscan.Metadata{
+							ID:       "496243",
+							Provider: autoscan.TMDb,
+						},
+						Priority: 3,
+						Size:     200000,
 					},
-					Priority: 3,
-					Size:     200000,
 				},
 			},
 		},
@@ -116,10 +120,10 @@ func TestHandler(t *testing.T) {
 				return tc.Given.Size, nil
 			}
 
-			callback := func(scan autoscan.Scan) error {
-				if !reflect.DeepEqual(tc.Expected.Scan, scan) {
-					t.Log(scan)
-					t.Log(tc.Expected.Scan)
+			callback := func(scans ...autoscan.Scan) error {
+				if !reflect.DeepEqual(tc.Expected.Scans, scans) {
+					t.Log(scans)
+					t.Log(tc.Expected.Scans)
 					t.Errorf("Scans do not equal")
 					return errors.New("Scans do not equal")
 				}

@@ -34,27 +34,35 @@ func newDatastore(path string) (*datastore, error) {
 	return store, nil
 }
 
-func (store *datastore) AddScans(scans []autoscan.Scan) (err error) {
+func (store *datastore) AddScans(scans []autoscan.Scan) error {
 	tx, err := store.db.Begin()
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, scan := range scans {
 		err = store.addScan(tx, scan)
 		if err != nil {
-			tx.Rollback()
-			return
+			rberr := tx.Rollback()
+			if rberr != nil {
+				panic(rberr)
+			}
+
+			return err
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
-		return
+		rberr := tx.Rollback()
+		if rberr != nil {
+			panic(rberr)
+		}
+
+		return err
 	}
 
-	return
+	return nil
 }
 
 func (store *datastore) addScan(tx *sql.Tx, scan autoscan.Scan) error {

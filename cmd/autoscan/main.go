@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
+	"github.com/cloudbox/autoscan/targets/test"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 	"gopkg.in/yaml.v2"
@@ -54,7 +57,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.AddScan))
+		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
 
 	for _, t := range c.Triggers.Sonarr {
@@ -62,10 +65,25 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.AddScan))
+		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
 
-	if err := http.ListenAndServe(":3000", mux); err != nil {
-		panic(err)
+	go func() {
+		if err := http.ListenAndServe(":3000", mux); err != nil {
+			panic(err)
+		}
+	}()
+
+	targets := []autoscan.Target{
+		test.New(),
+	}
+
+	for {
+		err = proc.Process(targets)
+		if err != nil {
+			panic(err)
+		}
+
+		time.Sleep(1 * time.Second)
 	}
 }

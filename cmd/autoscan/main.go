@@ -79,7 +79,11 @@ func main() {
 	}
 
 	for {
-		proc.Process(targets)
+		err = proc.Process(targets)
+		if err != nil {
+			panic(err)
+		}
+
 		time.Sleep(1 * time.Second)
 	}
 }

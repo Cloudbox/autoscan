@@ -33,6 +33,7 @@ func callTargets(targets []autoscan.Target, scans []autoscan.Scan) error {
 	g := new(errgroup.Group)
 
 	for _, target := range targets {
+		target := target
 		g.Go(func() error {
 			return target.Scan(scans)
 		})

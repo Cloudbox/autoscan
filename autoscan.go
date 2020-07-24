@@ -14,6 +14,7 @@ type Scan struct {
 	File     string
 	Size     int64
 	Priority int
+	Retries  int
 	Metadata Metadata
 }
 
@@ -38,7 +39,9 @@ type HTTPTrigger func(ProcessorFunc) http.Handler
 
 // A Target receives a Scan from the Processor and translates the Scan
 // into a format understood by the target.
-type Target func(Scan)
+type Target interface {
+	Scan([]Scan) error
+}
 
 const (
 	// TVDb provider for use in autoscan.Metadata

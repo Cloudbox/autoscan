@@ -54,7 +54,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.AddScans))
+		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
 
 	for _, t := range c.Triggers.Sonarr {
@@ -62,7 +62,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.AddScans))
+		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
 
 	if err := http.ListenAndServe(":3000", mux); err != nil {

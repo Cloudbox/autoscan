@@ -109,15 +109,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var fileSize func(string) (int64, error)
-
-func init() {
-	fileSize = func(name string) (int64, error) {
-		info, err := os.Stat(name)
-		if err != nil {
-			return 0, err
-		}
-
-		return info.Size(), nil
+var fileSize = func(name string) (int64, error) {
+	info, err := os.Stat(name)
+	if err != nil {
+		return 0, err
 	}
+
+	return info.Size(), nil
 }

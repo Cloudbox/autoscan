@@ -2,6 +2,7 @@ package plex
 
 import (
 	"github.com/cloudbox/autoscan"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -12,9 +13,12 @@ type Config struct {
 }
 
 type Target struct {
-	url   string
-	token string
-	store *Datastore
+	url       string
+	token     string
+	store     *Datastore
+	libraries []Library
+
+	log zerolog.Logger
 }
 
 func New(c Config) (*Target, error) {
@@ -23,15 +27,35 @@ func New(c Config) (*Target, error) {
 		return nil, err
 	}
 
+	libraries, err := store.Libraries()
+	if err != nil {
+		return nil, err
+	}
+
+	lc := log.With().
+		Str("target", "plex").
+		Str("url", c.URL).Logger()
+
+	lc.Debug().
+		Msgf("Retrieved %d libraries: %+v", len(libraries), libraries)
+
 	return &Target{
-		url:   c.URL,
-		token: c.Token,
-		store: store,
+		url:       c.URL,
+		token:     c.Token,
+		store:     store,
+		libraries: libraries,
+
+		log: lc,
 	}, nil
 }
 
 func (t Target) Scan(scans []autoscan.Scan) error {
-	log.Info().
+	t.log.Info().
 		Msgf("Scanning: %+v", scans)
 	return nil
+}
+
+func (t Target) Available() bool {
+	// check if target is available
+	return false
 }

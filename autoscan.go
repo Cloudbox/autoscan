@@ -41,6 +41,7 @@ type HTTPTrigger func(ProcessorFunc) http.Handler
 // into a format understood by the target.
 type Target interface {
 	Scan([]Scan) error
+	Available() bool
 }
 
 const (

@@ -1,87 +1,65 @@
 package autoscan
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestAddPrefix(t *testing.T) {
+func TestRewriter(t *testing.T) {
 	type Test struct {
 		Name     string
-		Prefix   string
-		Path     string
+		From     string
+		To       string
+		Input    string
 		Expected string
 	}
 
 	var testCases = []Test{
 		{
-			Name:     "Normal case",
-			Prefix:   "/mnt/unionfs",
-			Path:     "/Media/Movies",
-			Expected: "/mnt/unionfs/Media/Movies",
+			Name:     "One parameter with wildcard",
+			From:     "/mnt/unionfs/Media/*",
+			To:       "/data/$1",
+			Input:    "/mnt/unionfs/Media/Movies/Example Movie/movie.mkv",
+			Expected: "/data/Movies/Example Movie/movie.mkv",
 		},
 		{
-			Name:     "Slash at the end of the path is dropped",
-			Prefix:   "/mnt/",
-			Path:     "media/movies/",
-			Expected: "/mnt/media/movies",
+			Name:     "One parameter with glob thingy",
+			From:     "/Media/(.*)",
+			To:       "/data/$1",
+			Input:    "/Media/Movies/test.mkv",
+			Expected: "/data/Movies/test.mkv",
 		},
 		{
-			Name:     "Empty prefix does not affect path",
-			Prefix:   "",
-			Path:     "/media/movies",
-			Expected: "/media/movies",
+			Name:     "No wildcard",
+			From:     "^/Media/",
+			To:       "/$1",
+			Input:    "/Media/whatever",
+			Expected: "/whatever",
 		},
 		{
-			Name:     "Prefix without slash is rewritten to include the slash",
-			Prefix:   "mnt/unionfs",
-			Path:     "/media/movies",
-			Expected: "/mnt/unionfs/media/movies",
+			Name:     "Unicode (PAS issue #73)",
+			From:     "/media/b33f/saitoh183/private/*",
+			To:       "/$1",
+			Input:    "/media/b33f/saitoh183/private/Videos/FrenchTV/L'échappée/Season 03",
+			Expected: "/Videos/FrenchTV/L'échappée/Season 03",
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.Expected, func(t *testing.T) {
-			result := AddPrefix(tc.Prefix, tc.Path)
+		t.Run(tc.Name, func(t *testing.T) {
+			rewriter, err := NewRewriter(Rewrite{
+				From: tc.From,
+				To:   tc.To,
+			})
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			result := rewriter(tc.Input)
 			if result != tc.Expected {
 				t.Errorf("%s does not equal %s", result, tc.Expected)
 			}
 		})
 	}
-}
 
-func TestStripPrefix(t *testing.T) {
-	type Test struct {
-		Name     string
-		Prefix   string
-		Path     string
-		Expected string
-	}
-
-	var testCases = []Test{
-		{
-			Name:     "Normal case",
-			Prefix:   "/mnt/unionfs",
-			Path:     "/mnt/unionfs/Movies/movie",
-			Expected: "/Movies/movie",
-		},
-		{
-			Name:     "Slash is added in front",
-			Prefix:   "/hello/",
-			Path:     "/hello/world",
-			Expected: "/world",
-		},
-		{
-			Name:     "Empty prefix does not affect path",
-			Prefix:   "",
-			Path:     "/hello/world",
-			Expected: "/hello/world",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.Expected, func(t *testing.T) {
-			result := StripPrefix(tc.Prefix, tc.Path)
-			if result != tc.Expected {
-				t.Errorf("%s does not equal %s", result, tc.Expected)
-			}
-		})
-	}
 }

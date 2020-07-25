@@ -1,0 +1,15 @@
+{
+  "eventType": "Download",
+  "isUpgrade": false,
+  "remoteMovie": {
+    "tmdbId": 496243,
+    "title": "Gisaengchung",
+    "year": 2019
+  },
+  "movieFile": {
+    "relativePath": "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv"
+  },
+  "movie": {
+    "folderPath": "/data/Movies/Parasite (2019)"
+  }
+}

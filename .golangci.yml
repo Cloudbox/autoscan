@@ -6,7 +6,7 @@ linters:
     - bodyclose
 #    - goimports
     - unconvert
-    - unparam
+#    - unparam
     - scopelint
     - dupl
     - interfacer

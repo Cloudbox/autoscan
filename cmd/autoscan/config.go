@@ -1,38 +1,31 @@
-package autoscan
+package main
 
 import (
+	"github.com/kirsle/configdir"
 	"golang.org/x/sys/unix"
 	"os"
 	"path/filepath"
 )
 
-func GetDefaultConfigPath() string {
+func defaultConfigPath() string {
 	// get binary path
-	bp := getCurrentBinaryPath()
+	bp := getBinaryPath()
 	if dirIsWriteable(bp) == nil {
 		return bp
 	}
 
 	// binary path is not write-able, use alternative path
-	uhp, err := os.UserHomeDir()
-	if err != nil {
-		panic("failed to determine current user home directory")
-	}
-
-	// set autoscan path inside user home dir
-	chp := filepath.Join(uhp, ".config", "autoscan")
-	if _, err := os.Stat(chp); os.IsNotExist(err) {
-		if e := os.MkdirAll(chp, os.ModePerm); e != nil {
+	cp := configdir.LocalConfig("autoscan")
+	if _, err := os.Stat(cp); os.IsNotExist(err) {
+		if e := os.MkdirAll(cp, os.ModePerm); e != nil {
 			panic("failed to create autoscan config directory")
 		}
 	}
 
-	return chp
+	return cp
 }
 
-/* Private */
-
-func getCurrentBinaryPath() string {
+func getBinaryPath() string {
 	// get current binary path
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {

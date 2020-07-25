@@ -64,7 +64,7 @@ type MediaPart struct {
 	ID          int
 	DirectoryID int
 	File        string
-	Size        int64
+	Size        uint64
 }
 
 func (d *Datastore) MediaPartByFile(path string) (*MediaPart, error) {

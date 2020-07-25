@@ -12,7 +12,7 @@ import (
 type Scan struct {
 	Folder   string
 	File     string
-	Size     int64
+	Size     uint64
 	Priority int
 	Retries  int
 	Metadata Metadata

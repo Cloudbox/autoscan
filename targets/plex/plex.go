@@ -1,7 +1,6 @@
 package plex
 
 import (
-	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -47,15 +46,4 @@ func New(c Config) (*Target, error) {
 
 		log: lc,
 	}, nil
-}
-
-func (t Target) Scan(scans []autoscan.Scan) error {
-	t.log.Info().
-		Msgf("Scanning: %+v", scans)
-	return nil
-}
-
-func (t Target) Available() bool {
-	// check if target is available
-	return false
 }

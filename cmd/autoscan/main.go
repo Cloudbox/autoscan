@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
 	"io"
 	"net/http"
 	"os"
@@ -13,11 +15,9 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
-	"github.com/cloudbox/autoscan/targets/test"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 	"github.com/natefinch/lumberjack"
-	"gopkg.in/yaml.v2"
 )
 
 type config struct {
@@ -25,6 +25,9 @@ type config struct {
 		Radarr []radarr.Config `yaml:"radarr"`
 		Sonarr []sonarr.Config `yaml:"sonarr"`
 	} `yaml:"triggers"`
+	Targets struct {
+		Plex []plex.Config `yaml:"plex"`
+	} `yaml:"targets"`
 }
 
 var (
@@ -111,12 +114,16 @@ func main() {
 
 	proc, err := processor.New(cli.Database)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed initialising processor")
+		log.Fatal().
+			Err(err).
+			Msg("Failed initialising processor")
 	}
 
 	file, err := os.Open(cli.Config)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed opening config")
+		log.Fatal().
+			Err(err).
+			Msg("Failed opening config")
 	}
 	defer file.Close()
 
@@ -125,9 +132,12 @@ func main() {
 	decoder.SetStrict(true)
 	err = decoder.Decode(c)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed decoding config")
+		log.Fatal().
+			Err(err).
+			Msg("Failed decoding config")
 	}
 
+	// triggers
 	for _, t := range c.Triggers.Radarr {
 		trigger, err := radarr.New(t)
 		if err != nil {
@@ -150,14 +160,39 @@ func main() {
 		}
 	}()
 
-	targets := []autoscan.Target{
-		test.New(),
+	log.Info().
+		Int("sonarr", len(c.Triggers.Sonarr)).
+		Int("radarr", len(c.Triggers.Radarr)).
+		Msg("Initialised triggers")
+
+	// targets
+	targets := make([]autoscan.Target, 0)
+
+	if len(c.Targets.Plex) > 0 {
+		for _, t := range c.Targets.Plex {
+			targets = append(targets, plex.New(t))
+		}
+
+		log.Info().
+			Str("target", "plex").
+			Int("count", len(c.Targets.Plex)).
+			Msg("Initialised targets")
 	}
+
+	log.Info().
+		Int("plex", len(c.Targets.Plex)).
+		Msg("Initialised targets")
+
+	// processor
+	log.Info().
+		Msg("Processor started")
 
 	for {
 		err = proc.Process(targets)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed processing targets")
+			log.Fatal().
+				Err(err).
+				Msg("Failed processing targets")
 		}
 
 		time.Sleep(1 * time.Second)

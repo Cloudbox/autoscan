@@ -8,7 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func New(path string) (*Datastore, error) {
+func NewDatastore(path string) (*Datastore, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, fmt.Errorf("open: %w", ErrDatabase)

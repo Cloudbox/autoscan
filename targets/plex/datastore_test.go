@@ -12,7 +12,7 @@ import (
 func setupTest(t *testing.T) *Datastore {
 	t.Helper()
 
-	ds, err := New(":memory:")
+	ds, err := NewDatastore(":memory:")
 	if err != nil {
 		t.Fatal("Could not create datastore")
 	}

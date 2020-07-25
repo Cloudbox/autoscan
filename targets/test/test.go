@@ -13,6 +13,6 @@ func (t Target) Scan(scans []autoscan.Scan) error {
 	return nil
 }
 
-func New() Target {
-	return Target{}
+func New() (*Target, error) {
+	return &Target{}, nil
 }

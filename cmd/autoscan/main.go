@@ -141,7 +141,10 @@ func main() {
 	for _, t := range c.Triggers.Radarr {
 		trigger, err := radarr.New(t)
 		if err != nil {
-			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
+			log.Fatal().
+				Err(err).
+				Str("trigger", t.Name).
+				Msg("Failed initialising trigger")
 		}
 		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
@@ -149,14 +152,19 @@ func main() {
 	for _, t := range c.Triggers.Sonarr {
 		trigger, err := sonarr.New(t)
 		if err != nil {
-			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
+			log.Fatal().
+				Err(err).
+				Str("trigger", t.Name).
+				Msg("Failed initialising trigger")
 		}
 		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
 
 	go func() {
 		if err := http.ListenAndServe(":3000", mux); err != nil {
-			log.Fatal().Err(err).Msg("Failed starting web server")
+			log.Fatal().
+				Err(err).
+				Msg("Failed starting web server")
 		}
 	}()
 
@@ -170,13 +178,17 @@ func main() {
 
 	if len(c.Targets.Plex) > 0 {
 		for _, t := range c.Targets.Plex {
-			targets = append(targets, plex.New(t))
-		}
+			tp, err := plex.New(t)
+			if err != nil {
+				log.Fatal().
+					Err(err).
+					Str("target", "plex").
+					Str("url", t.URL).
+					Msg("Failed initialising target")
+			}
 
-		log.Info().
-			Str("target", "plex").
-			Int("count", len(c.Targets.Plex)).
-			Msg("Initialised targets")
+			targets = append(targets, tp)
+		}
 	}
 
 	log.Info().

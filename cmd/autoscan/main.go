@@ -111,7 +111,7 @@ func main() {
 
 	proc, err := processor.New(cli.Database)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed initializing processor")
+		log.Fatal().Err(err).Msg("Failed initialising processor")
 	}
 
 	file, err := os.Open(cli.Config)
@@ -131,7 +131,7 @@ func main() {
 	for _, t := range c.Triggers.Radarr {
 		trigger, err := radarr.New(t)
 		if err != nil {
-			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initializing trigger")
+			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
 		}
 		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
@@ -139,7 +139,7 @@ func main() {
 	for _, t := range c.Triggers.Sonarr {
 		trigger, err := sonarr.New(t)
 		if err != nil {
-			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initializing trigger")
+			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
 		}
 		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}

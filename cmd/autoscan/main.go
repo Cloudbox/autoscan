@@ -38,10 +38,10 @@ var (
 		Globals
 
 		// flags
-		Config    string `type:"path" default:"${config_file}" help:"Config file path"`
-		Database  string `type:"path" default:"${database_file}" help:"Database file path"`
-		Log       string `type:"path" default:"${log_file}" help:"Log file path"`
-		Verbosity int    `type:"counter" default:"0" short:"v" help:"Log level verbosity"`
+		Config    string `type:"path" default:"${config_file}" env:"AUTOSCAN_CONFIG" help:"Config file path"`
+		Database  string `type:"path" default:"${database_file}" env:"AUTOSCAN_DATABASE" help:"Database file path"`
+		Log       string `type:"path" default:"${log_file}" env:"AUTOSCAN_LOG" help:"Log file path"`
+		Verbosity int    `type:"counter" default:"0" short:"v" env:"AUTOSCAN_VERBOSITY" help:"Log level verbosity"`
 	}
 )
 

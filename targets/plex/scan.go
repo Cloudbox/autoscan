@@ -56,7 +56,9 @@ func (t target) Scan(scans []autoscan.Scan) error {
 
 	if !process {
 		// all scan task files existed in target
-		t.log.Debug().Msgf("All trigger files existed within target, skipping for: %+v", scans)
+		t.log.Debug().
+			Interface("scans", scans).
+			Msgf("All trigger files existed within target")
 		return nil
 	}
 

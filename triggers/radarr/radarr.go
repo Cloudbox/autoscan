@@ -2,6 +2,8 @@ package radarr
 
 import (
 	"encoding/json"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"os"
 	"path"
@@ -28,6 +30,9 @@ func New(c Config) (trigger autoscan.HTTPTrigger, err error) {
 			callback: callback,
 			priority: c.Priority,
 			rewrite:  rewriter,
+			log: log.With().
+				Str("trigger", c.Name).
+				Logger(),
 		}
 	}
 
@@ -38,6 +43,8 @@ type handler struct {
 	priority int
 	rewrite  autoscan.Rewriter
 	callback autoscan.ProcessorFunc
+
+	log zerolog.Logger
 }
 
 type radarrEvent struct {
@@ -61,12 +68,24 @@ type radarrEvent struct {
 func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var err error
 
+	rlog := h.log.With().
+		Str("remote", r.RemoteAddr).
+		Logger()
+
 	event := new(radarrEvent)
 	err = json.NewDecoder(r.Body).Decode(event)
 	if err != nil {
+		rlog.Error().
+			Err(err).
+			Msg("Failed decoding request")
+
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	rlog.Debug().
+		Interface("event", event).
+		Msg("Processing request")
 
 	if event.Type == "Test" {
 		return
@@ -83,6 +102,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// Retrieve the size of the file.
 	size, err := fileSize(fullPath)
 	if err != nil {
+		rlog.Warn().
+			Err(err).
+			Str("trigger_path", fullPath).
+			Msg("Failed determining trigger file size")
+
 		rw.WriteHeader(404)
 		return
 	}
@@ -104,9 +128,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	err = h.callback(scan)
 	if err != nil {
+		rlog.Error().
+			Err(err).
+			Msg("Failed processing request")
+
 		rw.WriteHeader(500)
 		return
 	}
+
+	rlog.Info().
+		Str("trigger_path", fullPath).
+		Msg("Request processed")
 }
 
 var fileSize = func(name string) (uint64, error) {

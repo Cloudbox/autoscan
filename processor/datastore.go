@@ -151,13 +151,19 @@ func (store datastore) Retry(folder string, maxRetries int) error {
 
 	err = store.incrementRetries(tx, folder)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			panic(rbErr)
+		}
+
 		return err
 	}
 
 	err = store.deleteRetries(tx, folder, maxRetries)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			panic(rbErr)
+		}
+
 		return err
 	}
 

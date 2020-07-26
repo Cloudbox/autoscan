@@ -15,7 +15,7 @@ func TestHandler(t *testing.T) {
 	type Given struct {
 		Config  Config
 		Fixture string
-		Size    int64
+		Size    uint64
 	}
 
 	type Expected struct {
@@ -116,7 +116,7 @@ func TestHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			fileSize = func(name string) (int64, error) {
+			fileSize = func(name string) (uint64, error) {
 				return tc.Given.Size, nil
 			}
 

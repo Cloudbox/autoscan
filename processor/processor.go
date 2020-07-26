@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path"
 	"time"
@@ -9,20 +11,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func New(dbPath string) (*Processor, error) {
+func New(dbPath string, maxRetries int) (*Processor, error) {
 	store, err := newDatastore(dbPath)
 	if err != nil {
 		return nil, err
 	}
 
 	proc := &Processor{
-		store: store,
+		maxRetries: maxRetries,
+		store:      store,
 	}
 	return proc, nil
 }
 
 type Processor struct {
-	store *datastore
+	maxRetries int
+	store      *datastore
 }
 
 func (p *Processor) Add(scans ...autoscan.Scan) error {
@@ -46,11 +50,10 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	// Get children of the same folder with the highest priority and oldest date.
 	scans, err := p.store.GetMatching()
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
 	// TODO: remove items with more than 5 retries.
-
 	// Only sleep when no scans are currently available in the datastore.
 	if len(scans) == 0 {
 		sleep(10 * time.Second)
@@ -69,8 +72,8 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	// When no files currently exist on the file system,
 	// then we want to exit early and retry later.
 	if len(existingScans) == 0 {
-		if err = p.store.IncrementRetries(scans[0].Folder); err != nil {
-			return err
+		if err = p.store.Retry(scans[0].Folder, p.maxRetries); err != nil {
+			return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 		}
 
 		return nil
@@ -78,25 +81,32 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 
 	// 1. do stuff with existingScans
 	err = callTargets(targets, existingScans)
-	if err != nil {
-		// Something produced an error... >:(
-		// Either the target is unavailable, or a scan broke the target. ¯\_(ツ)_/¯
-		// Now we have to retry all of the files again at a later date!
-		if incrementErr := p.store.IncrementRetries(scans[0].Folder); incrementErr != nil {
-			return incrementErr
-		}
 
+	switch {
+	// No error -> continue
+	case err == nil:
+		break
+
+	// Retryable error -> increment and return without error
+	case errors.Is(err, autoscan.ErrRetryScan):
+		if incrementErr := p.store.Retry(scans[0].Folder, p.maxRetries); incrementErr != nil {
+			return fmt.Errorf("%v: %w", incrementErr, autoscan.ErrFatal)
+		}
+		return nil
+
+	// Fatal or Target Unavailable -> return original error
+	default:
 		return err
 	}
 
 	// 2. remove existingScans from datastore
 	if err = p.store.Delete(existingScans); err != nil {
-		return err
+		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
 	// 3. update non-existing scans with retry +1
-	if err = p.store.IncrementRetries(scans[0].Folder); err != nil {
-		return err
+	if err = p.store.Retry(scans[0].Folder, p.maxRetries); err != nil {
+		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
 	return nil

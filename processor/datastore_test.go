@@ -373,13 +373,14 @@ func TestGetMatching(t *testing.T) {
 	}
 }
 
-func TestIncrementRetries(t *testing.T) {
+func TestRetries(t *testing.T) {
 	type Test struct {
-		Name   string
-		Err    error
-		Folder string
-		Scans  []autoscan.Scan
-		Want   []ScanWithTime
+		Name    string
+		Err     error
+		Folder  string
+		Retries int
+		Scans   []autoscan.Scan
+		Want    []ScanWithTime
 	}
 
 	testTime := time.Now().UTC()
@@ -390,8 +391,9 @@ func TestIncrementRetries(t *testing.T) {
 			Err:  nil,
 		},
 		{
-			Name:   "Only children of the same folder are incremented",
-			Folder: "1",
+			Name:    "Only children of the same folder are incremented",
+			Folder:  "1",
+			Retries: 5,
 			Scans: []autoscan.Scan{
 				{Folder: "1", File: "1", Retries: 0},
 				{Folder: "1", File: "2", Retries: 2},
@@ -401,6 +403,18 @@ func TestIncrementRetries(t *testing.T) {
 				{autoscan.Scan{Folder: "1", File: "1", Retries: 1}, testTime.Add(5 * time.Minute)},
 				{autoscan.Scan{Folder: "1", File: "2", Retries: 3}, testTime.Add(5 * time.Minute)},
 				{autoscan.Scan{Folder: "2", File: "1", Retries: 0}, testTime.Add(0 * time.Minute)},
+			},
+		},
+		{
+			Name:    "Retry older than max value should get deleted",
+			Folder:  "1",
+			Retries: 2,
+			Scans: []autoscan.Scan{
+				{Folder: "1", File: "1", Retries: 1},
+				{Folder: "1", File: "2", Retries: 2},
+			},
+			Want: []ScanWithTime{
+				{autoscan.Scan{Folder: "1", File: "1", Retries: 2}, testTime.Add(5 * time.Minute)},
 			},
 		},
 	}
@@ -425,7 +439,7 @@ func TestIncrementRetries(t *testing.T) {
 				return testTime.Add(5 * time.Minute)
 			}
 
-			err = store.IncrementRetries(tc.Folder)
+			err = store.Retry(tc.Folder, tc.Retries)
 			if !errors.Is(err, tc.Err) {
 				t.Fatal(err)
 			}

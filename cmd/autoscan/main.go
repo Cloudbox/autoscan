@@ -1,30 +1,36 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
+
 	"github.com/alecthomas/kong"
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
-	"github.com/cloudbox/autoscan/targets/test"
+	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 	"github.com/natefinch/lumberjack"
-	"gopkg.in/yaml.v2"
 )
 
 type config struct {
-	Triggers struct {
+	MaxRetries int `yaml:"retries"`
+	Triggers   struct {
 		Radarr []radarr.Config `yaml:"radarr"`
 		Sonarr []sonarr.Config `yaml:"sonarr"`
 	} `yaml:"triggers"`
+	Targets struct {
+		Plex []plex.Config `yaml:"plex"`
+	} `yaml:"targets"`
 }
 
 var (
@@ -109,14 +115,11 @@ func main() {
 	// run
 	mux := http.NewServeMux()
 
-	proc, err := processor.New(cli.Database)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed initialising processor")
-	}
-
 	file, err := os.Open(cli.Config)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed opening config")
+		log.Fatal().
+			Err(err).
+			Msg("Failed opening config")
 	}
 	defer file.Close()
 
@@ -125,13 +128,31 @@ func main() {
 	decoder.SetStrict(true)
 	err = decoder.Decode(c)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed decoding config")
+		log.Fatal().
+			Err(err).
+			Msg("Failed decoding config")
 	}
 
+	// If user forgets to set retries, set it at 5
+	if c.MaxRetries == 0 {
+		c.MaxRetries = 5
+	}
+
+	proc, err := processor.New(cli.Database, c.MaxRetries)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed initialising processor")
+	}
+
+	// triggers
 	for _, t := range c.Triggers.Radarr {
 		trigger, err := radarr.New(t)
 		if err != nil {
-			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
+			log.Fatal().
+				Err(err).
+				Str("trigger", t.Name).
+				Msg("Failed initialising trigger")
 		}
 		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
@@ -139,25 +160,75 @@ func main() {
 	for _, t := range c.Triggers.Sonarr {
 		trigger, err := sonarr.New(t)
 		if err != nil {
-			log.Fatal().Err(err).Str("trigger", t.Name).Msg("Failed initialising trigger")
+			log.Fatal().
+				Err(err).
+				Str("trigger", t.Name).
+				Msg("Failed initialising trigger")
 		}
 		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
 	}
 
 	go func() {
 		if err := http.ListenAndServe(":3000", mux); err != nil {
-			log.Fatal().Err(err).Msg("Failed starting web server")
+			log.Fatal().
+				Err(err).
+				Msg("Failed starting web server")
 		}
 	}()
 
-	targets := []autoscan.Target{
-		test.New(),
+	log.Info().
+		Int("sonarr", len(c.Triggers.Sonarr)).
+		Int("radarr", len(c.Triggers.Radarr)).
+		Msg("Initialised triggers")
+
+	// targets
+	targets := make([]autoscan.Target, 0)
+
+	if len(c.Targets.Plex) > 0 {
+		for _, t := range c.Targets.Plex {
+			tp, err := plex.New(t)
+			if err != nil {
+				log.Fatal().
+					Err(err).
+					Str("target", "plex").
+					Str("target_url", t.URL).
+					Msg("Failed initialising target")
+			}
+
+			targets = append(targets, tp)
+		}
 	}
+
+	log.Info().
+		Int("plex", len(c.Targets.Plex)).
+		Msg("Initialised targets")
+
+	// processor
+	log.Info().Msg("Processor started")
 
 	for {
 		err = proc.Process(targets)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed processing targets")
+			switch {
+			case errors.Is(err, autoscan.ErrFatal):
+				// fatal error occurred, processor must stop (however, triggers must not)
+				log.Error().
+					Err(err).
+					Msg("Fatal error occurred while processing targets, processor stopped, triggers will continue...")
+
+				// sleep indefinitely
+				select {}
+
+			case errors.Is(err, autoscan.ErrTargetUnavailable):
+				// target is unavailable, poll targets for availability before proceeding
+				// todo: ^^
+
+			default:
+				// unexpected error
+				log.Fatal().
+					Err(err).
+					Msg("Failed processing targets")
+			}
 		}
 
 		time.Sleep(1 * time.Second)

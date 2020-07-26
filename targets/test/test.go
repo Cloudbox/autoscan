@@ -13,6 +13,10 @@ func (t Target) Scan(scans []autoscan.Scan) error {
 	return nil
 }
 
-func New() Target {
-	return Target{}
+func (t Target) Available() bool {
+	return true
+}
+
+func New() (*Target, error) {
+	return &Target{}, nil
 }

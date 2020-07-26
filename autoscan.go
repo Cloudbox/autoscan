@@ -1,6 +1,7 @@
 package autoscan
 
 import (
+	"errors"
 	"net/http"
 	"regexp"
 )
@@ -12,7 +13,7 @@ import (
 type Scan struct {
 	Folder   string
 	File     string
-	Size     int64
+	Size     uint64
 	Priority int
 	Retries  int
 	Metadata Metadata
@@ -41,6 +42,7 @@ type HTTPTrigger func(ProcessorFunc) http.Handler
 // into a format understood by the target.
 type Target interface {
 	Scan([]Scan) error
+	Available() error
 }
 
 const (
@@ -52,6 +54,19 @@ const (
 
 	// IMDb provider for use in autoscan.Metadata
 	IMDb = "imdb"
+)
+
+var (
+	// ErrTargetUnavailable may occur when a Target goes offline
+	// or suffers from fatal errors. In this case, the processor
+	// will halt operations until the target is back online.
+	ErrTargetUnavailable = errors.New("target unavailable")
+
+	// ErrRetryScan indicates a temporary scan-specific error.
+	ErrRetryScan = errors.New("scan should be retried later")
+
+	// ErrFatal indicates a severe problem related to development.
+	ErrFatal = errors.New("fatal development related error")
 )
 
 type Rewrite struct {

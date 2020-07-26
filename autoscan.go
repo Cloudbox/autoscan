@@ -67,6 +67,10 @@ var (
 
 	// ErrFatal indicates a severe problem related to development.
 	ErrFatal = errors.New("fatal development related error")
+
+	// ErrNoScans is not an error. It only indicates whether the CLI
+	// should sleep longer depending on the processor output.
+	ErrNoScans = errors.New("no scans currently available")
 )
 
 type Rewrite struct {

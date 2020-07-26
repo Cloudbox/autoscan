@@ -184,6 +184,9 @@ func main() {
 	// targets
 	targets := make([]autoscan.Target, 0)
 
+	// testTarget, _ := test.New()
+	// targets = append(targets, testTarget)
+
 	if len(c.Targets.Plex) > 0 {
 		for _, t := range c.Targets.Plex {
 			tp, err := plex.New(t)
@@ -206,10 +209,39 @@ func main() {
 	// processor
 	log.Info().Msg("Processor started")
 
+	targetsAvailable := false
+
 	for {
+		if !targetsAvailable {
+			err = proc.CheckAvailability(targets)
+			switch {
+			case err == nil:
+				targetsAvailable = true
+			case errors.Is(err, autoscan.ErrFatal):
+				log.Error().
+					Err(err).
+					Msg("Fatal error occurred while checking target availability, processor stopped, triggers will continue...")
+
+				// sleep indefinitely
+				select {}
+			default:
+				log.Error().
+					Err(err).
+					Msg("Not all targets are available, retrying in 5 seconds...")
+
+				time.Sleep(5 * time.Second)
+				continue
+			}
+		}
+
 		err = proc.Process(targets)
 		if err != nil {
 			switch {
+			case errors.Is(err, autoscan.ErrNoScans):
+				// No scans currently available, let's wait a couple of seconds
+				log.Debug().Msg("Waiting 5 seconds as no scans are available")
+				time.Sleep(5 * time.Second)
+
 			case errors.Is(err, autoscan.ErrFatal):
 				// fatal error occurred, processor must stop (however, triggers must not)
 				log.Error().
@@ -220,8 +252,7 @@ func main() {
 				select {}
 
 			case errors.Is(err, autoscan.ErrTargetUnavailable):
-				// target is unavailable, poll targets for availability before proceeding
-				// todo: ^^
+				targetsAvailable = false
 
 			default:
 				// unexpected error
@@ -230,7 +261,5 @@ func main() {
 					Msg("Failed processing targets")
 			}
 		}
-
-		time.Sleep(1 * time.Second)
 	}
 }

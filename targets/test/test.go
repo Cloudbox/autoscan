@@ -1,22 +1,31 @@
 package test
 
 import (
-	"fmt"
-
 	"github.com/cloudbox/autoscan"
+	"github.com/rs/zerolog/log"
 )
 
-type Target struct{}
+type target struct {
+	count int
+}
 
-func (t Target) Scan(scans []autoscan.Scan) error {
-	fmt.Println(scans)
+func (t *target) Scan(scans []autoscan.Scan) error {
+	log.Debug().
+		Interface("scans", scans).
+		Msg("Received scans")
+
 	return nil
 }
 
-func (t Target) Available() bool {
-	return true
+func (t *target) Available() error {
+	if t.count < 2 {
+		t.count++
+		return autoscan.ErrTargetUnavailable
+	}
+
+	return nil
 }
 
-func New() (*Target, error) {
-	return &Target{}, nil
+func New() (*target, error) {
+	return &target{}, nil
 }

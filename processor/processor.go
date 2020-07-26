@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"time"
 
 	"github.com/cloudbox/autoscan"
 	"golang.org/x/sync/errgroup"
@@ -33,6 +32,21 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 	return p.store.Upsert(scans)
 }
 
+// CheckAvailability checks whether all targets are available.
+// If one target is not available, the error will return.
+func (p *Processor) CheckAvailability(targets []autoscan.Target) error {
+	g := new(errgroup.Group)
+
+	for _, target := range targets {
+		target := target
+		g.Go(func() error {
+			return target.Available()
+		})
+	}
+
+	return g.Wait()
+}
+
 func callTargets(targets []autoscan.Target, scans []autoscan.Scan) error {
 	g := new(errgroup.Group)
 
@@ -53,11 +67,10 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
-	// TODO: remove items with more than 5 retries.
-	// Only sleep when no scans are currently available in the datastore.
+	// When no scans are currently available,
+	// return the ErrNoScans.
 	if len(scans) == 0 {
-		sleep(10 * time.Second)
-		return nil
+		return fmt.Errorf("%w", autoscan.ErrNoScans)
 	}
 
 	// Check which files exist on the file system.
@@ -110,10 +123,6 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	}
 
 	return nil
-}
-
-var sleep = func(dur time.Duration) {
-	time.Sleep(dur)
 }
 
 var fileExists = func(fileName string) bool {

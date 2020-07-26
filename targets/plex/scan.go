@@ -1,6 +1,7 @@
 package plex
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,16 +13,10 @@ import (
 	"github.com/cloudbox/autoscan"
 )
 
-var (
-	ErrTargetUnexpected = errors.New("target: unexpected error")
-	ErrTargetDatabase   = errors.New("target: database related error")
-	ErrTargetRequest    = errors.New("target: request related error")
-)
-
 func (t target) Scan(scans []autoscan.Scan) error {
 	// ensure scan tasks present (should never fail)
 	if len(scans) == 0 {
-		return fmt.Errorf("no scan tasks present: %w", ErrTargetUnexpected)
+		return nil
 	}
 
 	// check for at-least one missing/changed file
@@ -31,23 +26,18 @@ func (t target) Scan(scans []autoscan.Scan) error {
 
 		pf, err := t.store.MediaPartByFile(fp)
 		if err != nil {
-			if errors.Is(err, ErrDatabaseRowNotFound) {
+			if errors.Is(err, sql.ErrNoRows) {
 				// trigger file not found in target
 				t.log.Debug().
 					Str("target_path", fp).
-					Msg("Trigger file does not exist in target")
+					Msg("At least one scan does not exist in target")
 
 				process = true
 				break
 			}
 
 			// unexpected error, check the next file
-			t.log.Error().
-				Err(err).
-				Str("target_path", fp).
-				Msg("Failed checking if trigger file existed in target")
-
-			continue
+			return fmt.Errorf("could not check plex datastore: %v: %w", err, autoscan.ErrFatal)
 		}
 
 		// trigger file was found in target
@@ -77,11 +67,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	// determine library for this scan
 	lib, err := t.getScanLibrary(&s)
 	if err != nil {
-		t.log.Error().
-			Err(err).
-			Str("target_path", scanFolder).
-			Msg("Failed determining target library to scan")
-		return err
+		return fmt.Errorf("%v: %w", err, autoscan.ErrTargetUnavailable)
 	}
 
 	slog := t.log.With().
@@ -96,10 +82,8 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	reqURL := autoscan.JoinURL(t.url, "library", "sections", strconv.Itoa(lib.ID), "refresh")
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
-		slog.Error().
-			Err(err).
-			Msg("Failed creating scan request")
-		return fmt.Errorf("failed creating scan request: %w", ErrTargetRequest)
+		// May only occur when the user has provided an invalid URL
+		return fmt.Errorf("failed creating scan request: %w", autoscan.ErrFatal)
 	}
 
 	// set headers
@@ -114,24 +98,18 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	// send request
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		slog.Error().
-			Err(err).
-			Msg("Failed sending scan request")
-		return fmt.Errorf("failed sending scan request: %w", ErrTargetRequest)
+		return fmt.Errorf("failed sending scan request: %v: %w", err, autoscan.ErrTargetUnavailable)
 	}
 
 	defer res.Body.Close()
 
 	// validate response
 	if res.StatusCode != 200 {
-		slog.Error().
-			Str("status", res.Status).
-			Msg("Failed validating scan request response")
-		return fmt.Errorf("failed validating scan request response: %w", ErrTargetRequest)
+		// 404 if some kind of proxy is in-front of Plex while it's offline.
+		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 	}
 
-	slog.Info().
-		Msg("Scan has been requested")
+	slog.Info().Msg("Scan has been requested")
 	return nil
 }
 
@@ -142,5 +120,5 @@ func (t target) getScanLibrary(scan *autoscan.Scan) (*Library, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("failed determining library: %w", ErrTargetDatabase)
+	return nil, fmt.Errorf("%v: failed determining library", scan.Folder)
 }

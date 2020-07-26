@@ -1,19 +1,17 @@
 package plex
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/cloudbox/autoscan"
 )
 
-func (t target) Available() bool {
+func (t target) Available() error {
 	// create request
 	req, err := http.NewRequest("GET", autoscan.JoinURL(t.url, "myplex", "account"), nil)
 	if err != nil {
-		t.log.Error().
-			Err(err).
-			Msg("Failed creating availability check request")
-		return false
+		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
 	// set headers
@@ -23,21 +21,17 @@ func (t target) Available() bool {
 	// send request
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.log.Error().
-			Err(err).
-			Msg("Failed sending availability check request")
-		return false
+		return fmt.Errorf("could not check Plex availability: %v: %w",
+			err, autoscan.ErrTargetUnavailable)
 	}
 
 	defer res.Body.Close()
 
 	// validate response
 	if res.StatusCode != 200 {
-		t.log.Error().
-			Str("status", res.Status).
-			Msg("Failed validating availability check response")
-		return false
+		return fmt.Errorf("could not check Plex availability: %v: %w",
+			res.StatusCode, autoscan.ErrTargetUnavailable)
 	}
 
-	return true
+	return nil
 }

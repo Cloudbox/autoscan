@@ -1,10 +1,12 @@
 package plex
 
 import (
+	"database/sql"
 	"errors"
 	"io/ioutil"
 	"reflect"
 	"testing"
+
 	// database driver
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -69,7 +71,7 @@ func TestDatastore_Media(t *testing.T) {
 		{
 			item: "no such file.mkv",
 			want: expect{
-				err: ErrDatabaseRowNotFound,
+				err: sql.ErrNoRows,
 			},
 		},
 	}

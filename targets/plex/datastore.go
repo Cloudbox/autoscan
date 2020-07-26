@@ -2,8 +2,8 @@ package plex
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
+
 	// database driver
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -11,7 +11,7 @@ import (
 func NewDatastore(path string) (*Datastore, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
-		return nil, fmt.Errorf("open: %w", ErrDatabase)
+		return nil, fmt.Errorf("could not open database: %v", err)
 	}
 
 	return &Datastore{db: db}, nil
@@ -20,9 +20,6 @@ func NewDatastore(path string) (*Datastore, error) {
 type Datastore struct {
 	db *sql.DB
 }
-
-var ErrDatabase = errors.New("datastore: database related error")
-var ErrDatabaseRowNotFound = errors.New("datastore: row not found")
 
 type LibraryType int
 
@@ -42,7 +39,7 @@ type Library struct {
 func (d *Datastore) Libraries() ([]Library, error) {
 	rows, err := d.db.Query(sqlSelectLibraries)
 	if err != nil {
-		return nil, fmt.Errorf("select libraries: %w", ErrDatabase)
+		return nil, fmt.Errorf("select libraries: %v", err)
 	}
 
 	defer rows.Close()
@@ -51,7 +48,7 @@ func (d *Datastore) Libraries() ([]Library, error) {
 	for rows.Next() {
 		l := Library{}
 		if err := rows.Scan(&l.ID, &l.Type, &l.Name, &l.Path); err != nil {
-			return nil, fmt.Errorf("scan library row: %w", ErrDatabase)
+			return nil, fmt.Errorf("scan library row: %v", err)
 		}
 
 		libraries = append(libraries, l)
@@ -72,17 +69,7 @@ func (d *Datastore) MediaPartByFile(path string) (*MediaPart, error) {
 
 	row := d.db.QueryRow(sqlSelectMediaPart, path)
 	err := row.Scan(&mp.ID, &mp.DirectoryID, &mp.File, &mp.Size)
-
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return nil, fmt.Errorf("scan media part row: %w", ErrDatabaseRowNotFound)
-	case err != nil:
-		return nil, fmt.Errorf("scan media part row: %w", ErrDatabase)
-	default:
-		break
-	}
-
-	return mp, nil
+	return mp, err
 }
 
 const (

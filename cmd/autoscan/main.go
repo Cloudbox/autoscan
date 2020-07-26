@@ -23,7 +23,8 @@ import (
 )
 
 type config struct {
-	Triggers struct {
+	MaxRetries int `yaml:"retries"`
+	Triggers   struct {
 		Radarr []radarr.Config `yaml:"radarr"`
 		Sonarr []sonarr.Config `yaml:"sonarr"`
 	} `yaml:"triggers"`
@@ -114,13 +115,6 @@ func main() {
 	// run
 	mux := http.NewServeMux()
 
-	proc, err := processor.New(cli.Database)
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Msg("Failed initialising processor")
-	}
-
 	file, err := os.Open(cli.Config)
 	if err != nil {
 		log.Fatal().
@@ -137,6 +131,18 @@ func main() {
 		log.Fatal().
 			Err(err).
 			Msg("Failed decoding config")
+	}
+
+	// If user forgets to set retries, set it at 5
+	if c.MaxRetries == 0 {
+		c.MaxRetries = 5
+	}
+
+	proc, err := processor.New(cli.Database, c.MaxRetries)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed initialising processor")
 	}
 
 	// triggers
@@ -201,7 +207,7 @@ func main() {
 	log.Info().Msg("Processor started")
 
 	for {
-		err = proc.Process(targets, 5)
+		err = proc.Process(targets)
 		if err != nil {
 			switch {
 			case errors.Is(err, autoscan.ErrFatal):

@@ -11,20 +11,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func New(dbPath string) (*Processor, error) {
+func New(dbPath string, maxRetries int) (*Processor, error) {
 	store, err := newDatastore(dbPath)
 	if err != nil {
 		return nil, err
 	}
 
 	proc := &Processor{
-		store: store,
+		maxRetries: maxRetries,
+		store:      store,
 	}
 	return proc, nil
 }
 
 type Processor struct {
-	store *datastore
+	maxRetries int
+	store      *datastore
 }
 
 func (p *Processor) Add(scans ...autoscan.Scan) error {
@@ -44,7 +46,7 @@ func callTargets(targets []autoscan.Target, scans []autoscan.Scan) error {
 	return g.Wait()
 }
 
-func (p *Processor) Process(targets []autoscan.Target, maxRetries int) error {
+func (p *Processor) Process(targets []autoscan.Target) error {
 	// Get children of the same folder with the highest priority and oldest date.
 	scans, err := p.store.GetMatching()
 	if err != nil {
@@ -70,7 +72,7 @@ func (p *Processor) Process(targets []autoscan.Target, maxRetries int) error {
 	// When no files currently exist on the file system,
 	// then we want to exit early and retry later.
 	if len(existingScans) == 0 {
-		if err = p.store.Retry(scans[0].Folder, maxRetries); err != nil {
+		if err = p.store.Retry(scans[0].Folder, p.maxRetries); err != nil {
 			return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 		}
 
@@ -87,7 +89,7 @@ func (p *Processor) Process(targets []autoscan.Target, maxRetries int) error {
 
 	// Retryable error -> increment and return without error
 	case errors.Is(err, autoscan.ErrRetryScan):
-		if incrementErr := p.store.Retry(scans[0].Folder, maxRetries); incrementErr != nil {
+		if incrementErr := p.store.Retry(scans[0].Folder, p.maxRetries); incrementErr != nil {
 			return fmt.Errorf("%v: %w", incrementErr, autoscan.ErrFatal)
 		}
 		return nil
@@ -103,7 +105,7 @@ func (p *Processor) Process(targets []autoscan.Target, maxRetries int) error {
 	}
 
 	// 3. update non-existing scans with retry +1
-	if err = p.store.Retry(scans[0].Folder, maxRetries); err != nil {
+	if err = p.store.Retry(scans[0].Folder, p.maxRetries); err != nil {
 		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 

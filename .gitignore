@@ -4,5 +4,6 @@ vendor/
 dist/
 
 *.db
+*.log
 /autoscan
 /config.yml

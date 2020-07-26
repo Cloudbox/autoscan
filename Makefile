@@ -33,3 +33,26 @@ ${BUILD_PATH}/${CMD}: ${GO_FILES} go.sum
 		-ldflags "-s -w -X main.Version=${VERSION} -X main.GitCommit=${GIT_COMMIT} -X main.Timestamp=${TIMESTAMP}" \
 		-o ${BUILD_PATH}/${CMD} \
 		./cmd/autoscan
+
+.PHONY: publish
+publish: ## Generate a release, and publish
+		docker run --rm --privileged \
+			-e GITHUB_TOKEN="${TOKEN}" \
+			-e VERSION="${GIT_TAG_NAME}" \
+			-e GIT_COMMIT="${GIT_COMMIT}" \
+			-e TIMESTAMP="${TIMESTAMP}" \
+			-v `pwd`:/go/src/github.com/Cloudbox/autoscan \
+			-v /var/run/docker.sock:/var/run/docker.sock \
+			-w /go/src/github.com/Cloudbox/autoscan \
+			neilotoole/xcgo:latest goreleaser --rm-dist
+
+.PHONY: snapshot
+snapshot: ## Generate a snapshot release
+	docker run --rm --privileged \
+		-e VERSION="${VERSION}" \
+		-e GIT_COMMIT="${GIT_COMMIT}" \
+		-e TIMESTAMP="${TIMESTAMP}" \
+		-v `pwd`:/go/src/github.com/Cloudbox/autoscan \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-w /go/src/github.com/Cloudbox/autoscan \
+		neilotoole/xcgo:latest goreleaser --snapshot --skip-validate --skip-publish --rm-dist

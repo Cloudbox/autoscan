@@ -27,7 +27,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	// check for at-least one missing/changed file
 	process := false
 	for _, s := range scans {
-		fp := filepath.Join(s.Folder, s.File)
+		fp := t.rewrite(filepath.Join(s.Folder, s.File))
 
 		pf, err := t.store.MediaPartByFile(fp)
 		if err != nil {

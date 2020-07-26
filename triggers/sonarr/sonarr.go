@@ -2,6 +2,7 @@ package sonarr
 
 import (
 	"encoding/json"
+	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
@@ -66,7 +67,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var err error
 
 	rlog := h.log.With().
-		Str("remote", r.RemoteAddr).
+		Str("request_id", xid.New().String()).
+		Str("remote_addr", r.RemoteAddr).
 		Logger()
 
 	event := new(sonarrEvent)
@@ -132,7 +134,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	rlog.Info().
 		Str("trigger_path", fullPath).
-		Msg("Request added to queue")
+		Msg("Request queued")
 }
 
 var fileSize = func(name string) (uint64, error) {

@@ -8,6 +8,7 @@ require (
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
+	github.com/rs/xid v1.2.1
 	github.com/rs/zerolog v1.19.0
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd

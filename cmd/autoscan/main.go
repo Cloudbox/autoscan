@@ -191,7 +191,7 @@ func main() {
 				log.Fatal().
 					Err(err).
 					Str("target", "plex").
-					Str("url", t.URL).
+					Str("target_url", t.URL).
 					Msg("Failed initialising target")
 			}
 

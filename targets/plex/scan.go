@@ -64,7 +64,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	scanFolder := t.rewrite(s.Folder)
 
 	// determine library for this scan
-	lib, err := t.getScanLibrary(&s)
+	lib, err := t.getScanLibrary(scanFolder)
 	if err != nil {
 		t.log.Warn().
 			Err(err).
@@ -116,12 +116,12 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	return nil
 }
 
-func (t target) getScanLibrary(scan *autoscan.Scan) (*Library, error) {
+func (t target) getScanLibrary(folder string) (*Library, error) {
 	for _, l := range t.libraries {
-		if strings.HasPrefix(t.rewrite(scan.Folder), l.Path) {
+		if strings.HasPrefix(folder, l.Path) {
 			return &l, nil
 		}
 	}
 
-	return nil, fmt.Errorf("%v: failed determining library", scan.Folder)
+	return nil, fmt.Errorf("%v: failed determining library", folder)
 }

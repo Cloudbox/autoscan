@@ -66,12 +66,17 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	// determine library for this scan
 	lib, err := t.getScanLibrary(&s)
 	if err != nil {
-		return fmt.Errorf("%v: %w", err, autoscan.ErrTargetUnavailable)
+		t.log.Warn().
+			Err(err).
+			Int("target_retries", s.Retries).
+			Msg("No target library found")
+		return fmt.Errorf("%v: %w", err, autoscan.ErrRetryScan)
 	}
 
 	slog := t.log.With().
 		Str("target_path", scanFolder).
 		Str("target_library", lib.Name).
+		Int("target_retries", s.Retries).
 		Logger()
 
 	slog.Debug().Msg("Sending scan request")

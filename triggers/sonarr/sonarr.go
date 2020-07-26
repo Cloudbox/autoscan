@@ -132,7 +132,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	rlog.Info().
 		Str("trigger_path", fullPath).
-		Msg("Request processed")
+		Msg("Request added to queue")
 }
 
 var fileSize = func(name string) (uint64, error) {

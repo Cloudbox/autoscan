@@ -114,7 +114,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 	}
 
-	slog.Info().Msg("Scan has been requested")
+	slog.Info().Msg("Scan requested")
 	return nil
 }
 

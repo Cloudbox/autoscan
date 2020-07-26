@@ -76,7 +76,7 @@ func (t Target) Scan(scans []autoscan.Scan) error {
 		t.log.Error().
 			Err(err).
 			Str("path", s.Folder).
-			Msg("Failed determining library in target to scan")
+			Msg("Failed determining target library to scan")
 		return err
 	}
 

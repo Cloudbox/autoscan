@@ -41,7 +41,7 @@ func New(c Config) (*target, error) {
 
 	lc := log.With().
 		Str("target", "plex").
-		Str("url", c.URL).Logger()
+		Str("target_url", c.URL).Logger()
 
 	lc.Debug().
 		Msgf("Retrieved %d libraries: %+v", len(libraries), libraries)

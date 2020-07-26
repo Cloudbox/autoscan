@@ -34,7 +34,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 			if errors.Is(err, ErrDatabaseRowNotFound) {
 				// trigger file not found in target
 				t.log.Debug().
-					Str("path", fp).
+					Str("target_path", fp).
 					Msg("Trigger file does not exist in target")
 
 				process = true
@@ -44,7 +44,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 			// unexpected error, check the next file
 			t.log.Error().
 				Err(err).
-				Str("path", fp).
+				Str("target_path", fp).
 				Msg("Failed checking if trigger file existed in target")
 
 			continue
@@ -54,7 +54,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		if pf.Size != s.Size {
 			// trigger file did not match in target
 			t.log.Debug().
-				Str("path", fp).
+				Str("target_path", fp).
 				Uint64("target_size", pf.Size).
 				Uint64("trigger_size", s.Size).
 				Msg("Trigger file size does not match targets file")
@@ -65,26 +65,27 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	}
 
 	if !process {
-		// all the scan task files existed in target
+		// all scan task files existed in target
 		t.log.Debug().
 			Msgf("All trigger files existed within target, skipping for: %+v", scans)
 		return nil
 	}
 
 	s := scans[0]
+	scanFolder := t.rewrite(s.Folder)
 
 	// determine library for this scan
 	lib, err := t.getScanLibrary(&s)
 	if err != nil {
 		t.log.Error().
 			Err(err).
-			Str("path", s.Folder).
+			Str("target_path", scanFolder).
 			Msg("Failed determining target library to scan")
 		return err
 	}
 
 	slog := t.log.With().
-		Str("target_path", s.Folder).
+		Str("target_path", scanFolder).
 		Str("target_library", lib.Name).
 		Logger()
 
@@ -106,7 +107,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 
 	// set params
 	q := url.Values{}
-	q.Add("path", s.Folder)
+	q.Add("path", scanFolder)
 
 	req.URL.RawQuery = q.Encode()
 
@@ -136,7 +137,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 
 func (t target) getScanLibrary(scan *autoscan.Scan) (*Library, error) {
 	for _, l := range t.libraries {
-		if strings.HasPrefix(scan.Folder, l.Path) {
+		if strings.HasPrefix(t.rewrite(scan.Folder), l.Path) {
 			return &l, nil
 		}
 	}

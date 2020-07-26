@@ -128,9 +128,40 @@ WHERE folder = ?
 // Increment the retry count of all the children of a folder.
 // Furthermore, we also update the timestamp to the current time
 // so the children will not get scanned for 5 minutes.
-func (store datastore) IncrementRetries(folder string) error {
-	_, err := store.db.Exec(sqlIncrementRetries, now(), folder)
+func (store datastore) incrementRetries(tx *sql.Tx, folder string) error {
+	_, err := tx.Exec(sqlIncrementRetries, now(), folder)
 	return err
+}
+
+const sqlDeleteRetries = `
+DELETE FROM scan
+WHERE folder = ? AND retries > ?
+`
+
+func (store datastore) deleteRetries(tx *sql.Tx, folder string, maxRetries int) error {
+	_, err := tx.Exec(sqlDeleteRetries, folder, maxRetries)
+	return err
+}
+
+func (store datastore) Retry(folder string, maxRetries int) error {
+	tx, err := store.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	err = store.incrementRetries(tx, folder)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = store.deleteRetries(tx, folder, maxRetries)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 const sqlGetAll = `

@@ -201,7 +201,7 @@ func main() {
 	log.Info().Msg("Processor started")
 
 	for {
-		err = proc.Process(targets)
+		err = proc.Process(targets, 5)
 		if err != nil {
 			switch {
 			case errors.Is(err, autoscan.ErrFatal):

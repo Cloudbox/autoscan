@@ -44,7 +44,7 @@ func callTargets(targets []autoscan.Target, scans []autoscan.Scan) error {
 	return g.Wait()
 }
 
-func (p *Processor) Process(targets []autoscan.Target) error {
+func (p *Processor) Process(targets []autoscan.Target, maxRetries int) error {
 	// Get children of the same folder with the highest priority and oldest date.
 	scans, err := p.store.GetMatching()
 	if err != nil {
@@ -70,7 +70,7 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	// When no files currently exist on the file system,
 	// then we want to exit early and retry later.
 	if len(existingScans) == 0 {
-		if err = p.store.IncrementRetries(scans[0].Folder); err != nil {
+		if err = p.store.Retry(scans[0].Folder, maxRetries); err != nil {
 			return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 		}
 
@@ -87,7 +87,7 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 
 	// Retryable error -> increment and return without error
 	case errors.Is(err, autoscan.ErrRetryScan):
-		if incrementErr := p.store.IncrementRetries(scans[0].Folder); incrementErr != nil {
+		if incrementErr := p.store.Retry(scans[0].Folder, maxRetries); incrementErr != nil {
 			return fmt.Errorf("%v: %w", incrementErr, autoscan.ErrFatal)
 		}
 		return nil
@@ -103,7 +103,7 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	}
 
 	// 3. update non-existing scans with retry +1
-	if err = p.store.IncrementRetries(scans[0].Folder); err != nil {
+	if err = p.store.Retry(scans[0].Folder, maxRetries); err != nil {
 		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 

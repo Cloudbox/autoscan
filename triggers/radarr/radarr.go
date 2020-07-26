@@ -67,7 +67,6 @@ type radarrEvent struct {
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var err error
-
 	rlog := h.log.With().
 		Str("remote", r.RemoteAddr).
 		Logger()
@@ -83,7 +82,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rlog.Debug().
+	rlog.Trace().
 		Interface("event", event).
 		Msg("Processing request")
 

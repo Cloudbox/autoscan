@@ -80,7 +80,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rlog.Debug().
+	rlog.Trace().
 		Interface("event", event).
 		Msg("Processing request")
 

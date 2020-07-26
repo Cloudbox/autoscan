@@ -3,19 +3,22 @@ package plex
 import (
 	"errors"
 	"fmt"
-	"github.com/cloudbox/autoscan"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/cloudbox/autoscan"
 )
 
-var ErrTargetUnexpected = errors.New("target: unexpected error")
-var ErrTargetDatabase = errors.New("target: database related error")
-var ErrTargetRequest = errors.New("target: request related error")
+var (
+	ErrTargetUnexpected = errors.New("target: unexpected error")
+	ErrTargetDatabase   = errors.New("target: database related error")
+	ErrTargetRequest    = errors.New("target: request related error")
+)
 
-func (t Target) Scan(scans []autoscan.Scan) error {
+func (t target) Scan(scans []autoscan.Scan) error {
 	// ensure scan tasks present (should never fail)
 	if len(scans) == 0 {
 		return fmt.Errorf("no scan tasks present: %w", ErrTargetUnexpected)
@@ -89,8 +92,8 @@ func (t Target) Scan(scans []autoscan.Scan) error {
 		Msg("Sending scan request")
 
 	// create request
-	req, err := http.NewRequest("PUT", autoscan.JoinURL(t.url, "library", "sections",
-		strconv.Itoa(lib.ID), "refresh"), nil)
+	reqURL := autoscan.JoinURL(t.url, "library", "sections", strconv.Itoa(lib.ID), "refresh")
+	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
 		slog.Error().
 			Err(err).
@@ -131,7 +134,7 @@ func (t Target) Scan(scans []autoscan.Scan) error {
 	return nil
 }
 
-func (t Target) getScanLibrary(scan *autoscan.Scan) (*Library, error) {
+func (t target) getScanLibrary(scan *autoscan.Scan) (*Library, error) {
 	for _, l := range t.libraries {
 		if strings.HasPrefix(scan.Folder, l.Path) {
 			return &l, nil

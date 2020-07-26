@@ -1,11 +1,12 @@
 package plex
 
 import (
-	"github.com/cloudbox/autoscan"
 	"net/http"
+
+	"github.com/cloudbox/autoscan"
 )
 
-func (t Target) Available() bool {
+func (t target) Available() bool {
 	// create request
 	req, err := http.NewRequest("GET", autoscan.JoinURL(t.url, "myplex", "account"), nil)
 	if err != nil {

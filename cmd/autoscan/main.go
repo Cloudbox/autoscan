@@ -2,19 +2,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/cloudbox/autoscan/targets/plex"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v2"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
+
 	"github.com/alecthomas/kong"
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
+	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 	"github.com/natefinch/lumberjack"

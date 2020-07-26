@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"time"
 
 	"github.com/cloudbox/autoscan"
 	"golang.org/x/sync/errgroup"
@@ -124,10 +123,6 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	}
 
 	return nil
-}
-
-var sleep = func(dur time.Duration) {
-	time.Sleep(dur)
 }
 
 var fileExists = func(fileName string) bool {

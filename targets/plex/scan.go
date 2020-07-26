@@ -36,7 +36,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 				break
 			}
 
-			// unexpected error, check the next file
+			// unexpected error
 			return fmt.Errorf("could not check plex datastore: %v: %w", err, autoscan.ErrFatal)
 		}
 
@@ -56,8 +56,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 
 	if !process {
 		// all scan task files existed in target
-		t.log.Debug().
-			Msgf("All trigger files existed within target, skipping for: %+v", scans)
+		t.log.Debug().Msgf("All trigger files existed within target, skipping for: %+v", scans)
 		return nil
 	}
 
@@ -75,15 +74,14 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		Str("target_library", lib.Name).
 		Logger()
 
-	slog.Debug().
-		Msg("Sending scan request")
+	slog.Debug().Msg("Sending scan request")
 
 	// create request
 	reqURL := autoscan.JoinURL(t.url, "library", "sections", strconv.Itoa(lib.ID), "refresh")
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
 		// May only occur when the user has provided an invalid URL
-		return fmt.Errorf("failed creating scan request: %w", autoscan.ErrFatal)
+		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	// set headers

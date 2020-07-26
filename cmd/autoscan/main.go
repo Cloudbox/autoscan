@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -197,15 +198,31 @@ func main() {
 		Msg("Initialised targets")
 
 	// processor
-	log.Info().
-		Msg("Processor started")
+	log.Info().Msg("Processor started")
 
 	for {
 		err = proc.Process(targets)
 		if err != nil {
-			log.Fatal().
-				Err(err).
-				Msg("Failed processing targets")
+			switch {
+			case errors.Is(err, autoscan.ErrFatal):
+				// fatal error occurred, processor must stop (however, triggers must not)
+				log.Error().
+					Err(err).
+					Msg("Fatal error occurred while processing targets, processor stopped, triggers will continue...")
+
+				// sleep indefinitely
+				select {}
+
+			case errors.Is(err, autoscan.ErrTargetUnavailable):
+				// target is unavailable, poll targets for availability before proceeding
+				// todo: ^^
+
+			default:
+				// unexpected error
+				log.Fatal().
+					Err(err).
+					Msg("Failed processing targets")
+			}
 		}
 
 		time.Sleep(1 * time.Second)

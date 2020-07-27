@@ -1,4 +1,4 @@
-package plex
+package emby
 
 import (
 	"database/sql"
@@ -21,17 +21,7 @@ type Datastore struct {
 	db *sql.DB
 }
 
-type LibraryType int
-
-const (
-	Movie LibraryType = 1
-	TV    LibraryType = 2
-	Music LibraryType = 8
-)
-
 type Library struct {
-	ID   int
-	Type LibraryType
 	Name string
 	Path string
 }
@@ -47,7 +37,7 @@ func (d *Datastore) Libraries() ([]Library, error) {
 	libraries := make([]Library, 0)
 	for rows.Next() {
 		l := Library{}
-		if err := rows.Scan(&l.ID, &l.Type, &l.Name, &l.Path); err != nil {
+		if err := rows.Scan(&l.Name, &l.Path); err != nil {
 			return nil, fmt.Errorf("scan library row: %v", err)
 		}
 
@@ -59,7 +49,6 @@ func (d *Datastore) Libraries() ([]Library, error) {
 
 type MediaPart struct {
 	ID          int
-	DirectoryID int
 	File        string
 	Size        uint64
 }
@@ -68,31 +57,30 @@ func (d *Datastore) MediaPartByFile(path string) (*MediaPart, error) {
 	mp := new(MediaPart)
 
 	row := d.db.QueryRow(sqlSelectMediaPart, path)
-	err := row.Scan(&mp.ID, &mp.DirectoryID, &mp.File, &mp.Size)
+	err := row.Scan(&mp.ID, &mp.File, &mp.Size)
 	return mp, err
 }
 
 const (
 	sqlSelectLibraries = `
 SELECT
-    ls.id,
-    ls.section_type,
-    ls.name,
-    sl.root_path
+    mi.Name,
+    mi.Path
 FROM
-    library_sections ls
-    JOIN section_locations sl ON sl.library_section_id = ls.id
+    MediaItems mi
+WHERE
+    mi.type = 3
 `
 	sqlSelectMediaPart = `
 SELECT
-    mp.id,
-    mp.directory_id,
-    mp.file,
-    mp.size
+    mi.Id,
+    mi.Path,
+    mi.Size
 FROM
-    media_parts mp
+    MediaItems mi
 WHERE
-    mp.file = $1
-LIMIT 1
+    mi.Path = $1
+LIMIT
+    1
 `
 )

@@ -23,6 +23,7 @@ import (
 )
 
 type config struct {
+	Port       int `yaml:"port"`
 	MaxRetries int `yaml:"retries"`
 	Triggers   struct {
 		Radarr []radarr.Config `yaml:"radarr"`
@@ -41,7 +42,7 @@ var (
 
 	// CLI
 	cli struct {
-		Globals
+		globals
 
 		// flags
 		Config    string `type:"path" default:"${config_file}" env:"AUTOSCAN_CONFIG" help:"Config file path"`
@@ -51,15 +52,15 @@ var (
 	}
 )
 
-type Globals struct {
-	Version VersionFlag `name:"version" help:"Print version information and quit"`
+type globals struct {
+	Version versionFlag `name:"version" help:"Print version information and quit"`
 }
 
-type VersionFlag string
+type versionFlag string
 
-func (v VersionFlag) Decode(ctx *kong.DecodeContext) error { return nil }
-func (v VersionFlag) IsBool() bool                         { return true }
-func (v VersionFlag) BeforeApply(app *kong.Kong, vars kong.Vars) error {
+func (v versionFlag) Decode(ctx *kong.DecodeContext) error { return nil }
+func (v versionFlag) IsBool() bool                         { return true }
+func (v versionFlag) BeforeApply(app *kong.Kong, vars kong.Vars) error {
 	fmt.Println(vars["version"])
 	app.Exit(0)
 	return nil
@@ -90,17 +91,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// logging
-	switch {
-	case cli.Verbosity == 1:
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	case cli.Verbosity > 1:
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
-	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
-
-	log.Logger = log.Output(io.MultiWriter(zerolog.ConsoleWriter{
+	logger := zerolog.New(io.MultiWriter(zerolog.ConsoleWriter{
 		Out: os.Stderr,
 	}, zerolog.ConsoleWriter{
 		Out: &lumberjack.Logger{
@@ -111,6 +102,16 @@ func main() {
 		},
 		NoColor: true,
 	}))
+
+	// logging
+	switch {
+	case cli.Verbosity == 1:
+		log.Logger = logger.Level(zerolog.DebugLevel)
+	case cli.Verbosity > 1:
+		log.Logger = logger.Level(zerolog.TraceLevel)
+	default:
+		log.Logger = logger.Level(zerolog.InfoLevel)
+	}
 
 	// run
 	mux := http.NewServeMux()
@@ -123,19 +124,19 @@ func main() {
 	}
 	defer file.Close()
 
-	c := new(config)
+	// set default values
+	c := config{
+		MaxRetries: 5,
+		Port:       3030,
+	}
+
 	decoder := yaml.NewDecoder(file)
 	decoder.SetStrict(true)
-	err = decoder.Decode(c)
+	err = decoder.Decode(&c)
 	if err != nil {
 		log.Fatal().
 			Err(err).
 			Msg("Failed decoding config")
-	}
-
-	// If user forgets to set retries, set it at 5
-	if c.MaxRetries == 0 {
-		c.MaxRetries = 5
 	}
 
 	proc, err := processor.New(cli.Database, c.MaxRetries)
@@ -169,7 +170,8 @@ func main() {
 	}
 
 	go func() {
-		if err := http.ListenAndServe(":3000", mux); err != nil {
+		log.Info().Msgf("Starting server on port %d", c.Port)
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), mux); err != nil {
 			log.Fatal().
 				Err(err).
 				Msg("Failed starting web server")
@@ -239,7 +241,7 @@ func main() {
 			switch {
 			case errors.Is(err, autoscan.ErrNoScans):
 				// No scans currently available, let's wait a couple of seconds
-				log.Debug().Msg("Waiting 5 seconds as no scans are available")
+				log.Trace().Msg("Waiting 5 seconds as no scans are available")
 				time.Sleep(5 * time.Second)
 
 			case errors.Is(err, autoscan.ErrFatal):

@@ -13,9 +13,10 @@ import (
 )
 
 type Config struct {
-	Name     string           `yaml:"name"`
-	Priority int              `yaml:"priority"`
-	Rewrite  autoscan.Rewrite `yaml:"rewrite"`
+	Name      string           `yaml:"name"`
+	Priority  int              `yaml:"priority"`
+	Rewrite   autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity string           `yaml:"verbosity"`
 }
 
 // New creates an autoscan-compatible HTTP Trigger for Sonarr webhooks.
@@ -25,8 +26,11 @@ func New(c Config) (autoscan.HTTPTrigger, error) {
 		return nil, err
 	}
 
+	log := autoscan.GetLogger(c.Verbosity)
+	logHandler := triggers.WithLogger(log)
+
 	trigger := func(callback autoscan.ProcessorFunc) http.Handler {
-		return triggers.WithLogger(handler{
+		return logHandler(handler{
 			callback: callback,
 			priority: c.Priority,
 			rewrite:  rewriter,

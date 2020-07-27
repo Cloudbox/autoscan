@@ -7,7 +7,6 @@ import (
 	"github.com/justinas/alice"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
-	"github.com/rs/zerolog/log"
 )
 
 func detailHandler(next http.Handler) http.Handler {
@@ -23,18 +22,20 @@ func detailHandler(next http.Handler) http.Handler {
 	})
 }
 
-func WithLogger(next http.Handler) http.Handler {
-	c := alice.New()
-	c = c.Append(hlog.NewHandler(log.Logger))
-	c = c.Append(hlog.RequestIDHandler("request_id", "Request-Id"))
-	c = c.Append(detailHandler)
+func WithLogger(logger zerolog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		c := alice.New()
+		c = c.Append(hlog.NewHandler(logger))
+		c = c.Append(hlog.RequestIDHandler("request_id", "Request-Id"))
+		c = c.Append(detailHandler)
 
-	c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
-		hlog.FromRequest(r).Debug().
-			Int("status", status).
-			Dur("duration", duration).
-			Msg("Request processed")
-	}))
+		c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+			hlog.FromRequest(r).Debug().
+				Int("status", status).
+				Dur("duration", duration).
+				Msg("Request processed")
+		}))
 
-	return c.Then(next)
+		return c.Then(next)
+	}
 }

@@ -39,3 +39,26 @@ func WithLogger(logger zerolog.Logger) func(http.Handler) http.Handler {
 		return c.Then(next)
 	}
 }
+
+func WithAuth(username, password string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		// Don't check for auth if username or password is missing.
+		if username == "" || password == "" {
+			return next
+		}
+
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			l := hlog.FromRequest(r)
+
+			user, pass, ok := r.BasicAuth()
+			if ok && user == username && pass == password {
+				l.Trace().Msg("Successful authentication")
+				next.ServeHTTP(rw, r)
+				return
+			}
+
+			l.Warn().Msg("Invalid authentication")
+			rw.WriteHeader(http.StatusUnauthorized)
+		})
+	}
+}

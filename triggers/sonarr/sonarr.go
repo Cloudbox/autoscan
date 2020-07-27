@@ -2,15 +2,14 @@ package sonarr
 
 import (
 	"encoding/json"
-	"github.com/rs/xid"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/cloudbox/autoscan/triggers"
+	"github.com/rs/zerolog/hlog"
 )
 
 type Config struct {
@@ -20,32 +19,27 @@ type Config struct {
 }
 
 // New creates an autoscan-compatible HTTP Trigger for Sonarr webhooks.
-func New(c Config) (trigger autoscan.HTTPTrigger, err error) {
+func New(c Config) (autoscan.HTTPTrigger, error) {
 	rewriter, err := autoscan.NewRewriter(c.Rewrite)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	trigger = func(callback autoscan.ProcessorFunc) http.Handler {
-		return &handler{
+	trigger := func(callback autoscan.ProcessorFunc) http.Handler {
+		return triggers.WithLogger(handler{
 			callback: callback,
 			priority: c.Priority,
 			rewrite:  rewriter,
-			log: log.With().
-				Str("trigger", c.Name).
-				Logger(),
-		}
+		})
 	}
 
-	return
+	return trigger, nil
 }
 
 type handler struct {
 	priority int
 	rewrite  autoscan.Rewriter
 	callback autoscan.ProcessorFunc
-
-	log zerolog.Logger
 }
 
 type sonarrEvent struct {
@@ -65,32 +59,26 @@ type sonarrEvent struct {
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var err error
-
-	rlog := h.log.With().
-		Str("request_id", xid.New().String()).
-		Str("remote_addr", r.RemoteAddr).
-		Logger()
+	rlog := hlog.FromRequest(r)
 
 	event := new(sonarrEvent)
 	err = json.NewDecoder(r.Body).Decode(event)
 	if err != nil {
-		rlog.Error().
-			Err(err).
-			Msg("Failed decoding request")
-
+		rlog.Error().Err(err).Msg("Failed decoding request")
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	rlog.Trace().
-		Interface("event", event).
-		Msg("Processing request")
+	rlog.Trace().Interface("event", event).Msg("Received JSON body")
 
 	if event.Type == "Test" {
+		rlog.Debug().Msg("Received test event")
+		rw.WriteHeader(http.StatusOK)
 		return
 	}
 
 	if event.Type != "Download" || event.File.RelativePath == "" || event.Series.Path == "" {
+		rlog.Error().Msg("Required fields are missing")
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -103,10 +91,10 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rlog.Warn().
 			Err(err).
-			Str("trigger_path", fullPath).
-			Msg("Failed determining trigger file size")
+			Str("path", fullPath).
+			Msg("File does not exist")
 
-		rw.WriteHeader(404)
+		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -124,17 +112,15 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	err = h.callback(scan)
 	if err != nil {
-		rlog.Error().
-			Err(err).
-			Msg("Failed processing request")
-
-		rw.WriteHeader(500)
+		rlog.Error().Err(err).Msg("Processor could not process scan")
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	rw.WriteHeader(http.StatusOK)
 	rlog.Info().
-		Str("trigger_path", fullPath).
-		Msg("Request queued")
+		Str("path", fullPath).
+		Msg("Scan queued")
 }
 
 var fileSize = func(name string) (uint64, error) {

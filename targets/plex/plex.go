@@ -3,14 +3,14 @@ package plex
 import (
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
-	Database string           `yaml:"database"`
-	URL      string           `yaml:"url"`
-	Token    string           `yaml:"token"`
-	Rewrite  autoscan.Rewrite `yaml:"rewrite"`
+	Database  string           `yaml:"database"`
+	URL       string           `yaml:"url"`
+	Token     string           `yaml:"token"`
+	Rewrite   autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity string           `yaml:"verbosity"`
 }
 
 type target struct {
@@ -39,12 +39,13 @@ func New(c Config) (*target, error) {
 		return nil, err
 	}
 
-	lc := log.With().
+	lc := autoscan.GetLogger(c.Verbosity).With().
 		Str("target", "plex").
 		Str("target_url", c.URL).Logger()
 
 	lc.Debug().
-		Msgf("Retrieved %d libraries: %+v", len(libraries), libraries)
+		Interface("libraries", libraries).
+		Msgf("Retrieved %d libraries", len(libraries))
 
 	return &target{
 		url:       c.URL,

@@ -56,7 +56,9 @@ func (t target) Scan(scans []autoscan.Scan) error {
 
 	if !process {
 		// all scan task files existed in target
-		t.log.Debug().Msgf("All trigger files existed within target, skipping for: %+v", scans)
+		t.log.Debug().
+			Interface("scans", scans).
+			Msg("All trigger files existed within target")
 		return nil
 	}
 
@@ -112,7 +114,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 	}
 
-	slog.Info().Msg("Scan has been requested")
+	slog.Info().Msg("Scan requested")
 	return nil
 }
 

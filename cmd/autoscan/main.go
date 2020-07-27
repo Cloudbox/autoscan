@@ -203,19 +203,17 @@ func main() {
 		}
 	}
 
-	if len(c.Targets.Emby) > 0 {
-		for _, t := range c.Targets.Emby {
-			tp, err := emby.New(t)
-			if err != nil {
-				log.Fatal().
-					Err(err).
-					Str("target", "emby").
-					Str("target_url", t.URL).
-					Msg("Failed initialising target")
-			}
-
-			targets = append(targets, tp)
+	for _, t := range c.Targets.Emby {
+		tp, err := emby.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("target", "emby").
+				Str("target_url", t.URL).
+				Msg("Failed initialising target")
 		}
+
+		targets = append(targets, tp)
 	}
 
 	log.Info().

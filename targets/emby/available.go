@@ -9,7 +9,7 @@ import (
 
 func (t target) Available() error {
 	// create request
-	req, err := http.NewRequest("GET", autoscan.JoinURL(t.url, "emby", "SystemInfo", "Info"), nil)
+	req, err := http.NewRequest("GET", autoscan.JoinURL(t.url, "emby", "System", "Info"), nil)
 	if err != nil {
 		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}

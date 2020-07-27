@@ -6,6 +6,10 @@ import (
 )
 
 func GetLogger(verbosity string) zerolog.Logger {
+	if verbosity == "" {
+		return log.Logger
+	}
+
 	level, err := zerolog.ParseLevel(verbosity)
 	if err != nil {
 		return log.Logger

@@ -52,7 +52,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 				Str("target_path", fp).
 				Uint64("target_size", pf.Size).
 				Uint64("trigger_size", s.Size).
-				Msg("Trigger file size does not match targets file")
+				Msg("Trigger file size does not match target file")
 
 			process = true
 			break

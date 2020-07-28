@@ -21,17 +21,8 @@ type datastore struct {
 	db *sql.DB
 }
 
-type libraryType int
-
-const (
-	libraryMovie libraryType = 1
-	libraryTV    libraryType = 2
-	libraryMusic libraryType = 8
-)
-
 type library struct {
 	ID   int
-	Type libraryType
 	Name string
 	Path string
 }
@@ -47,7 +38,7 @@ func (d *datastore) Libraries() ([]library, error) {
 	libraries := make([]library, 0)
 	for rows.Next() {
 		l := library{}
-		if err := rows.Scan(&l.ID, &l.Type, &l.Name, &l.Path); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Path); err != nil {
 			return nil, fmt.Errorf("scan library row: %v", err)
 		}
 
@@ -76,7 +67,6 @@ const (
 	sqlSelectLibraries = `
 SELECT
     ls.id,
-    ls.section_type,
     ls.name,
     sl.root_path
 FROM

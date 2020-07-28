@@ -8,35 +8,35 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func NewDatastore(path string) (*Datastore, error) {
+func NewDatastore(path string) (*datastore, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, fmt.Errorf("could not open database: %v", err)
 	}
 
-	return &Datastore{db: db}, nil
+	return &datastore{db: db}, nil
 }
 
-type Datastore struct {
+type datastore struct {
 	db *sql.DB
 }
 
-type LibraryType int
+type libraryType int
 
 const (
-	Movie LibraryType = 1
-	TV    LibraryType = 2
-	Music LibraryType = 8
+	Movie libraryType = 1
+	TV    libraryType = 2
+	Music libraryType = 8
 )
 
-type Library struct {
+type library struct {
 	ID   int
-	Type LibraryType
+	Type libraryType
 	Name string
 	Path string
 }
 
-func (d *Datastore) Libraries() ([]Library, error) {
+func (d *datastore) Libraries() ([]library, error) {
 	rows, err := d.db.Query(sqlSelectLibraries)
 	if err != nil {
 		return nil, fmt.Errorf("select libraries: %v", err)
@@ -44,9 +44,9 @@ func (d *Datastore) Libraries() ([]Library, error) {
 
 	defer rows.Close()
 
-	libraries := make([]Library, 0)
+	libraries := make([]library, 0)
 	for rows.Next() {
-		l := Library{}
+		l := library{}
 		if err := rows.Scan(&l.ID, &l.Type, &l.Name, &l.Path); err != nil {
 			return nil, fmt.Errorf("scan library row: %v", err)
 		}
@@ -57,15 +57,15 @@ func (d *Datastore) Libraries() ([]Library, error) {
 	return libraries, nil
 }
 
-type MediaPart struct {
+type mediaPart struct {
 	ID          int
 	DirectoryID int
 	File        string
 	Size        uint64
 }
 
-func (d *Datastore) MediaPartByFile(path string) (*MediaPart, error) {
-	mp := new(MediaPart)
+func (d *datastore) MediaPartByFile(path string) (*mediaPart, error) {
+	mp := new(mediaPart)
 
 	row := d.db.QueryRow(sqlSelectMediaPart, path)
 	err := row.Scan(&mp.ID, &mp.DirectoryID, &mp.File, &mp.Size)

@@ -11,7 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func setupTest(t *testing.T) *Datastore {
+func setupTest(t *testing.T) *datastore {
 	t.Helper()
 
 	ds, err := NewDatastore(":memory:")
@@ -26,7 +26,7 @@ func setupTest(t *testing.T) *Datastore {
 	return ds
 }
 
-func setupDatabase(t *testing.T, ds *Datastore, paths []string) {
+func setupDatabase(t *testing.T, ds *datastore, paths []string) {
 	if len(paths) == 0 {
 		return
 	}
@@ -45,7 +45,7 @@ func setupDatabase(t *testing.T, ds *Datastore, paths []string) {
 
 func TestDatastore_Media(t *testing.T) {
 	type expect struct {
-		item *MediaPart
+		item *mediaPart
 		err  error
 	}
 	type test struct {
@@ -59,7 +59,7 @@ func TestDatastore_Media(t *testing.T) {
 			sql:  []string{"test_data/media_schema.sql", "test_data/media_data_1.sql"},
 			item: "/data/Movies/10 Cloverfield Lane (2016)/10 Cloverfield Lane (2016) - Remux-1080p.x264.TrueHD-SiDMUX.mkv",
 			want: expect{
-				item: &MediaPart{
+				item: &mediaPart{
 					ID:          83073,
 					DirectoryID: 5,
 					File:        "/data/Movies/10 Cloverfield Lane (2016)/10 Cloverfield Lane (2016) - Remux-1080p.x264.TrueHD-SiDMUX.mkv",
@@ -100,7 +100,7 @@ func TestDatastore_Media(t *testing.T) {
 		if !reflect.DeepEqual(mp, tc.want.item) {
 			t.Log(mp)
 			t.Log(tc.want)
-			t.Errorf("MediaPart does not match")
+			t.Errorf("mediaPart does not match")
 		}
 	}
 }
@@ -109,14 +109,14 @@ func TestDatastore_Libraries(t *testing.T) {
 	type test struct {
 		sql  []string
 		size int
-		want []Library
+		want []library
 	}
 
 	tests := []test{
 		{
 			sql:  []string{"test_data/libraries_schema.sql", "test_data/libraries_data_1.sql"},
 			size: 2,
-			want: []Library{
+			want: []library{
 				{
 					ID:   1,
 					Type: Movie,
@@ -134,7 +134,7 @@ func TestDatastore_Libraries(t *testing.T) {
 		{
 			sql:  []string{"test_data/libraries_data_2.sql"},
 			size: 4,
-			want: []Library{
+			want: []library{
 				{
 					ID:   1,
 					Type: Movie,
@@ -176,7 +176,7 @@ func TestDatastore_Libraries(t *testing.T) {
 		}
 
 		if len(libraries) != tc.size {
-			t.Fatalf("Library counts do not match, expected: %d, got: %d", tc.size, len(libraries))
+			t.Fatalf("library counts do not match, expected: %d, got: %d", tc.size, len(libraries))
 		}
 
 		if !reflect.DeepEqual(libraries, tc.want) {

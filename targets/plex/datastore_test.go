@@ -119,13 +119,13 @@ func TestDatastore_Libraries(t *testing.T) {
 			want: []library{
 				{
 					ID:   1,
-					Type: Movie,
+					Type: libraryMovie,
 					Name: "Movies",
 					Path: "/data/Movies",
 				},
 				{
 					ID:   2,
-					Type: TV,
+					Type: libraryTV,
 					Name: "TV",
 					Path: "/data/TV",
 				},
@@ -137,25 +137,25 @@ func TestDatastore_Libraries(t *testing.T) {
 			want: []library{
 				{
 					ID:   1,
-					Type: Movie,
+					Type: libraryMovie,
 					Name: "Movies",
 					Path: "/data/Movies",
 				},
 				{
 					ID:   2,
-					Type: TV,
+					Type: libraryTV,
 					Name: "TV",
 					Path: "/data/TV",
 				},
 				{
 					ID:   10,
-					Type: Music,
+					Type: libraryMusic,
 					Name: "Music",
 					Path: "/data/Music",
 				},
 				{
 					ID:   12,
-					Type: Movie,
+					Type: libraryMovie,
 					Name: "4K - Movies",
 					Path: "/data/4K/Movies",
 				},

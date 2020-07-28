@@ -24,9 +24,9 @@ type datastore struct {
 type libraryType int
 
 const (
-	Movie libraryType = 1
-	TV    libraryType = 2
-	Music libraryType = 8
+	libraryMovie libraryType = 1
+	libraryTV    libraryType = 2
+	libraryMusic libraryType = 8
 )
 
 type library struct {

@@ -1,0 +1,22 @@
+{
+  "eventType": "Download",
+  "isUpgrade": false,
+  "trackFiles": [
+    {
+      "path": "/Music/Marshmello/Joytime III (2019)/01 - Down.mp3"
+    },
+    {
+      "path": "/Music/Marshmello/Joytime III (2019)/02 - Run It Up.mp3"
+    },
+    {
+      "path": "/Music/Marshmello/Joytime III (2019)/03 - Put Yo Hands Up.mp3"
+    },
+    {
+      "path": "/Music/Marshmello/Joytime III (2019)/04 - Let’s Get Down.mp3"
+    }
+  ],
+  "artist": {
+    "name": "Marshmello",
+    "path": "/Music/Marshmello"
+  }
+}

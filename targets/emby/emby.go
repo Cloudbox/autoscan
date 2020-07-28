@@ -39,12 +39,12 @@ func New(c Config) (*target, error) {
 		return nil, err
 	}
 
-	lc := autoscan.GetLogger(c.Verbosity).With().
+	l := autoscan.GetLogger(c.Verbosity).With().
 		Str("target", "emby").
 		Str("url", c.URL).
 		Logger()
 
-	lc.Debug().
+	l.Debug().
 		Interface("libraries", libraries).
 		Msg("Retrieved libraries")
 
@@ -53,7 +53,7 @@ func New(c Config) (*target, error) {
 		token:     c.Token,
 		libraries: libraries,
 
-		log:     lc,
+		log:     l,
 		rewrite: rewriter,
 		store:   store,
 	}, nil

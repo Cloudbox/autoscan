@@ -80,13 +80,13 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: %w", err, autoscan.ErrRetryScan)
 	}
 
-	slog := t.log.With().
+	l := t.log.With().
 		Str("path", scanFolder).
 		Str("library", lib.Name).
 		Int("retries", s.Retries).
 		Logger()
 
-	slog.Debug().Msg("Sending scan request")
+	l.Debug().Msg("Sending scan request")
 
 	// create request payload
 	payload := new(struct {
@@ -129,7 +129,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 	}
 
-	slog.Info().Msg("Scan queued")
+	l.Info().Msg("Scan queued")
 	return nil
 }
 

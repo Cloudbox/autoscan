@@ -34,8 +34,8 @@ func (t target) Scan(scans []autoscan.Scan) error {
 			if errors.Is(err, sql.ErrNoRows) {
 				// trigger file not found in target
 				t.log.Debug().
-					Str("target_path", fp).
-					Msg("At least one scan does not exist in emby datastore")
+					Str("path", fp).
+					Msg("At least one trigger file did not exist in target datastore")
 
 				process = true
 				break
@@ -49,10 +49,10 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		if pf.Size != s.Size {
 			// trigger file did not match in target
 			t.log.Debug().
-				Str("target_path", fp).
+				Str("path", fp).
 				Uint64("target_size", pf.Size).
 				Uint64("trigger_size", s.Size).
-				Msg("Trigger file size does not match target file")
+				Msg("Trigger file size does not match in target datastore")
 
 			process = true
 			break
@@ -63,7 +63,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		// all scan task files existed in target
 		t.log.Debug().
 			Interface("scans", scans).
-			Msg("All trigger files existed within target")
+			Msg("All trigger files existed in target")
 		return nil
 	}
 
@@ -75,15 +75,15 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	if err != nil {
 		t.log.Warn().
 			Err(err).
-			Int("target_retries", s.Retries).
+			Int("retries", s.Retries).
 			Msg("No target library found")
 		return fmt.Errorf("%v: %w", err, autoscan.ErrRetryScan)
 	}
 
 	slog := t.log.With().
-		Str("target_path", scanFolder).
-		Str("target_library", lib.Name).
-		Int("target_retries", s.Retries).
+		Str("path", scanFolder).
+		Str("library", lib.Name).
+		Int("retries", s.Retries).
 		Logger()
 
 	slog.Debug().Msg("Sending scan request")
@@ -129,7 +129,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 	}
 
-	slog.Info().Msg("Scan requested")
+	slog.Info().Msg("Scan queued")
 	return nil
 }
 

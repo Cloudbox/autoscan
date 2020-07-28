@@ -46,7 +46,7 @@ func New(c Config) (*target, error) {
 
 	lc.Debug().
 		Interface("libraries", libraries).
-		Msgf("Retrieved %d libraries", len(libraries))
+		Msg("Retrieved libraries")
 
 	return &target{
 		url:       c.URL,

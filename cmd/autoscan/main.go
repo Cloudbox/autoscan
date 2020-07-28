@@ -17,19 +17,31 @@ import (
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
 	"github.com/cloudbox/autoscan/targets/plex"
+	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 	"github.com/natefinch/lumberjack"
 )
 
 type config struct {
+	// General configuration
 	Port       int      `yaml:"port"`
 	MaxRetries int      `yaml:"retries"`
 	Anchors    []string `yaml:"anchors"`
-	Triggers   struct {
+
+	// Authentication for autoscan.HTTPTrigger
+	Auth struct {
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+	} `yaml:"authentication"`
+
+	// autoscan.HTTPTrigger
+	Triggers struct {
 		Radarr []radarr.Config `yaml:"radarr"`
 		Sonarr []sonarr.Config `yaml:"sonarr"`
 	} `yaml:"triggers"`
+
+	// autoscan.Target
 	Targets struct {
 		Plex []plex.Config `yaml:"plex"`
 	} `yaml:"targets"`
@@ -151,6 +163,13 @@ func main() {
 			Msg("Failed initialising processor")
 	}
 
+	// Set authentication. If none and running at least one webhook -> warn user.
+	authHandler := triggers.WithAuth(c.Auth.Username, c.Auth.Password)
+	if (c.Auth.Username == "" || c.Auth.Password == "") &&
+		len(c.Triggers.Radarr)+len(c.Triggers.Sonarr) > 0 {
+		log.Warn().Msg("Webhooks running without authentication")
+	}
+
 	// triggers
 	for _, t := range c.Triggers.Radarr {
 		trigger, err := radarr.New(t)
@@ -160,7 +179,9 @@ func main() {
 				Str("trigger", t.Name).
 				Msg("Failed initialising trigger")
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
+
+		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
+		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
 	}
 
 	for _, t := range c.Triggers.Sonarr {
@@ -171,7 +192,9 @@ func main() {
 				Str("trigger", t.Name).
 				Msg("Failed initialising trigger")
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
+
+		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
+		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
 	}
 
 	go func() {

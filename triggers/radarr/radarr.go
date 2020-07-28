@@ -7,10 +7,8 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/rs/zerolog/hlog"
-
 	"github.com/cloudbox/autoscan"
-	"github.com/cloudbox/autoscan/triggers"
+	"github.com/rs/zerolog/hlog"
 )
 
 type Config struct {
@@ -27,15 +25,12 @@ func New(c Config) (autoscan.HTTPTrigger, error) {
 		return nil, err
 	}
 
-	log := autoscan.GetLogger(c.Verbosity)
-	logHandler := triggers.WithLogger(log)
-
 	trigger := func(callback autoscan.ProcessorFunc) http.Handler {
-		return logHandler(handler{
+		return handler{
 			callback: callback,
 			priority: c.Priority,
 			rewrite:  rewriter,
-		})
+		}
 	}
 
 	return trigger, nil

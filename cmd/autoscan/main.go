@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/cloudbox/autoscan/targets/emby"
 	"io"
 	"net/http"
 	"os"
@@ -44,6 +45,7 @@ type config struct {
 	// autoscan.Target
 	Targets struct {
 		Plex []plex.Config `yaml:"plex"`
+		Emby []emby.Config `yaml:"emby"`
 	} `yaml:"targets"`
 }
 
@@ -230,8 +232,22 @@ func main() {
 		targets = append(targets, tp)
 	}
 
+	for _, t := range c.Targets.Emby {
+		tp, err := emby.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("target", "emby").
+				Str("target_url", t.URL).
+				Msg("Failed initialising target")
+		}
+
+		targets = append(targets, tp)
+	}
+
 	log.Info().
 		Int("plex", len(c.Targets.Plex)).
+		Int("emby", len(c.Targets.Emby)).
 		Msg("Initialised targets")
 
 	// processor

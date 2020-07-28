@@ -93,5 +93,6 @@ FROM
     media_parts mp
 WHERE
     mp.file = $1
+LIMIT 1
 `
 )

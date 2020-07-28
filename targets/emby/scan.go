@@ -27,14 +27,14 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	// check for at-least one missing/changed file
 	process := false
 	for _, s := range scans {
-		fp := t.rewrite(filepath.Join(s.Folder, s.File))
+		targetFilePath := t.rewrite(filepath.Join(s.Folder, s.File))
 
-		targetFile, err := t.store.MediaPartByFile(fp)
+		targetFile, err := t.store.MediaPartByFile(targetFilePath)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// local file not found in target
 				t.log.Debug().
-					Str("path", fp).
+					Str("path", targetFilePath).
 					Msg("At least one local file did not exist in target datastore")
 
 				process = true
@@ -49,7 +49,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		if targetFile.Size != s.Size {
 			// local file did not match in target
 			t.log.Debug().
-				Str("path", fp).
+				Str("path", targetFilePath).
 				Uint64("target_size", targetFile.Size).
 				Uint64("local_size", s.Size).
 				Msg("Local file size does not match in target datastore")

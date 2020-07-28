@@ -30,7 +30,7 @@ type config struct {
 	// General configuration
 	Port       int           `yaml:"port"`
 	MaxRetries int           `yaml:"retries"`
-	MinimumAge time.Duration `yaml:"minimum-age"` // in seconds
+	MinimumAge time.Duration `yaml:"minimum-age"`
 	Anchors    []string      `yaml:"anchors"`
 
 	// Authentication for autoscan.HTTPTrigger

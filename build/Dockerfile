@@ -10,4 +10,8 @@ ENV \
 # Binary
 COPY ["dist/build_linux_linux_amd64/autoscan", "/app/autoscan/autoscan"]
 
+# Add root files
+COPY ["build/root/", "/"]
+
+# Volume
 VOLUME ["/config"]

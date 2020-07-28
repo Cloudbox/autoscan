@@ -13,7 +13,7 @@ import (
 	"github.com/cloudbox/autoscan"
 )
 
-type ScanRequest struct {
+type scanRequest struct {
 	Path       string `json:"path"`
 	UpdateType string `json:"updateType"`
 }
@@ -35,7 +35,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 				// trigger file not found in target
 				t.log.Debug().
 					Str("target_path", fp).
-					Msg("At least one scan does not exist in target")
+					Msg("At least one scan does not exist in emby datastore")
 
 				process = true
 				break
@@ -90,10 +90,10 @@ func (t target) Scan(scans []autoscan.Scan) error {
 
 	// create request payload
 	payload := new(struct {
-		Updates []ScanRequest `json:"Updates"`
+		Updates []scanRequest `json:"Updates"`
 	})
 
-	payload.Updates = append(payload.Updates, ScanRequest{
+	payload.Updates = append(payload.Updates, scanRequest{
 		Path:       scanFolder,
 		UpdateType: "Created",
 	})

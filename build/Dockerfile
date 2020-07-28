@@ -8,6 +8,6 @@ ENV \
   AUTOSCAN_VERBOSITY="0"
 
 # Binary
-COPY ["dist/autoscan_linux_amd64/autoscan", "/app/autoscan/autoscan"]
+COPY ["dist/build_linux_linux_amd64/autoscan", "/app/autoscan/autoscan"]
 
 VOLUME ["/config"]

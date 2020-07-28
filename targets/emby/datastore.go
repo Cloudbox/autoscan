@@ -69,7 +69,7 @@ SELECT
 FROM
     MediaItems mi
 WHERE
-    mi.type = 3
+    mi.type = 3 AND mi.ParentId = 1
 `
 	sqlSelectMediaPart = `
 SELECT

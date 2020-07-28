@@ -94,7 +94,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	})
 
 	payload.Updates = append(payload.Updates, ScanRequest{
-		Path:       s.Folder,
+		Path:       scanFolder,
 		UpdateType: "Created",
 	})
 

@@ -133,7 +133,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	return nil
 }
 
-func (t target) getScanLibrary(folder string) (*Library, error) {
+func (t target) getScanLibrary(folder string) (*library, error) {
 	for _, l := range t.libraries {
 		if strings.HasPrefix(folder, l.Path) {
 			return &l, nil

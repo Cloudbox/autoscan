@@ -16,11 +16,11 @@ type Config struct {
 type target struct {
 	url       string
 	token     string
-	libraries []Library
+	libraries []library
 
 	log     zerolog.Logger
 	rewrite autoscan.Rewriter
-	store   *Datastore
+	store   *datastore
 }
 
 func New(c Config) (*target, error) {

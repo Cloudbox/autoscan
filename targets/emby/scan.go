@@ -67,15 +67,13 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return nil
 	}
 
-	s := scans[0]
-	scanFolder := t.rewrite(s.Folder)
+	scanFolder := t.rewrite(scans[0].Folder)
 
 	// determine library for this scan
 	lib, err := t.getScanLibrary(scanFolder)
 	if err != nil {
 		t.log.Warn().
 			Err(err).
-			Int("retries", s.Retries).
 			Msg("No target library found")
 		return fmt.Errorf("%v: %w", err, autoscan.ErrRetryScan)
 	}
@@ -83,7 +81,6 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	l := t.log.With().
 		Str("path", scanFolder).
 		Str("library", lib.Name).
-		Int("retries", s.Retries).
 		Logger()
 
 	l.Debug().Msg("Sending scan request")

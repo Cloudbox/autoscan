@@ -41,7 +41,8 @@ func New(c Config) (*target, error) {
 
 	lc := autoscan.GetLogger(c.Verbosity).With().
 		Str("target", "emby").
-		Str("target_url", c.URL).Logger()
+		Str("target_url", c.URL).
+		Logger()
 
 	lc.Debug().
 		Interface("libraries", libraries).

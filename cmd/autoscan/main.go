@@ -3,12 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/cloudbox/autoscan/targets/emby"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/cloudbox/autoscan/targets/emby"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -19,6 +20,7 @@ import (
 	"github.com/cloudbox/autoscan/processor"
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
+	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 	"github.com/natefinch/lumberjack"
@@ -38,6 +40,7 @@ type config struct {
 
 	// autoscan.HTTPTrigger
 	Triggers struct {
+		Lidarr []lidarr.Config `yaml:"lidarr"`
 		Radarr []radarr.Config `yaml:"radarr"`
 		Sonarr []sonarr.Config `yaml:"sonarr"`
 	} `yaml:"triggers"`
@@ -173,6 +176,19 @@ func main() {
 	}
 
 	// triggers
+	for _, t := range c.Triggers.Lidarr {
+		trigger, err := lidarr.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("trigger", t.Name).
+				Msg("Failed initialising trigger")
+		}
+
+		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
+		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
+	}
+
 	for _, t := range c.Triggers.Radarr {
 		trigger, err := radarr.New(t)
 		if err != nil {

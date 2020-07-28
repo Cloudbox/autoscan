@@ -10,20 +10,28 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func New(dbPath string, maxRetries int) (*Processor, error) {
-	store, err := newDatastore(dbPath)
+type Config struct {
+	Anchors       []string
+	DatastorePath string
+	MaxRetries    int
+}
+
+func New(c Config) (*Processor, error) {
+	store, err := newDatastore(c.DatastorePath)
 	if err != nil {
 		return nil, err
 	}
 
 	proc := &Processor{
-		maxRetries: maxRetries,
+		anchors:    c.Anchors,
+		maxRetries: c.MaxRetries,
 		store:      store,
 	}
 	return proc, nil
 }
 
 type Processor struct {
+	anchors    []string
 	maxRetries int
 	store      *datastore
 }
@@ -47,7 +55,7 @@ func (p *Processor) CheckAvailability(targets []autoscan.Target) error {
 	return g.Wait()
 }
 
-func callTargets(targets []autoscan.Target, scans []autoscan.Scan) error {
+func (p *Processor) callTargets(targets []autoscan.Target, scans []autoscan.Scan) error {
 	g := new(errgroup.Group)
 
 	for _, target := range targets {
@@ -73,6 +81,13 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 		return fmt.Errorf("%w", autoscan.ErrNoScans)
 	}
 
+	// Check whether all anchors are present
+	for _, anchor := range p.anchors {
+		if !fileExists(anchor) {
+			return fmt.Errorf("%s: %w", anchor, autoscan.ErrAnchorUnavailable)
+		}
+	}
+
 	// Check which files exist on the file system.
 	// We do not want to try to scan non-existing files.
 	var existingScans []autoscan.Scan
@@ -93,7 +108,7 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	}
 
 	// 1. do stuff with existingScans
-	err = callTargets(targets, existingScans)
+	err = p.callTargets(targets, existingScans)
 
 	switch {
 	// No error -> continue
@@ -127,7 +142,7 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 
 var fileExists = func(fileName string) bool {
 	info, err := os.Stat(fileName)
-	if os.IsNotExist(err) {
+	if err != nil {
 		return false
 	}
 

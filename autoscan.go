@@ -71,6 +71,11 @@ var (
 	// ErrNoScans is not an error. It only indicates whether the CLI
 	// should sleep longer depending on the processor output.
 	ErrNoScans = errors.New("no scans currently available")
+
+	// ErrAnchorUnavailable indicates that an Anchor file is
+	// not available on the file system. Processing should halt
+	// until all anchors are available.
+	ErrAnchorUnavailable = errors.New("anchor file is unavailable")
 )
 
 type Rewrite struct {

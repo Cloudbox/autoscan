@@ -18,18 +18,31 @@ import (
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
 	"github.com/cloudbox/autoscan/targets/plex"
+	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 	"github.com/natefinch/lumberjack"
 )
 
 type config struct {
-	Port       int `yaml:"port"`
-	MaxRetries int `yaml:"retries"`
-	Triggers   struct {
+	// General configuration
+	Port       int      `yaml:"port"`
+	MaxRetries int      `yaml:"retries"`
+	Anchors    []string `yaml:"anchors"`
+
+	// Authentication for autoscan.HTTPTrigger
+	Auth struct {
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+	} `yaml:"authentication"`
+
+	// autoscan.HTTPTrigger
+	Triggers struct {
 		Radarr []radarr.Config `yaml:"radarr"`
 		Sonarr []sonarr.Config `yaml:"sonarr"`
 	} `yaml:"triggers"`
+
+	// autoscan.Target
 	Targets struct {
 		Plex []plex.Config `yaml:"plex"`
 		Emby []emby.Config `yaml:"emby"`
@@ -93,7 +106,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := zerolog.New(io.MultiWriter(zerolog.ConsoleWriter{
+	logger := log.Output(io.MultiWriter(zerolog.ConsoleWriter{
 		Out: os.Stderr,
 	}, zerolog.ConsoleWriter{
 		Out: &lumberjack.Logger{
@@ -105,7 +118,6 @@ func main() {
 		NoColor: true,
 	}))
 
-	// logging
 	switch {
 	case cli.Verbosity == 1:
 		log.Logger = logger.Level(zerolog.DebugLevel)
@@ -141,11 +153,23 @@ func main() {
 			Msg("Failed decoding config")
 	}
 
-	proc, err := processor.New(cli.Database, c.MaxRetries)
+	proc, err := processor.New(processor.Config{
+		Anchors:       c.Anchors,
+		DatastorePath: cli.Database,
+		MaxRetries:    c.MaxRetries,
+	})
+
 	if err != nil {
 		log.Fatal().
 			Err(err).
 			Msg("Failed initialising processor")
+	}
+
+	// Set authentication. If none and running at least one webhook -> warn user.
+	authHandler := triggers.WithAuth(c.Auth.Username, c.Auth.Password)
+	if (c.Auth.Username == "" || c.Auth.Password == "") &&
+		len(c.Triggers.Radarr)+len(c.Triggers.Sonarr) > 0 {
+		log.Warn().Msg("Webhooks running without authentication")
 	}
 
 	// triggers
@@ -157,7 +181,9 @@ func main() {
 				Str("trigger", t.Name).
 				Msg("Failed initialising trigger")
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
+
+		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
+		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
 	}
 
 	for _, t := range c.Triggers.Sonarr {
@@ -168,7 +194,9 @@ func main() {
 				Str("trigger", t.Name).
 				Msg("Failed initialising trigger")
 		}
-		mux.Handle("/triggers/"+t.Name, trigger(proc.Add))
+
+		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
+		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
 	}
 
 	go func() {
@@ -188,19 +216,20 @@ func main() {
 	// targets
 	targets := make([]autoscan.Target, 0)
 
-	if len(c.Targets.Plex) > 0 {
-		for _, t := range c.Targets.Plex {
-			tp, err := plex.New(t)
-			if err != nil {
-				log.Fatal().
-					Err(err).
-					Str("target", "plex").
-					Str("target_url", t.URL).
-					Msg("Failed initialising target")
-			}
+	// testTarget, _ := test.New()
+	// targets = append(targets, testTarget)
 
-			targets = append(targets, tp)
+	for _, t := range c.Targets.Plex {
+		tp, err := plex.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("target", "plex").
+				Str("target_url", t.URL).
+				Msg("Failed initialising target")
 		}
+
+		targets = append(targets, tp)
 	}
 
 	for _, t := range c.Targets.Emby {
@@ -255,6 +284,13 @@ func main() {
 			case errors.Is(err, autoscan.ErrNoScans):
 				// No scans currently available, let's wait a couple of seconds
 				log.Trace().Msg("Waiting 5 seconds as no scans are available")
+				time.Sleep(5 * time.Second)
+
+			case errors.Is(err, autoscan.ErrAnchorUnavailable):
+				log.Error().
+					Err(err).
+					Msg("Not all anchor files are available, retrying in 5 seconds...")
+
 				time.Sleep(5 * time.Second)
 
 			case errors.Is(err, autoscan.ErrFatal):

@@ -22,15 +22,15 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	// check for at-least one missing/changed file
 	process := false
 	for _, s := range scans {
-		fp := t.rewrite(filepath.Join(s.Folder, s.File))
+		targetFilePath := t.rewrite(filepath.Join(s.Folder, s.File))
 
-		pf, err := t.store.MediaPartByFile(fp)
+		targetFile, err := t.store.MediaPartByFile(targetFilePath)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				// trigger file not found in target
+				// local file not found in target
 				t.log.Debug().
-					Str("target_path", fp).
-					Msg("At least one scan does not exist in target")
+					Str("path", targetFilePath).
+					Msg("At least one local file did not exist in target datastore")
 
 				process = true
 				break
@@ -40,14 +40,14 @@ func (t target) Scan(scans []autoscan.Scan) error {
 			return fmt.Errorf("could not check plex datastore: %v: %w", err, autoscan.ErrFatal)
 		}
 
-		// trigger file was found in target
-		if pf.Size != s.Size {
-			// trigger file did not match in target
+		// local file was found in target
+		if targetFile.Size != s.Size {
+			// local file did not match in target
 			t.log.Debug().
-				Str("target_path", fp).
-				Uint64("target_size", pf.Size).
-				Uint64("trigger_size", s.Size).
-				Msg("Trigger file size does not match target file")
+				Str("path", targetFilePath).
+				Uint64("target_size", targetFile.Size).
+				Uint64("local_size", s.Size).
+				Msg("Local file size does not match in target datastore")
 
 			process = true
 			break
@@ -55,33 +55,30 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	}
 
 	if !process {
-		// all scan task files existed in target
+		// all local task files existed in target
 		t.log.Debug().
 			Interface("scans", scans).
-			Msg("All trigger files existed within target")
+			Msg("All local files exist in target")
 		return nil
 	}
 
-	s := scans[0]
-	scanFolder := t.rewrite(s.Folder)
+	scanFolder := t.rewrite(scans[0].Folder)
 
 	// determine library for this scan
 	lib, err := t.getScanLibrary(scanFolder)
 	if err != nil {
 		t.log.Warn().
 			Err(err).
-			Int("target_retries", s.Retries).
 			Msg("No target library found")
 		return fmt.Errorf("%v: %w", err, autoscan.ErrRetryScan)
 	}
 
-	slog := t.log.With().
-		Str("target_path", scanFolder).
-		Str("target_library", lib.Name).
-		Int("target_retries", s.Retries).
+	l := t.log.With().
+		Str("path", scanFolder).
+		Str("library", lib.Name).
 		Logger()
 
-	slog.Debug().Msg("Sending scan request")
+	l.Trace().Msg("Sending scan request")
 
 	// create request
 	reqURL := autoscan.JoinURL(t.url, "library", "sections", strconv.Itoa(lib.ID), "refresh")
@@ -114,11 +111,11 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 	}
 
-	slog.Info().Msg("Scan requested")
+	l.Info().Msg("Scan queued")
 	return nil
 }
 
-func (t target) getScanLibrary(folder string) (*Library, error) {
+func (t target) getScanLibrary(folder string) (*library, error) {
 	for _, l := range t.libraries {
 		if strings.HasPrefix(folder, l.Path) {
 			return &l, nil

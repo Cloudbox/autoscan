@@ -16,11 +16,11 @@ type Config struct {
 type target struct {
 	url       string
 	token     string
-	libraries []Library
+	libraries []library
 
 	log     zerolog.Logger
 	rewrite autoscan.Rewriter
-	store   *Datastore
+	store   *datastore
 }
 
 func New(c Config) (*target, error) {
@@ -39,20 +39,20 @@ func New(c Config) (*target, error) {
 		return nil, err
 	}
 
-	lc := autoscan.GetLogger(c.Verbosity).With().
+	l := autoscan.GetLogger(c.Verbosity).With().
 		Str("target", "plex").
-		Str("target_url", c.URL).Logger()
+		Str("url", c.URL).Logger()
 
-	lc.Debug().
+	l.Debug().
 		Interface("libraries", libraries).
-		Msgf("Retrieved %d libraries", len(libraries))
+		Msg("Retrieved libraries")
 
 	return &target{
 		url:       c.URL,
 		token:     c.Token,
 		libraries: libraries,
 
-		log:     lc,
+		log:     l,
 		rewrite: rewriter,
 		store:   store,
 	}, nil

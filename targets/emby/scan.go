@@ -29,7 +29,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	for _, s := range scans {
 		fp := t.rewrite(filepath.Join(s.Folder, s.File))
 
-		pf, err := t.store.MediaPartByFile(fp)
+		tf, err := t.store.MediaPartByFile(fp)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// trigger file not found in target
@@ -46,11 +46,11 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		}
 
 		// trigger file was found in target
-		if pf.Size != s.Size {
+		if tf.Size != s.Size {
 			// trigger file did not match in target
 			t.log.Debug().
 				Str("path", fp).
-				Uint64("target_size", pf.Size).
+				Uint64("target_size", tf.Size).
 				Uint64("trigger_size", s.Size).
 				Msg("Trigger file size does not match in target datastore")
 

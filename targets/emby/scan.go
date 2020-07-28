@@ -32,10 +32,10 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		tf, err := t.store.MediaPartByFile(fp)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				// trigger file not found in target
+				// local file not found in target
 				t.log.Debug().
 					Str("path", fp).
-					Msg("At least one trigger file did not exist in target datastore")
+					Msg("At least one local file did not exist in target datastore")
 
 				process = true
 				break
@@ -45,14 +45,14 @@ func (t target) Scan(scans []autoscan.Scan) error {
 			return fmt.Errorf("could not check emby datastore: %v: %w", err, autoscan.ErrFatal)
 		}
 
-		// trigger file was found in target
+		// local file was found in target
 		if tf.Size != s.Size {
-			// trigger file did not match in target
+			// local file did not match in target
 			t.log.Debug().
 				Str("path", fp).
 				Uint64("target_size", tf.Size).
-				Uint64("trigger_size", s.Size).
-				Msg("Trigger file size does not match in target datastore")
+				Uint64("local_size", s.Size).
+				Msg("Local file size does not match in target datastore")
 
 			process = true
 			break
@@ -60,10 +60,10 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	}
 
 	if !process {
-		// all scan task files existed in target
+		// all local files existed in target
 		t.log.Debug().
 			Interface("scans", scans).
-			Msg("All trigger files existed in target")
+			Msg("All local files exist in target")
 		return nil
 	}
 

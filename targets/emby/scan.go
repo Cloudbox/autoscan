@@ -83,7 +83,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		Str("library", lib.Name).
 		Logger()
 
-	l.Debug().Msg("Sending scan request")
+	l.Trace().Msg("Sending scan request")
 
 	// create request payload
 	payload := new(struct {

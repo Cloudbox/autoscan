@@ -1,3 +1,51 @@
+# Autoscan
+
+Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.
+Autoscan integrates with Sonarr, Radarr and Lidarr (with Google Drive coming soon!) to fetch changes in near real-time without relying on the file system.
+
+Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
+Well, Autoscan is a rewrite of the original Plex Autoscan written in the Go language.
+In addition, this rewrite introduces a more modular approach and should be easy to extend in the future.
+
+## Early Access
+
+We have not finished all work on Autoscan yet, and are still working on some things.
+
+The major feature which is currently MIA:
+
+- Google Drive monitoring
+
+Some small things we are still working on:
+
+- Automating the testing of the processor's business logic
+- Automating the testing of Emby
+- Refactoring the Plex tests
+
+In addition, the code we currently do have is not yet finalised.
+Certain files may get moved around a bit, internal APIs might change, etc.
+
+However, we are proud of the rewrite and are eager to know your opinion!
+
+### Installing autoscan
+
+As Autoscan is still in active development, we highly recommend you to fetch the latest state of the master branch at all times.
+
+To install the autoscan CLI on your system, make sure:
+
+1. Your machine runs Linux, macOS or WSL2
+2. You have [Go](https://golang.org/doc/install) installed (1.14 preferred)
+3. You have a GCC compiler present \
+  *Yup, we need to link to C because of SQLite >:(*
+4. Clone this repository and cd into it from the terminal
+5. Run `go build -o autoscan ./cmd/autoscan` from the terminal
+
+You should now have a binary with the name `autoscan` in the root directory of the project.
+To start autoscan, simply run `./autoscan`. If you want autoscan to be globally available, move it to `/bin` or `/usr/local/bin`.
+
+If you need to debug certain Autoscan behaviour, either add the `-v` flag for debug mode or the `-vv` flag for trace mode to get even more details about internal behaviour.
+
+We also offer a [Docker image](https://hub.docker.com/r/cloudb0x/autoscan)! However, its configuration may be a bit complex as it requires a good understanding of Autoscan's rewriting capabilities. We hope to provide detailed instructions on these rewriting capabilities in the near future!
+
 ## Introduction
 
 Autoscan is split into three distinct modules:
@@ -11,7 +59,7 @@ Autoscan is split into three distinct modules:
 Triggers are the 'input' of Autoscan.
 They translate incoming data into a common data format called the Scan.
 
-We plan to support two kinds of triggers in General Availability (GA):
+We plan to support two kinds of triggers in GA:
 
 - Daemon processes.
   These triggers run in the background and fetch resources based on a cron schedule or in real-time. \
@@ -132,7 +180,7 @@ This helps check whether the union-software is working correctly as well.
 The processor allows you to set the maximum number of retries, as well as the minimum age of a Scan.
 In addition, you can also define a list of anchor files.
 
-A snippet of the `config.yml` file.
+A snippet of the `config.yml` file:
 
 ```yaml
 # override the maximum number of retries

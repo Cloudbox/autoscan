@@ -108,7 +108,7 @@ jobs:
 
       # docker build (master)
       - name: docker - build master
-        if: startsWith(github.ref, 'refs/heads/master') == true
+        if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}

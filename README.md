@@ -203,3 +203,45 @@ The `minimum-age` field should be given a string in the following format:
 - `1h` if the min-age should be set at 1 hour.
 
 *Please do not forget the `s`, `m` or `h` suffix, otherwise the time unit defaults to nanoseconds.*
+
+## Docker
+
+autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/repository/docker/cloudb0x/autoscan).
+
+### Version Tags
+
+This image provides various versions that are available via tags. `latest` tag usually provides the latest stable version. Others are considered under development and caution must be exercised when using them.
+
+| Tag | Description |
+| :----: | --- |
+| latest | Latest stable version from a tagged GitHub release |
+| master | Most recent GitHub master commit |
+
+### Usage
+
+```
+docker run \
+  --name=autoscan \
+  -e "PUID=1000" \
+  -e "PGID=1000" \
+  -p 3030:3030 \
+  -v "/opt/autoscan:/config" \
+  -v "/opt/plex/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db:/data/plex.db:ro" \
+  -v "/opt/emby/data/library.db:/data/emby.db:ro" \
+  --restart=unless-stopped \
+  -d cloudb0x/autoscan
+```
+
+### Parameters
+
+This image supports the following parameters.
+
+| Parameter | Function |
+| :----: | --- |
+| `-p 3030:3030` | The port for autoscan webhook triggers |
+| `-e PUID=1000` | The UserID to run the autoscan binary as |
+| `-e PGID=1000` | The GroupID to run the autoscan binary as |
+| `-e AUTOSCAN_VERBOSITY=0` | The autoscan logging verbosity level to use. (0 = info, 1 = debug, 2+ = trace) |
+| `-v /config` | Database and autoscan configs |
+
+Any other volumes can be referenced within the autoscan `config.yml` assuming it has been specified as a volume.

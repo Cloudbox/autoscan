@@ -11,7 +11,7 @@ ENV \
 COPY ["dist/build_linux_linux_amd64/autoscan", "/app/autoscan/autoscan"]
 
 # Add root files
-COPY ["build/root/", "/"]
+COPY ["build/run", "/etc/services.d/autoscan/run"]
 
 # Volume
 VOLUME ["/config"]

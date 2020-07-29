@@ -106,3 +106,15 @@ jobs:
           tag_with_sha: true
           always_pull: true
 
+      # docker build (other)
+      - name: docker - build others
+        if: startsWith(github.ref, 'refs/heads/master') == false
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: cloudb0x/autoscan
+          dockerfile: build/Dockerfile
+          tag_with_ref: true
+          tag_with_sha: true
+          always_pull: true

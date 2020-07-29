@@ -87,7 +87,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: cloudb0x/autoscan
-          dockerfile: build/Dockerfile
+          dockerfile: docker/Dockerfile
           tags: latest
           tag_with_ref: true
           tag_with_sha: true
@@ -101,7 +101,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: cloudb0x/autoscan
-          dockerfile: build/Dockerfile
+          dockerfile: docker/Dockerfile
           tags: master
           tag_with_sha: true
           always_pull: true
@@ -114,7 +114,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: cloudb0x/autoscan
-          dockerfile: build/Dockerfile
+          dockerfile: docker/Dockerfile
           tag_with_ref: true
           tag_with_sha: true
           always_pull: true

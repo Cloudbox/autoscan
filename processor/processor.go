@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 	"golang.org/x/sync/errgroup"
@@ -14,6 +15,7 @@ type Config struct {
 	Anchors       []string
 	DatastorePath string
 	MaxRetries    int
+	MinimumAge    time.Duration
 }
 
 func New(c Config) (*Processor, error) {
@@ -25,6 +27,7 @@ func New(c Config) (*Processor, error) {
 	proc := &Processor{
 		anchors:    c.Anchors,
 		maxRetries: c.MaxRetries,
+		minimumAge: c.MinimumAge,
 		store:      store,
 	}
 	return proc, nil
@@ -33,6 +36,7 @@ func New(c Config) (*Processor, error) {
 type Processor struct {
 	anchors    []string
 	maxRetries int
+	minimumAge time.Duration
 	store      *datastore
 }
 
@@ -70,7 +74,7 @@ func (p *Processor) callTargets(targets []autoscan.Target, scans []autoscan.Scan
 
 func (p *Processor) Process(targets []autoscan.Target) error {
 	// Get children of the same folder with the highest priority and oldest date.
-	scans, err := p.store.GetMatching()
+	scans, err := p.store.GetMatching(p.minimumAge)
 	if err != nil {
 		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}

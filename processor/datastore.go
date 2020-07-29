@@ -95,8 +95,8 @@ WHERE folder = (
 )
 `
 
-func (store datastore) GetMatching() (scans []autoscan.Scan, err error) {
-	rows, err := store.db.Query(sqlGetMatching, now().Add(-5*time.Minute))
+func (store datastore) GetMatching(minAge time.Duration) (scans []autoscan.Scan, err error) {
+	rows, err := store.db.Query(sqlGetMatching, now().Add(-1*minAge))
 	if errors.Is(err, sql.ErrNoRows) {
 		return scans, nil
 	}

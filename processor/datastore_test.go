@@ -232,18 +232,20 @@ func TestUpsert(t *testing.T) {
 
 func TestGetMatching(t *testing.T) {
 	type Test struct {
-		Name  string
-		Now   time.Time
-		Scans []ScanWithTime
-		Want  []autoscan.Scan
+		Name   string
+		Now    time.Time
+		MinAge time.Duration
+		Scans  []ScanWithTime
+		Want   []autoscan.Scan
 	}
 
 	testTime := time.Now()
 
 	var testCases = []Test{
 		{
-			Name: "Retrieves no items if all items are too young",
-			Now:  testTime,
+			Name:   "Retrieves no items if all items are too young",
+			Now:    testTime,
+			MinAge: 2 * time.Minute,
 			Scans: []ScanWithTime{
 				{
 					Time: testTime.Add(-1 * time.Minute),
@@ -260,16 +262,18 @@ func TestGetMatching(t *testing.T) {
 			},
 		},
 		{
-			Name: "Retrieves no items if some items are too young",
-			Now:  testTime,
+			Name:   "Retrieves no items if some items are too young",
+			Now:    testTime,
+			MinAge: 9 * time.Minute,
 			Scans: []ScanWithTime{
-				{autoscan.Scan{File: "1"}, testTime.Add(-1 * time.Minute)},
+				{autoscan.Scan{File: "1"}, testTime.Add(-8 * time.Minute)},
 				{autoscan.Scan{File: "2"}, testTime.Add(-10 * time.Minute)},
 			},
 		},
 		{
-			Name: "Retrieves all items if all items are older than 5 minutes",
-			Now:  testTime,
+			Name:   "Retrieves all items if all items are older than minimum age minutes",
+			Now:    testTime,
+			MinAge: 5 * time.Minute,
 			Scans: []ScanWithTime{
 				{autoscan.Scan{File: "1"}, testTime.Add(-6 * time.Minute)},
 				{autoscan.Scan{File: "2"}, testTime.Add(-6 * time.Minute)},
@@ -280,8 +284,9 @@ func TestGetMatching(t *testing.T) {
 			},
 		},
 		{
-			Name: "Retrieves only one folder if all items are older than 5 minutes",
-			Now:  testTime,
+			Name:   "Retrieves only one folder if all items are older than minimum age minutes",
+			Now:    testTime,
+			MinAge: 5 * time.Minute,
 			Scans: []ScanWithTime{
 				{autoscan.Scan{Folder: "folder 1", File: "1"}, testTime.Add(-6 * time.Minute)},
 				{autoscan.Scan{Folder: "folder 2", File: "1"}, testTime.Add(-6 * time.Minute)},
@@ -291,8 +296,9 @@ func TestGetMatching(t *testing.T) {
 			},
 		},
 		{
-			Name: "Returns all fields",
-			Now:  testTime,
+			Name:   "Returns all fields",
+			Now:    testTime,
+			MinAge: 5 * time.Minute,
 			Scans: []ScanWithTime{
 				{
 					Time: testTime.Add(-6 * time.Minute),
@@ -360,7 +366,7 @@ func TestGetMatching(t *testing.T) {
 				return tc.Now
 			}
 
-			scans, err := store.GetMatching()
+			scans, err := store.GetMatching(tc.MinAge)
 			if err != nil {
 				t.Fatal(err)
 			}

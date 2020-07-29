@@ -28,9 +28,10 @@ import (
 
 type config struct {
 	// General configuration
-	Port       int      `yaml:"port"`
-	MaxRetries int      `yaml:"retries"`
-	Anchors    []string `yaml:"anchors"`
+	Port       int           `yaml:"port"`
+	MaxRetries int           `yaml:"retries"`
+	MinimumAge time.Duration `yaml:"minimum-age"`
+	Anchors    []string      `yaml:"anchors"`
 
 	// Authentication for autoscan.HTTPTrigger
 	Auth struct {
@@ -144,6 +145,7 @@ func main() {
 	// set default values
 	c := config{
 		MaxRetries: 5,
+		MinimumAge: 300 * time.Second,
 		Port:       3030,
 	}
 
@@ -160,6 +162,7 @@ func main() {
 		Anchors:       c.Anchors,
 		DatastorePath: cli.Database,
 		MaxRetries:    c.MaxRetries,
+		MinimumAge:    c.MinimumAge,
 	})
 
 	if err != nil {
@@ -167,6 +170,12 @@ func main() {
 			Err(err).
 			Msg("Failed initialising processor")
 	}
+
+	log.Info().
+		Stringer("min_age", c.MinimumAge).
+		Int("max_retries", c.MaxRetries).
+		Strs("anchors", c.Anchors).
+		Msg("Initialised processor")
 
 	// Set authentication. If none and running at least one webhook -> warn user.
 	authHandler := triggers.WithAuth(c.Auth.Username, c.Auth.Password)
@@ -225,6 +234,7 @@ func main() {
 	}()
 
 	log.Info().
+		Int("lidarr", len(c.Triggers.Lidarr)).
 		Int("sonarr", len(c.Triggers.Sonarr)).
 		Int("radarr", len(c.Triggers.Radarr)).
 		Msg("Initialised triggers")

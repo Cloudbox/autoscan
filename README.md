@@ -64,7 +64,7 @@ port: 3030
 
 triggers:
   sonarr:
-    - name: sonarr-docker   # /triggers/sonarr-docker
+    - name: sonarr-docker # /triggers/sonarr-docker
       priority: 2
 
       # Rewrite the path from within the container
@@ -98,8 +98,8 @@ To add your webhook to Sonarr, Radarr or Lidarr, do:
 
 ### Processor
 
-Triggers pass the Scans they have received to the processor.
-The processor then saves the Scan to its datastore.
+Triggers pass the Scans they receive to the processor.
+The processor then saves the Scans to its datastore.
 
 *The processor uses SQLite as its datastore, feel free to hack around!*
 
@@ -129,8 +129,10 @@ This helps check whether the union-software is working correctly as well.
 
 #### Customising the processor
 
-The processor allows you to set a the maximum number of retries, as well as the minimum age of a Scan.
+The processor allows you to set the maximum number of retries, as well as the minimum age of a Scan.
 In addition, you can also define a list of anchor files.
+
+A snippet of the `config.yml` file.
 
 ```yaml
 # override the maximum number of retries

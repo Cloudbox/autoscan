@@ -9,6 +9,8 @@ In addition, this rewrite introduces a more modular approach and should be easy 
 
 ## Early Access
 
+**We are looking for technical writers! If you have ideas on how to improve Autoscan's documentation, please @m-rots by email.**
+
 We have not finished all work on Autoscan yet, and are still working on some things.
 
 The major feature which is currently MIA:
@@ -53,6 +55,63 @@ Autoscan is split into three distinct modules:
 - Triggers
 - Processor
 - Targets
+
+### Rewriting paths
+
+Triggers, targets and the processor all live in different contexts. Some are used in Docker containers, others run on host OS, it can be a big mess!
+
+That's where rewrite rules come into play. They allow you to translate paths between a trigger's / target's perspective and the processor's perspective.
+
+**Before you begin, make sure you understand how regular expressions work!** \
+Make sure you know how capture groups work, as these are used for the `to` field.
+
+Triggers can receive paths from any source: A remote server, a Docker container and the local file system. The `rewrite` field can be defined for each individual trigger. The `from` should be a regexp pattern describing the path from the trigger's perspective. The `to` should then convert this path into a path which is local to Autoscan.
+
+Targets work the other way around. They have to convert the path local to Autoscan to a path understood by the target, which can be a Docker container, remote server, etc. The `from` should be a regexp pattern describing the path from Autoscan's perspective. The `to` should then convert this path into a path which is local to the target.
+
+It is important that all three modules can have access to a file. When a trigger receives a scan, then the file should be available from both the processor and all targets.
+
+#### Simple example
+
+- Sonarr running in a Docker container (same example works for Lidarr and Radarr)
+- Autoscan running on the host OS (not in a container)
+- Plex running in a Docker container
+
+The following config only defines rewrite paths, this should not be used directly!
+
+```yaml
+triggers:
+  sonarr:
+    - rewrite:
+        # /tv contains folders with tv shows
+        # This path is used within the Sonarr Docker container
+        from: /tv/*
+
+        # /mnt/unionfs/Media/TV links to the same folder, though from the host OS
+        # This folder is accessed by Autoscan
+        to: /mnt/unionfs/Media/TV/$1
+
+targets:
+  plex:
+    - rewrite:
+        # Same folder as above, accessible by Autoscan.
+        # Note how we strip the "TV" part,
+        # as we want both Movies and TV.
+        from: /mnt/unionfs/Media/*
+
+        # This path is used within the Plex Docker container
+        to: /data/$1
+```
+
+Let's take a look at the journey of the path `/tv/Westworld/Season 1/s01e01.mkv` coming from Sonarr.
+
+1. Sonarr's path is translated to a path local to Autoscan. \
+  `/mnt/unionfs/Media/TV/Westworld/Season 1/s01e01.mkv`
+2. The path is accessed by Autoscan to check whether it exists and adds it to the datastore.
+3. Autoscan's path is translated to a path local to Plex. \
+  `/data/TV/Season 1/s01e01.mkv`
+
+This should be all that's needed to get you going. Good luck!
 
 ### Triggers
 
@@ -203,6 +262,66 @@ The `minimum-age` field should be given a string in the following format:
 - `1h` if the min-age should be set at 1 hour.
 
 *Please do not forget the `s`, `m` or `h` suffix, otherwise the time unit defaults to nanoseconds.*
+
+### Targets
+
+While collecting Scans is fun and all, they need to have a final destination.
+Targets are these final destinations and are given Scans from the processor, one batch at a time.
+
+Autoscan currently supports two targets:
+
+- Plex
+- Emby
+
+#### Plex
+
+Autoscan replaces Plex's default behaviour of updating the Plex library automatically.
+Therefore, it is advised to turn off Plex's `Update my library automatically` feature.
+
+You can setup one or multiple Plex targets in the config:
+
+```yaml
+targets:
+  plex:
+    - url: https://plex.domain.tld # URL of your Plex server
+      database: /var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db # Path to the Plex database file
+      token: XXXX # Plex API Token
+      rewrite:
+        from: /mnt/unionfs/Media/* # local file system
+        to: /data/$1 # path accessible by the Plex docker container (if applicable)
+```
+
+There are a couple of things to take note of in the config:
+
+- URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Plex.
+- Database. Autoscan needs access to the database file to check whether files have actually been changed. The database file is named `com.plexapp.plugins.library.db` and you MUST provide a path to this file which can be accessed by Autoscan. \
+  *An example path is given in the above config file.*
+- Token. We need a Plex API Token to make requests on your behalf. [This article](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/) should help you out.
+- Rewrite. If Plex is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
+
+#### Emby
+
+While Emby provides much better behaviour out of the box than Plex, it still might be useful to use Autoscan for even better performance.
+
+You can setup one or multiple Emby targets in the config:
+
+```yaml
+targets:
+  emby:
+    - url: https://emby.domain.tld # URL of your Emby server
+      database: /opt/emby/data/library.db # Path to the Emby database file
+      token: XXXX # Emby API Token
+      rewrite:
+        from: /mnt/unionfs/Media/* # local file system
+        to: /data/$1 # path accessible by the Emby docker container (if applicable)
+```
+
+- URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Emby.
+- Database. Autoscan needs access to the database file to check whether files have actually been changed. The database file is named `library.db` and you MUST provide a path to this file which can be accessed by Autoscan. \
+  *An example path is given in the above config file.*
+- Token. We need an Emby API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
+  *It's a bit out of date, but I'm sure you will manage!*
+- Rewrite. If Emby is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
 
 ## Other installation options
 

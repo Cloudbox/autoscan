@@ -44,7 +44,7 @@ To start autoscan, simply run `./autoscan`. If you want autoscan to be globally 
 
 If you need to debug certain Autoscan behaviour, either add the `-v` flag for debug mode or the `-vv` flag for trace mode to get even more details about internal behaviour.
 
-We also offer a [Docker image](https://hub.docker.com/r/cloudb0x/autoscan)! However, its configuration may be a bit complex as it requires a good understanding of Autoscan's rewriting capabilities. We hope to provide detailed instructions on these rewriting capabilities in the near future!
+We also offer a [Docker image](#docker)! However, its configuration may be a bit complex as it requires a good understanding of Autoscan's rewriting capabilities. We hope to provide detailed instructions on these rewriting capabilities in the near future!
 
 ## Introduction
 
@@ -204,22 +204,24 @@ The `minimum-age` field should be given a string in the following format:
 
 *Please do not forget the `s`, `m` or `h` suffix, otherwise the time unit defaults to nanoseconds.*
 
-## Docker
+## Other installation options
 
-autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/repository/docker/cloudb0x/autoscan).
+### Docker
 
-### Version Tags
+Autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/repository/docker/cloudb0x/autoscan).
 
-This image provides various versions that are available via tags. `latest` tag usually provides the latest stable version. Others are considered under development and caution must be exercised when using them.
+#### Version Tags
+
+Autoscan's Docker image provides various versions that are available via tags. The `latest` tag usually provides the latest stable version. Others are considered under development and caution must be exercised when using them.
 
 | Tag | Description |
 | :----: | --- |
 | latest | Latest stable version from a tagged GitHub release |
 | master | Most recent GitHub master commit |
 
-### Usage
+#### Usage
 
-```
+```bash
 docker run \
   --name=autoscan \
   -e "PUID=1000" \
@@ -232,16 +234,16 @@ docker run \
   -d cloudb0x/autoscan
 ```
 
-### Parameters
+#### Parameters
 
-This image supports the following parameters.
+Autoscan's Docker image supports the following parameters.
 
 | Parameter | Function |
 | :----: | --- |
-| `-p 3030:3030` | The port for autoscan webhook triggers |
-| `-e PUID=1000` | The UserID to run the autoscan binary as |
-| `-e PGID=1000` | The GroupID to run the autoscan binary as |
-| `-e AUTOSCAN_VERBOSITY=0` | The autoscan logging verbosity level to use. (0 = info, 1 = debug, 2+ = trace) |
-| `-v /config` | Database and autoscan configs |
+| `-p 3030:3030` | The port used by Autoscan's webhook triggers |
+| `-e PUID=1000` | The UserID to run the Autoscan binary as |
+| `-e PGID=1000` | The GroupID to run the Autoscan binary as |
+| `-e AUTOSCAN_VERBOSITY=0` | The Autoscan logging verbosity level to use. (0 = info, 1 = debug, 2 = trace) |
+| `-v /config` | Autoscan's config and database file |
 
-Any other volumes can be referenced within the autoscan `config.yml` assuming it has been specified as a volume.
+Any other volumes can be referenced within Autoscan's config file `config.yml`, assuming it has been specified as a volume.

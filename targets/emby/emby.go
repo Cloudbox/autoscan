@@ -29,7 +29,7 @@ func New(c Config) (*target, error) {
 		return nil, err
 	}
 
-	store, err := NewDatastore(c.Database)
+	store, err := newDatastore(c.Database)
 	if err != nil {
 		return nil, err
 	}

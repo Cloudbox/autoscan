@@ -162,7 +162,7 @@ You can mix and match exactly the way you like:
 
 ```yaml
 # Optionally, protect your webhooks with authentication
-auth:
+authentication:
   username: hello there
   password: general kenobi
 

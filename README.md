@@ -16,6 +16,7 @@ In addition, this rewrite introduces a more modular approach and should be easy 
   - [Triggers](#triggers)
   - [Processor](#processor)
   - [Targets](#targets)
+  - [Full config file](#full-config-file)
 - [Other installation options](#other-installation-options)
   - [Docker](#docker)
 
@@ -334,6 +335,74 @@ targets:
 - Token. We need an Emby API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
   *It's a bit out of date, but I'm sure you will manage!*
 - Rewrite. If Emby is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
+
+### Full config file
+
+With the examples given in the [triggers](#triggers), [processor](#processor) and [targets](#targets) sections, here is what your full config file *could* look like:
+
+```yaml
+# <- processor ->
+
+# override the maximum number of retries
+retries: 10
+
+# override the minimum age to 2 minutes:
+minimum-age: 2m
+
+# set multiple anchor files
+anchors:
+  - /mnt/unionfs/drive1.anchor
+  - /mnt/unionfs/drive2.anchor
+
+# <- triggeres ->
+
+# Optionally, protect your webhooks with authentication
+authentication:
+  username: hello there
+  password: general kenobi
+
+# port for Autoscan webhooks to listen on
+port: 3030
+
+triggers:
+  sonarr:
+    - name: sonarr-docker # /triggers/sonarr-docker
+      priority: 2
+
+      # Rewrite the path from within the container
+      # to your local filesystem.
+      rewrite:
+        from: /tv/*
+        to: /mnt/unionfs/Media/TV/$1
+
+  radarr:
+    - name: radarr   # /triggers/radarr
+      priority: 2
+    - name: radarr4k # /triggers/radarr4k
+      priority: 5
+  lidarr:
+    - name: lidarr   # /triggers/lidarr
+      priority: 1
+
+# <- targets ->
+
+targets:
+  plex:
+    - url: https://plex.domain.tld # URL of your Plex server
+      database: /opt/plex/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db # Path to the Plex database file
+      token: XXXX # Plex API Token
+      rewrite:
+        from: /mnt/unionfs/Media/* # local file system
+        to: /data/$1 # path accessible by the Plex docker container (if applicable)
+
+  emby:
+    - url: https://emby.domain.tld # URL of your Emby server
+      database: /opt/emby/data/library.db # Path to the Emby database file
+      token: XXXX # Emby API Token
+      rewrite:
+        from: /mnt/unionfs/Media/* # local file system
+        to: /data/$1 # path accessible by the Emby docker container (if applicable)
+```
 
 ## Other installation options
 

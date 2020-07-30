@@ -79,19 +79,6 @@ jobs:
           name: build_darwin
           path: dist/*darwin*
 
-      # docker build (other)
-      - name: docker - build other
-        if: startsWith(github.ref, 'refs/heads/master') == false
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: cloudb0x/autoscan
-          dockerfile: docker/Dockerfile
-          tag_with_ref: true
-          tag_with_sha: true
-          always_pull: true
-
       # docker build (latest & tag)
       - name: docker - build latest
         if: startsWith(github.ref, 'refs/tags/') == true

@@ -120,7 +120,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 	rlog.Info().
 		Str("path", fullPath).
-		Msg("Scan queued")
+		Msg("Scan moved to processor")
 }
 
 var fileSize = func(name string) (uint64, error) {

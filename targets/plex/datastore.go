@@ -3,13 +3,19 @@ package plex
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
+
+	"github.com/cloudbox/autoscan"
 
 	// database driver
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func NewDatastore(path string) (*datastore, error) {
-	db, err := sql.Open("sqlite3", path)
+func newDatastore(path string) (*datastore, error) {
+	q := url.Values{}
+	q.Set("mode", "ro")
+
+	db, err := sql.Open("sqlite3", autoscan.DSN(path, q))
 	if err != nil {
 		return nil, fmt.Errorf("could not open database: %v", err)
 	}

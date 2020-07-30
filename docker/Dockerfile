@@ -15,3 +15,6 @@ COPY ["docker/run", "/etc/services.d/autoscan/run"]
 
 # Volume
 VOLUME ["/config"]
+
+# Port
+EXPOSE 3030

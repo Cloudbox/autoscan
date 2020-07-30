@@ -9,7 +9,7 @@ In addition, this rewrite introduces a more modular approach and should be easy 
 
 ## Early Access
 
-**We are looking for technical writers! If you have ideas on how to improve Autoscan's documentation, please @m-rots by email.**
+**We are looking for technical writers! If you have ideas on how to improve Autoscan's documentation, please write [@m-rots](mailto:stormtimmermans@icloud.com?subject=Autoscan%20technical%20writer) an email.**
 
 We have not finished all work on Autoscan yet, and are still working on some things.
 

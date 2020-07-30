@@ -126,7 +126,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 	}
 
-	l.Info().Msg("Scan queued")
+	l.Info().Msg("Scan moved to target")
 	return nil
 }
 

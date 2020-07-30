@@ -118,7 +118,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	l.Info().
 		Str("path", h.rewrite(event.Artist.Path)).
 		Int("files", len(scans)).
-		Msg("Scans queued")
+		Msg("Scan moved to processor")
 }
 
 var fileSize = func(name string) (uint64, error) {

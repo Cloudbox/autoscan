@@ -242,9 +242,6 @@ func main() {
 	// targets
 	targets := make([]autoscan.Target, 0)
 
-	// testTarget, _ := test.New()
-	// targets = append(targets, testTarget)
-
 	for _, t := range c.Targets.Plex {
 		tp, err := plex.New(t)
 		if err != nil {

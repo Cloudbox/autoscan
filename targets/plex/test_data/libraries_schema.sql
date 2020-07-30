@@ -1,4 +1,0 @@
--- schema
-CREATE TABLE "section_locations" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "library_section_id" integer, "root_path" varchar(255), "available" boolean DEFAULT 't', "scanned_at" datetime, "created_at" datetime, "updated_at" datetime);
-CREATE TABLE "library_sections" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "library_id" integer, "name" varchar(255), "name_sort" varchar(255) COLLATE NOCASE, "section_type" integer, "language" varchar(255), "agent" varchar(255), "scanner" varchar(255), "user_thumb_url" varchar(255), "user_art_url" varchar(255), "user_theme_music_url" varchar(255), "public" boolean, "created_at" datetime, "updated_at" datetime, "scanned_at" datetime, "display_secondary_level" boolean, "user_fields" varchar(255), "query_xml" text, "query_type" integer, "uuid" varchar(255), "changed_at" integer(8) DEFAULT 0, 'content_changed_at' integer(8) default '0');
-

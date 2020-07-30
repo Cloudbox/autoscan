@@ -7,6 +7,18 @@ Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
 Well, Autoscan is a rewrite of the original Plex Autoscan written in the Go language.
 In addition, this rewrite introduces a more modular approach and should be easy to extend in the future.
 
+## Table of contents
+
+- [Early Access](#early-access)
+  - [Installing autoscan](#installing-autoscan)
+- [Introduction](#introduction)
+  - [Rewriting paths](#rewriting-paths)
+  - [Triggers](#triggers)
+  - [Processor](#processor)
+  - [Targets](#targets)
+- [Other installation options](#other-installation-options)
+  - [Docker](#docker)
+
 ## Early Access
 
 **We are looking for technical writers! If you have ideas on how to improve Autoscan's documentation, please write [@m-rots](mailto:stormtimmermans@icloud.com?subject=Autoscan%20technical%20writer) an email.**
@@ -15,13 +27,13 @@ We have not finished all work on Autoscan yet, and are still working on some thi
 
 The major feature which is currently MIA:
 
-- Google Drive monitoring
+- Google Drive monitoring (Shared Drives exclusively)
 
 Some small things we are still working on:
 
 - Automating the testing of the processor's business logic
 - Automating the testing of Emby
-- Refactoring the Plex tests
+- Automating the testing of Plex
 
 In addition, the code we currently do have is not yet finalised.
 Certain files may get moved around a bit, internal APIs might change, etc.
@@ -284,7 +296,7 @@ You can setup one or multiple Plex targets in the config:
 targets:
   plex:
     - url: https://plex.domain.tld # URL of your Plex server
-      database: /var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db # Path to the Plex database file
+      database: /opt/plex/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db # Path to the Plex database file
       token: XXXX # Plex API Token
       rewrite:
         from: /mnt/unionfs/Media/* # local file system
@@ -329,6 +341,18 @@ targets:
 
 Autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/repository/docker/cloudb0x/autoscan).
 
+Autoscan requires access to the following files:
+
+- All files being passed between the triggers and the targets. \
+  *Just mount the source directory, for many people this is `/mnt/unionfs`.*
+- The Plex database (make sure you mount the folder, not the db file directly). \
+  *Only when using Plex as a target.*
+- The Emby database (make sure you mount the folder, not the db file directly). \
+  *Only when using Emby as a target.*
+
+Make sure these files are available within the Autoscan container.
+Remember that you MUST use [rewriting rules](#rewriting-paths) if paths are not identical between triggers, autoscan and targets. These rules can be set from the config for each trigger and target individually.
+
 #### Version Tags
 
 Autoscan's Docker image provides various versions that are available via tags. The `latest` tag usually provides the latest stable version. Others are considered under development and caution must be exercised when using them.
@@ -347,8 +371,9 @@ docker run \
   -e "PGID=1000" \
   -p 3030:3030 \
   -v "/opt/autoscan:/config" \
-  -v "/opt/plex/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db:/data/plex.db:ro" \
-  -v "/opt/emby/data/library.db:/data/emby.db:ro" \
+  -v "/mnt/unionfs:/mnt/unionfs:ro" \
+  -v "/opt/plex:/data/plex:ro" \
+  -v "/opt/emby:/data/emby:ro" \
   --restart=unless-stopped \
   -d cloudb0x/autoscan
 ```
@@ -366,3 +391,31 @@ Autoscan's Docker image supports the following parameters.
 | `-v /config` | Autoscan's config and database file |
 
 Any other volumes can be referenced within Autoscan's config file `config.yml`, assuming it has been specified as a volume.
+
+#### Cloudbox
+
+The following Docker setup should work for many Cloudbox users.
+
+**WARNING: You still need to configure the `config.yml` file!**
+
+Make sure to replace `DOMAIN.TLD` with your domain and `YOUR_EMAIL` with your email.
+
+```bash
+docker run \
+  --name=autoscan \
+  -e "PUID=1000" \
+  -e "PGID=1001" \
+  -e "VIRTUAL_HOST=autoscan.DOMAIN.TLD" \
+  -e "VIRTUAL_PORT=3030" \
+  -e "LETSENCRYPT_HOST=autoscan.DOMAIN.TLD" \
+  -e "LETSENCRYPT_EMAIL=YOUR_EMAIL" \
+  -v "/opt/autoscan:/config" \
+  -v "/opt/plex:/data/plex:ro" \
+  -v "/opt/emby:/data/emby:ro" \
+  -v "/mnt:/mnt:ro" \
+  --label="com.github.cloudbox.cloudbox_managed=true" \
+  --network=cloudbox \
+  --network-alias=autoscan  \
+  --restart=unless-stopped \
+  -d cloudb0x/autoscan
+```

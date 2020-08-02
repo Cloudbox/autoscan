@@ -25,12 +25,12 @@ func (t target) Scan(scans []autoscan.Scan) error {
 		return fmt.Errorf("%v: target library not found: %v: %w", scanFolder, err, autoscan.ErrRetryScan)
 	}
 
-	// send scan request
 	l := t.log.With().
 		Str("path", scanFolder).
 		Str("library", lib.Name).
 		Logger()
 
+	// send scan request
 	l.Trace().Msg("Sending scan request")
 
 	if err := t.api.Scan(scanFolder); err != nil {

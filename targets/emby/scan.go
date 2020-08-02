@@ -58,6 +58,7 @@ func (t target) Scan(scans []autoscan.Scan) error {
 			// local file did not match in target
 			t.log.Debug().
 				Str("path", targetFilePath).
+				Str("library", lib.Name).
 				Uint64("target_size", targetFile.Size).
 				Uint64("local_size", s.Size).
 				Msg("Local file size does not match in target datastore")

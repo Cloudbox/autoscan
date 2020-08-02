@@ -89,7 +89,6 @@ func (c apiClient) Libraries() ([]library, error) {
 	// decode response
 	resp := make([]struct {
 		Name    string `json:"Name"`
-		ID      string `json:"Id"`
 		Folders []struct {
 			Path string `json:"Path"`
 		} `json:"SubFolders"`
@@ -105,7 +104,6 @@ func (c apiClient) Libraries() ([]library, error) {
 		for _, folder := range lib.Folders {
 			libraries = append(libraries, library{
 				Name: lib.Name,
-				ID:   lib.ID,
 				Path: folder.Path,
 			})
 		}

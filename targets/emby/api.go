@@ -62,8 +62,8 @@ type library struct {
 
 func (c apiClient) Libraries() ([]library, error) {
 	// create request
-	req, err := http.NewRequest("GET",
-		autoscan.JoinURL(c.url, "emby", "Library", "SelectableMediaFolders"), nil)
+	reqURL := autoscan.JoinURL(c.url, "emby", "Library", "SelectableMediaFolders")
+	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
 	}
@@ -87,13 +87,14 @@ func (c apiClient) Libraries() ([]library, error) {
 	}
 
 	// decode response
-	resp := make([]struct {
+	type Response struct {
 		Name    string `json:"Name"`
 		Folders []struct {
 			Path string `json:"Path"`
 		} `json:"SubFolders"`
-	}, 0)
+	}
 
+	resp := make([]Response, 0)
 	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
 		return nil, fmt.Errorf("failed decoding libraries request response: %v: %w", err, autoscan.ErrFatal)
 	}

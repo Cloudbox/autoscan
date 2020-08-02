@@ -6,7 +6,6 @@ import (
 )
 
 type Config struct {
-	Database  string           `yaml:"database"`
 	URL       string           `yaml:"url"`
 	Token     string           `yaml:"token"`
 	Rewrite   autoscan.Rewrite `yaml:"rewrite"`
@@ -20,7 +19,7 @@ type target struct {
 
 	log     zerolog.Logger
 	rewrite autoscan.Rewriter
-	store   *datastore
+	api     *apiClient
 }
 
 func New(c Config) (*target, error) {
@@ -29,12 +28,9 @@ func New(c Config) (*target, error) {
 		return nil, err
 	}
 
-	store, err := newDatastore(c.Database)
-	if err != nil {
-		return nil, err
-	}
+	api := newApiClient(c)
 
-	libraries, err := store.Libraries()
+	libraries, err := api.Libraries()
 	if err != nil {
 		return nil, err
 	}
@@ -55,6 +51,10 @@ func New(c Config) (*target, error) {
 
 		log:     l,
 		rewrite: rewriter,
-		store:   store,
+		api:     api,
 	}, nil
+}
+
+func (t target) Available() error {
+	return t.api.Available()
 }

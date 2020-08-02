@@ -20,9 +20,8 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	if err != nil {
 		t.log.Warn().
 			Err(err).
-			Str("path", scanFolder).
 			Msg("No target library found")
-		return fmt.Errorf("%v: target library not found: %v: %w", scanFolder, err, autoscan.ErrRetryScan)
+		return fmt.Errorf("%v: %w", err, autoscan.ErrRetryScan)
 	}
 
 	l := t.log.With().

@@ -16,37 +16,45 @@ func (t target) Scan(scans []autoscan.Scan) error {
 	// determine library for this scan
 	scanFolder := t.rewrite(scans[0].Folder)
 
-	lib, err := t.getScanLibrary(scanFolder)
+	libs, err := t.getScanLibrary(scanFolder)
 	if err != nil {
 		t.log.Warn().
 			Err(err).
-			Str("path", scanFolder).
-			Msg("No target library found")
-		return fmt.Errorf("%v: target library not found: %v: %w", scanFolder, err, autoscan.ErrRetryScan)
+			Msg("No target libraries found")
+		return fmt.Errorf("%v: %w", err, autoscan.ErrRetryScan)
 	}
-
-	l := t.log.With().
-		Str("path", scanFolder).
-		Str("library", lib.Name).
-		Logger()
 
 	// send scan request
-	l.Trace().Msg("Sending scan request")
+	for _, lib := range libs {
+		l := t.log.With().
+			Str("path", scanFolder).
+			Str("library", lib.Name).
+			Logger()
 
-	if err := t.api.Scan(scanFolder, lib.ID); err != nil {
-		return err
+		l.Trace().Msg("Sending scan request")
+
+		if err := t.api.Scan(scanFolder, lib.ID); err != nil {
+			return err
+		}
+
+		l.Info().Msg("Scan moved to target")
 	}
 
-	l.Info().Msg("Scan moved to target")
 	return nil
 }
 
-func (t target) getScanLibrary(folder string) (*library, error) {
+func (t target) getScanLibrary(folder string) ([]library, error) {
+	libraries := make([]library, 0)
+
 	for _, l := range t.libraries {
 		if strings.HasPrefix(folder, l.Path) {
-			return &l, nil
+			libraries = append(libraries, l)
 		}
 	}
 
-	return nil, fmt.Errorf("%v: failed determining library", folder)
+	if len(libraries) == 0 {
+		return nil, fmt.Errorf("%v: failed determining libraries", folder)
+	}
+
+	return libraries, nil
 }

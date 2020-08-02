@@ -119,18 +119,22 @@ type scanRequest struct {
 
 func (c apiClient) Scan(path string) error {
 	// create request payload
-	payload := new(struct {
+	type Payload struct {
 		Updates []scanRequest `json:"Updates"`
-	})
+	}
 
-	payload.Updates = append(payload.Updates, scanRequest{
-		Path:       path,
-		UpdateType: "Created",
-	})
+	payload := &Payload{
+		Updates: []scanRequest{
+			{
+				Path:       path,
+				UpdateType: "Created",
+			},
+		},
+	}
 
 	b, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed encoding scan request payload: %v, %w", err, autoscan.ErrFatal)
+		return fmt.Errorf("failed encoding scan request payload: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	// create request

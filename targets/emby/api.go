@@ -30,7 +30,7 @@ func (c apiClient) Available() error {
 	// create request
 	req, err := http.NewRequest("GET", autoscan.JoinURL(c.url, "emby", "System", "Info"), nil)
 	if err != nil {
-		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
+		return fmt.Errorf("failed creating availability request: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	// set headers
@@ -40,16 +40,15 @@ func (c apiClient) Available() error {
 	// send request
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("could not check Emby availability: %v: %w",
-			err, autoscan.ErrTargetUnavailable)
+		return fmt.Errorf("failed sending availability request: %v: %w", err, autoscan.ErrTargetUnavailable)
 	}
 
 	defer res.Body.Close()
 
 	// validate response
 	if res.StatusCode != 200 {
-		return fmt.Errorf("could not check Emby availability: %v: %w",
-			res.StatusCode, autoscan.ErrTargetUnavailable)
+		return fmt.Errorf("%v: failed validating availability request response: %w",
+			res.Status, autoscan.ErrTargetUnavailable)
 	}
 
 	return nil
@@ -76,15 +75,15 @@ func (c apiClient) Libraries() ([]library, error) {
 	// send request
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending libraries request: %v: %w",
-			err, autoscan.ErrFatal)
+		return nil, fmt.Errorf("failed sending libraries request: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	defer res.Body.Close()
 
 	// validate response
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("%v: failed validating libraries request response: %w", res.Status, autoscan.ErrFatal)
+		return nil, fmt.Errorf("%v: failed validating libraries request response: %w",
+			res.Status, autoscan.ErrFatal)
 	}
 
 	// decode response
@@ -166,5 +165,6 @@ func (c apiClient) Scan(path string) error {
 		return fmt.Errorf("emby token is invalid: failed validating scan request response: %w", autoscan.ErrFatal)
 	}
 
-	return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
+	return fmt.Errorf("%v: failed validating scan request response: %w",
+		res.Status, autoscan.ErrTargetUnavailable)
 }

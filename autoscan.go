@@ -65,9 +65,6 @@ var (
 	// ErrRetryScan indicates a temporary scan-specific error.
 	ErrRetryScan = errors.New("scan should be retried later")
 
-	//ErrNotFoundInTarget indicates a file was not found in the target.
-	ErrNotFoundInTarget = errors.New("scan file not found in target")
-
 	// ErrFatal indicates a severe problem related to development.
 	ErrFatal = errors.New("fatal development related error")
 

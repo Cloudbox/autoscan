@@ -7,8 +7,6 @@ import (
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
 	"net/http"
-	"net/url"
-	"strings"
 )
 
 type apiClient struct {
@@ -68,7 +66,7 @@ func (c apiClient) Libraries() ([]library, error) {
 	req, err := http.NewRequest("GET",
 		autoscan.JoinURL(c.url, "emby", "Library", "SelectableMediaFolders"), nil)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
+		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	// set headers
@@ -78,16 +76,15 @@ func (c apiClient) Libraries() ([]library, error) {
 	// send request
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve Emby libraries: %v: %w",
-			err, autoscan.ErrTargetUnavailable)
+		return nil, fmt.Errorf("failed sending libraries request: %v: %w",
+			err, autoscan.ErrFatal)
 	}
 
 	defer res.Body.Close()
 
 	// validate response
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("could not retrieve Emby libraries: %v: %w",
-			res.StatusCode, autoscan.ErrTargetUnavailable)
+		return nil, fmt.Errorf("%v: failed validating libraries request response: %w", res.Status, autoscan.ErrFatal)
 	}
 
 	// decode response
@@ -100,7 +97,7 @@ func (c apiClient) Libraries() ([]library, error) {
 	}, 0)
 
 	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
-		return nil, fmt.Errorf("could not decode Emby library response: %v: %w", err, autoscan.ErrTargetUnavailable)
+		return nil, fmt.Errorf("failed decoding libraries request response: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	// process response
@@ -116,74 +113,6 @@ func (c apiClient) Libraries() ([]library, error) {
 	}
 
 	return libraries, nil
-}
-
-type mediaPart struct {
-	File string
-	Size uint64
-}
-
-func (c apiClient) MediaPartByFile(libraryId string, path string) (*mediaPart, error) {
-	// create request
-	req, err := http.NewRequest("GET", autoscan.JoinURL(c.url, "emby", "Items"), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed creating search items request: %v: %w", err, autoscan.ErrFatal)
-	}
-
-	// set headers
-	req.Header.Set("X-Emby-Token", c.token)
-	req.Header.Set("Accept", "application/json")
-
-	// set params
-	q := url.Values{}
-	q.Add("Path", path)
-	q.Add("ParentId", libraryId)
-	q.Add("Fields", "MediaSources")
-
-	req.URL.RawQuery = q.Encode()
-
-	// send request
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed sending search items request: %v: %w", err, autoscan.ErrRetryScan)
-	}
-
-	defer res.Body.Close()
-
-	// validate response
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("%v: failed validating search items request response: %w",
-			res.Status, autoscan.ErrRetryScan)
-	}
-
-	// decode response
-	resp := new(struct {
-		Items []struct {
-			Name         string `json:"Name"`
-			MediaSources []struct {
-				Path string `json:"Path"`
-				Size uint64 `json:"Size"`
-			} `json:"MediaSources"`
-		} `json:"Items"`
-	})
-
-	if err := json.NewDecoder(res.Body).Decode(resp); err != nil {
-		return nil, fmt.Errorf("failed decoding search items request response: %v: %w", err, autoscan.ErrFatal)
-	}
-
-	// process response
-	for _, item := range resp.Items {
-		for _, file := range item.MediaSources {
-			if strings.EqualFold(file.Path, path) {
-				return &mediaPart{
-					File: file.Path,
-					Size: file.Size,
-				}, nil
-			}
-		}
-	}
-
-	return nil, autoscan.ErrNotFoundInTarget
 }
 
 type scanRequest struct {
@@ -228,10 +157,14 @@ func (c apiClient) Scan(path string) error {
 	defer res.Body.Close()
 
 	// validate response
-	if res.StatusCode != 204 {
-		// 404 if some kind of proxy is in-front of Emby while it's offline.
-		return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
+	switch res.StatusCode {
+	case 204:
+		// success
+		return nil
+	case 401:
+		// unauthorized
+		return fmt.Errorf("emby token is invalid: failed validating scan request response: %w", autoscan.ErrFatal)
 	}
 
-	return nil
+	return fmt.Errorf("%v: failed validating scan request response: %w", res.Status, autoscan.ErrTargetUnavailable)
 }

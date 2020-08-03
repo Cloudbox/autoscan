@@ -297,7 +297,6 @@ You can setup one or multiple Plex targets in the config:
 targets:
   plex:
     - url: https://plex.domain.tld # URL of your Plex server
-      database: /opt/plex/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db # Path to the Plex database file
       token: XXXX # Plex API Token
       rewrite:
         from: /mnt/unionfs/Media/* # local file system
@@ -307,8 +306,6 @@ targets:
 There are a couple of things to take note of in the config:
 
 - URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Plex.
-- Database. Autoscan needs access to the database file to check whether files have actually been changed. The database file is named `com.plexapp.plugins.library.db` and you MUST provide a path to this file which can be accessed by Autoscan. \
-  *An example path is given in the above config file.*
 - Token. We need a Plex API Token to make requests on your behalf. [This article](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/) should help you out.
 - Rewrite. If Plex is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
 
@@ -322,7 +319,6 @@ You can setup one or multiple Emby targets in the config:
 targets:
   emby:
     - url: https://emby.domain.tld # URL of your Emby server
-      database: /opt/emby/data/library.db # Path to the Emby database file
       token: XXXX # Emby API Token
       rewrite:
         from: /mnt/unionfs/Media/* # local file system
@@ -330,8 +326,6 @@ targets:
 ```
 
 - URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Emby.
-- Database. Autoscan needs access to the database file to check whether files have actually been changed. The database file is named `library.db` and you MUST provide a path to this file which can be accessed by Autoscan. \
-  *An example path is given in the above config file.*
 - Token. We need an Emby API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
   *It's a bit out of date, but I'm sure you will manage!*
 - Rewrite. If Emby is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
@@ -389,7 +383,6 @@ triggers:
 targets:
   plex:
     - url: https://plex.domain.tld # URL of your Plex server
-      database: /opt/plex/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db # Path to the Plex database file
       token: XXXX # Plex API Token
       rewrite:
         from: /mnt/unionfs/Media/* # local file system
@@ -397,7 +390,6 @@ targets:
 
   emby:
     - url: https://emby.domain.tld # URL of your Emby server
-      database: /opt/emby/data/library.db # Path to the Emby database file
       token: XXXX # Emby API Token
       rewrite:
         from: /mnt/unionfs/Media/* # local file system
@@ -410,14 +402,8 @@ targets:
 
 Autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/repository/docker/cloudb0x/autoscan).
 
-Autoscan requires access to the following files:
-
-- All files being passed between the triggers and the targets. \
-  *Just mount the source directory, for many people this is `/mnt/unionfs`.*
-- The Plex database (make sure you mount the folder, not the db file directly). \
-  *Only when using Plex as a target.*
-- The Emby database (make sure you mount the folder, not the db file directly). \
-  *Only when using Emby as a target.*
+Autoscan requires access to all files being passed between the triggers and the targets. \
+*Just mount the source directory, for many people this is `/mnt/unionfs`.*
 
 Make sure these files are available within the Autoscan container.
 Remember that you MUST use [rewriting rules](#rewriting-paths) if paths are not identical between triggers, autoscan and targets. These rules can be set from the config for each trigger and target individually.
@@ -441,8 +427,6 @@ docker run \
   -p 3030:3030 \
   -v "/opt/autoscan:/config" \
   -v "/mnt/unionfs:/mnt/unionfs:ro" \
-  -v "/opt/plex:/data/plex:ro" \
-  -v "/opt/emby:/data/emby:ro" \
   --restart=unless-stopped \
   -d cloudb0x/autoscan
 ```
@@ -479,8 +463,6 @@ docker run \
   -e "LETSENCRYPT_HOST=autoscan.DOMAIN.TLD" \
   -e "LETSENCRYPT_EMAIL=YOUR_EMAIL" \
   -v "/opt/autoscan:/config" \
-  -v "/opt/plex:/data/plex:ro" \
-  -v "/opt/emby:/data/emby:ro" \
   -v "/mnt:/mnt:ro" \
   --label="com.github.cloudbox.cloudbox_managed=true" \
   --network=cloudbox \

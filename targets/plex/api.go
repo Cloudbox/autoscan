@@ -1,6 +1,7 @@
 package plex
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"net/http"
@@ -8,25 +9,28 @@ import (
 	"strconv"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/rs/zerolog"
 )
 
 type apiClient struct {
-	client *http.Client
-	url    string
-	token  string
+	client  *http.Client
+	log     zerolog.Logger
+	baseURL string
+	token   string
 }
 
-func newAPIClient(c Config) *apiClient {
+func newAPIClient(baseURL string, token string, log zerolog.Logger) *apiClient {
 	return &apiClient{
-		client: &http.Client{},
-		url:    c.URL,
-		token:  c.Token,
+		client:  &http.Client{},
+		log:     log,
+		baseURL: baseURL,
+		token:   token,
 	}
 }
 
 func (c apiClient) do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Accept", "application/xml")
 	req.Header.Set("X-Plex-Token", c.token)
+	req.Header.Set("Accept", "application/json") // Force JSON Response.
 
 	res, err := c.client.Do(req)
 	if err != nil {
@@ -36,6 +40,11 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 	if res.StatusCode >= 200 && res.StatusCode < 300 {
 		return res, nil
 	}
+
+	c.log.Trace().
+		Stringer("request_url", res.Request.URL).
+		Int("response_status", res.StatusCode).
+		Msg("Request failed")
 
 	// statusCode not in the 2xx range, close response
 	res.Body.Close()
@@ -50,22 +59,32 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 	}
 }
 
-func (c apiClient) Available() error {
-	// create request
-	reqURL := autoscan.JoinURL(c.url, "myplex", "account")
+func (c apiClient) Version() (string, error) {
+	reqURL := autoscan.JoinURL(c.baseURL)
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed creating availability request: %v: %w", err, autoscan.ErrFatal)
+		return "", fmt.Errorf("failed creating version request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// send request
 	res, err := c.do(req)
 	if err != nil {
-		return fmt.Errorf("availability: %w", err)
+		return "", fmt.Errorf("version: %w", err)
 	}
 
-	res.Body.Close()
-	return nil
+	defer res.Body.Close()
+
+	type Response struct {
+		MediaContainer struct {
+			Version string
+		}
+	}
+
+	resp := new(Response)
+	if err := json.NewDecoder(res.Body).Decode(resp); err != nil {
+		return "", fmt.Errorf("failed decoding version response: %v: %w", err, autoscan.ErrFatal)
+	}
+
+	return resp.MediaContainer.Version, nil
 }
 
 type library struct {
@@ -75,14 +94,12 @@ type library struct {
 }
 
 func (c apiClient) Libraries() ([]library, error) {
-	// create request
-	reqURL := autoscan.JoinURL(c.url, "library", "sections")
+	reqURL := autoscan.JoinURL(c.baseURL, "library", "sections")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// send request
 	res, err := c.do(req)
 	if err != nil {
 		return nil, fmt.Errorf("libraries: %w", err)
@@ -90,26 +107,27 @@ func (c apiClient) Libraries() ([]library, error) {
 
 	defer res.Body.Close()
 
-	// decode response
 	type Response struct {
-		Library []struct {
-			Name    string `xml:"title,attr"`
-			ID      int    `xml:"key,attr"`
-			Section []struct {
-				Path string `xml:"path,attr"`
-			} `xml:"Location"`
-		} `xml:"Directory"`
+		MediaContainer struct {
+			Libraries []struct {
+				ID       int    `json:"key"`
+				Name     string `json:"title"`
+				Sections []struct {
+					Path string `json:"path"`
+				} `json:"Location"`
+			} `json:"Directory"`
+		} `json:"MediaContainer"`
 	}
 
 	resp := new(Response)
 	if err := xml.NewDecoder(res.Body).Decode(resp); err != nil {
-		return nil, fmt.Errorf("failed decoding libraries request response: %v: %w", err, autoscan.ErrFatal)
+		return nil, fmt.Errorf("failed decoding libraries response: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	// process response
 	libraries := make([]library, 0)
-	for _, lib := range resp.Library {
-		for _, folder := range lib.Section {
+	for _, lib := range resp.MediaContainer.Libraries {
+		for _, folder := range lib.Sections {
 			libraries = append(libraries, library{
 				Name: lib.Name,
 				ID:   lib.ID,
@@ -122,20 +140,16 @@ func (c apiClient) Libraries() ([]library, error) {
 }
 
 func (c apiClient) Scan(path string, libraryID int) error {
-	// create request
-	reqURL := autoscan.JoinURL(c.url, "library", "sections", strconv.Itoa(libraryID), "refresh")
+	reqURL := autoscan.JoinURL(c.baseURL, "library", "sections", strconv.Itoa(libraryID), "refresh")
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
-		// May only occur when the user has provided an invalid URL
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// set params
 	q := url.Values{}
 	q.Add("path", path)
 	req.URL.RawQuery = q.Encode()
 
-	// send request
 	res, err := c.do(req)
 	if err != nil {
 		return fmt.Errorf("scan: %w", err)

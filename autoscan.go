@@ -51,11 +51,8 @@ var (
 	// will halt operations until the target is back online.
 	ErrTargetUnavailable = errors.New("target unavailable")
 
-	// ErrRetryScan indicates a temporary scan-specific error.
-	ErrRetryScan = errors.New("scan should be retried later")
-
 	// ErrFatal indicates a severe problem related to development.
-	ErrFatal = errors.New("fatal development related error")
+	ErrFatal = errors.New("fatal error")
 
 	// ErrNoScans is not an error. It only indicates whether the CLI
 	// should sleep longer depending on the processor output.

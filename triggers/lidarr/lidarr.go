@@ -3,7 +3,6 @@ package lidarr
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"path"
 
 	"github.com/cloudbox/autoscan"
@@ -87,23 +86,10 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		// Rewrite the path based on the provided rewriter.
 		fullPath := h.rewrite(f.Path)
 
-		// Retrieve the size of the file.
-		size, err := fileSize(fullPath)
-		if err != nil {
-			l.Warn().
-				Err(err).
-				Str("path", fullPath).
-				Msg("File does not exist")
-
-			rw.WriteHeader(http.StatusNotFound)
-			return
-		}
-
 		scans = append(scans, autoscan.Scan{
 			File:     path.Base(fullPath),
 			Folder:   path.Dir(fullPath),
 			Priority: h.priority,
-			Size:     size,
 		})
 	}
 
@@ -119,13 +105,4 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Str("path", h.rewrite(event.Artist.Path)).
 		Int("files", len(scans)).
 		Msg("Scan moved to processor")
-}
-
-var fileSize = func(name string) (uint64, error) {
-	info, err := os.Stat(name)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint64(info.Size()), nil
 }

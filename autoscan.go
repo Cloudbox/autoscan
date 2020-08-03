@@ -13,19 +13,8 @@ import (
 type Scan struct {
 	Folder   string
 	File     string
-	Size     uint64
 	Priority int
 	Retries  int
-	Metadata Metadata
-}
-
-// Metadata is an optional extension to autoscan.Scan.
-// It defines the provider (e.g. IMDb or TVDb) and the corresponding ID.
-//
-// Metadata MAY be used by targets to get a perfect match.
-type Metadata struct {
-	Provider string
-	ID       string
 }
 
 type ProcessorFunc func(...Scan) error

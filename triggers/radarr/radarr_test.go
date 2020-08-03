@@ -15,7 +15,6 @@ func TestHandler(t *testing.T) {
 	type Given struct {
 		Config  Config
 		Fixture string
-		Size    uint64
 	}
 
 	type Expected struct {
@@ -44,20 +43,14 @@ func TestHandler(t *testing.T) {
 			Given{
 				Config:  standardConfig,
 				Fixture: "testdata/interstellar.json",
-				Size:    157336,
 			},
 			Expected{
 				StatusCode: 200,
 				Scans: []autoscan.Scan{
 					{
-						File:   "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
-						Folder: "/mnt/unionfs/Media/Movies/Interstellar (2014)",
-						Metadata: autoscan.Metadata{
-							ID:       "tt0816692",
-							Provider: autoscan.IMDb,
-						},
+						File:     "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
+						Folder:   "/mnt/unionfs/Media/Movies/Interstellar (2014)",
 						Priority: 5,
-						Size:     157336,
 					},
 				},
 			},
@@ -74,20 +67,14 @@ func TestHandler(t *testing.T) {
 					},
 				},
 				Fixture: "testdata/parasite.json",
-				Size:    200000,
 			},
 			Expected{
 				StatusCode: 200,
 				Scans: []autoscan.Scan{
 					{
-						File:   "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
-						Folder: "/Media/Movies/Parasite (2019)",
-						Metadata: autoscan.Metadata{
-							ID:       "496243",
-							Provider: autoscan.TMDb,
-						},
+						File:     "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
+						Folder:   "/Media/Movies/Parasite (2019)",
 						Priority: 3,
-						Size:     200000,
 					},
 				},
 			},
@@ -116,10 +103,6 @@ func TestHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			fileSize = func(name string) (uint64, error) {
-				return tc.Given.Size, nil
-			}
-
 			callback := func(scans ...autoscan.Scan) error {
 				if !reflect.DeepEqual(tc.Expected.Scans, scans) {
 					t.Log(scans)

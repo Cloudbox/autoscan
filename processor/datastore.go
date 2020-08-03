@@ -20,11 +20,8 @@ CREATE TABLE IF NOT EXISTS scan (
 	"folder" TEXT NOT NULL,
 	"file" TEXT NOT NULL,
 	"priority" INTEGER NOT NULL,
-	"size" INTEGER NOT NULL,
 	"time" DATETIME NOT NULL,
 	"retries" INTEGER NOT NULL,
-	"meta_provider" TEXT,
-	"meta_id" TEXT,
 	PRIMARY KEY(folder, file)
 )
 `
@@ -48,19 +45,16 @@ func newDatastore(path string) (*datastore, error) {
 }
 
 const sqlUpsert = `
-INSERT INTO scan (folder, file, priority, size, meta_provider, meta_id, time, retries)
-VALUES (?, ?, ?, ?, NULLIF(?, ""), NULLIF(?, ""), ?, ?)
+INSERT INTO scan (folder, file, priority, time, retries)
+VALUES (?, ?, ?, ?, ?)
 ON CONFLICT (folder, file) DO UPDATE SET
-	meta_provider = COALESCE(excluded.meta_provider, scan.meta_provider),
-	meta_id = COALESCE(excluded.meta_id, scan.meta_id),
 	priority = MAX(excluded.priority, scan.priority),
-	size = excluded.size,
 	time = excluded.time,
 	retries = excluded.retries
 `
 
 func (store datastore) upsert(tx *sql.Tx, scan autoscan.Scan) error {
-	_, err := tx.Exec(sqlUpsert, scan.Folder, scan.File, scan.Priority, scan.Size, scan.Metadata.Provider, scan.Metadata.ID, now(), scan.Retries)
+	_, err := tx.Exec(sqlUpsert, scan.Folder, scan.File, scan.Priority, now(), scan.Retries)
 	return err
 }
 
@@ -84,7 +78,7 @@ func (store datastore) Upsert(scans []autoscan.Scan) error {
 }
 
 const sqlGetMatching = `
-SELECT folder, file, priority, size, retries, IFNULL(meta_provider, ""), IFNULL(meta_id, "") FROM scan
+SELECT folder, file, priority, retries FROM scan
 WHERE folder = (
 	SELECT folder
 	FROM scan
@@ -108,7 +102,7 @@ func (store datastore) GetMatching(minAge time.Duration) (scans []autoscan.Scan,
 	defer rows.Close()
 	for rows.Next() {
 		scan := autoscan.Scan{}
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Size, &scan.Retries, &scan.Metadata.Provider, &scan.Metadata.ID)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries)
 		if err != nil {
 			return scans, err
 		}
@@ -171,7 +165,7 @@ func (store datastore) Retry(folder string, maxRetries int) error {
 }
 
 const sqlGetAll = `
-SELECT folder, file, priority, size, retries, IFNULL(meta_provider, ""), IFNULL(meta_id, "") FROM scan
+SELECT folder, file, priority, retries FROM scan
 `
 
 func (store datastore) GetAll() (scans []autoscan.Scan, err error) {
@@ -187,7 +181,7 @@ func (store datastore) GetAll() (scans []autoscan.Scan, err error) {
 	defer rows.Close()
 	for rows.Next() {
 		scan := autoscan.Scan{}
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Size, &scan.Retries, &scan.Metadata.Provider, &scan.Metadata.ID)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries)
 		if err != nil {
 			return scans, err
 		}

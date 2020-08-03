@@ -1,10 +1,11 @@
-package emby
+package plex
 
 import (
-	"bytes"
-	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/cloudbox/autoscan"
 )
@@ -24,8 +25,8 @@ func newAPIClient(c Config) *apiClient {
 }
 
 func (c apiClient) do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-Emby-Token", c.token)
+	req.Header.Set("Accept", "application/xml")
+	req.Header.Set("X-Plex-Token", c.token)
 
 	res, err := c.client.Do(req)
 	if err != nil {
@@ -41,7 +42,7 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 
 	switch res.StatusCode {
 	case 401:
-		return nil, fmt.Errorf("invalid emby token: %s: %w", res.Status, autoscan.ErrFatal)
+		return nil, fmt.Errorf("invalid plex token: %s: %w", res.Status, autoscan.ErrFatal)
 	case 500, 503, 504:
 		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrTargetUnavailable)
 	default:
@@ -51,7 +52,7 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 
 func (c apiClient) Available() error {
 	// create request
-	reqURL := autoscan.JoinURL(c.url, "emby", "System", "Info")
+	reqURL := autoscan.JoinURL(c.url, "myplex", "account")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed creating availability request: %v: %w", err, autoscan.ErrFatal)
@@ -63,18 +64,19 @@ func (c apiClient) Available() error {
 		return fmt.Errorf("availability: %w", err)
 	}
 
-	defer res.Body.Close()
+	res.Body.Close()
 	return nil
 }
 
 type library struct {
+	ID   int
 	Name string
 	Path string
 }
 
 func (c apiClient) Libraries() ([]library, error) {
 	// create request
-	reqURL := autoscan.JoinURL(c.url, "emby", "Library", "SelectableMediaFolders")
+	reqURL := autoscan.JoinURL(c.url, "library", "sections")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
@@ -90,22 +92,26 @@ func (c apiClient) Libraries() ([]library, error) {
 
 	// decode response
 	type Response struct {
-		Name    string `json:"Name"`
-		Folders []struct {
-			Path string `json:"Path"`
-		} `json:"SubFolders"`
+		Library []struct {
+			Name    string `xml:"title,attr"`
+			Section []struct {
+				ID   int    `xml:"id,attr"`
+				Path string `xml:"path,attr"`
+			} `xml:"Location"`
+		} `xml:"Directory"`
 	}
 
-	resp := make([]Response, 0)
-	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
+	resp := new(Response)
+	if err := xml.NewDecoder(res.Body).Decode(resp); err != nil {
 		return nil, fmt.Errorf("failed decoding libraries request response: %v: %w", err, autoscan.ErrFatal)
 	}
 
 	// process response
 	libraries := make([]library, 0)
-	for _, lib := range resp {
-		for _, folder := range lib.Folders {
+	for _, lib := range resp.Library {
+		for _, folder := range lib.Section {
 			libraries = append(libraries, library{
+				ID:   folder.ID,
 				Name: lib.Name,
 				Path: folder.Path,
 			})
@@ -115,39 +121,19 @@ func (c apiClient) Libraries() ([]library, error) {
 	return libraries, nil
 }
 
-type scanRequest struct {
-	Path       string `json:"path"`
-	UpdateType string `json:"updateType"`
-}
-
-func (c apiClient) Scan(path string) error {
-	// create request payload
-	type Payload struct {
-		Updates []scanRequest `json:"Updates"`
-	}
-
-	payload := &Payload{
-		Updates: []scanRequest{
-			{
-				Path:       path,
-				UpdateType: "Created",
-			},
-		},
-	}
-
-	b, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed encoding scan request payload: %v: %w", err, autoscan.ErrFatal)
-	}
-
+func (c apiClient) Scan(path string, libraryID int) error {
 	// create request
-	reqURL := autoscan.JoinURL(c.url, "Library", "Media", "Updated")
-	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(b))
+	reqURL := autoscan.JoinURL(c.url, "library", "sections", strconv.Itoa(libraryID), "refresh")
+	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
+		// May only occur when the user has provided an invalid URL
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	// set params
+	q := url.Values{}
+	q.Add("path", path)
+	req.URL.RawQuery = q.Encode()
 
 	// send request
 	res, err := c.do(req)
@@ -155,6 +141,6 @@ func (c apiClient) Scan(path string) error {
 		return fmt.Errorf("scan: %w", err)
 	}
 
-	defer res.Body.Close()
+	res.Body.Close()
 	return nil
 }

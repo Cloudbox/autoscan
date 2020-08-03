@@ -28,7 +28,7 @@ func New(c Config) (*target, error) {
 		return nil, err
 	}
 
-	api := newApiClient(c)
+	api := newAPIClient(c)
 
 	libraries, err := api.Libraries()
 	if err != nil {

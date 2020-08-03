@@ -4,21 +4,25 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
-	"net/http"
 )
 
 type apiClient struct {
 	url   string
 	token string
-	log   zerolog.Logger
+
+	client *http.Client
+	log    zerolog.Logger
 }
 
-func newApiClient(c Config) *apiClient {
+func newAPIClient(c Config) *apiClient {
 	return &apiClient{
-		url:   c.URL,
-		token: c.Token,
+		client: &http.Client{},
+		url:    c.URL,
+		token:  c.Token,
 		log: autoscan.GetLogger(c.Verbosity).With().
 			Str("target", "emby").
 			Str("url", c.URL).
@@ -26,24 +30,30 @@ func newApiClient(c Config) *apiClient {
 	}
 }
 
-func (c apiClient) validateResponseStatus(requestType string, successStatus int, res *http.Response,
-	unexpectedErrorType error) error {
-	switch res.StatusCode {
-	case successStatus:
-		// success
-		return nil
-	case 401:
-		// unauthorized
-		return fmt.Errorf("emby token is invalid: failed validating %v request response: %w",
-			requestType, autoscan.ErrFatal)
-	case 503, 504:
-		// unavailable
-		return fmt.Errorf("%v: failed validating %v request response: %w",
-			res.Status, requestType, autoscan.ErrTargetUnavailable)
+func (c apiClient) do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Emby-Token", c.token)
+
+	res, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
-	return fmt.Errorf("%v: failed validating %v request response: %w",
-		res.Status, requestType, unexpectedErrorType)
+	if res.StatusCode >= 200 && res.StatusCode < 300 {
+		return res, nil
+	}
+
+	// statusCode not in the 2xx range, close response
+	res.Body.Close()
+
+	switch res.StatusCode {
+	case 401:
+		return nil, fmt.Errorf("invalid emby token: %s: %w", res.Status, autoscan.ErrFatal)
+	case 500, 503, 504:
+		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrTargetUnavailable)
+	default:
+		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrFatal)
+	}
 }
 
 func (c apiClient) Available() error {
@@ -54,24 +64,13 @@ func (c apiClient) Available() error {
 		return fmt.Errorf("failed creating availability request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// set headers
-	req.Header.Set("X-Emby-Token", c.token)
-	req.Header.Set("Accept", "application/json")
-
 	// send request
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
-		return fmt.Errorf("failed sending availability request: %v: %w", err, autoscan.ErrTargetUnavailable)
+		return fmt.Errorf("availability: %w", err)
 	}
 
 	defer res.Body.Close()
-
-	// validate response
-	err = c.validateResponseStatus("availability", 200, res, autoscan.ErrTargetUnavailable)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -88,23 +87,13 @@ func (c apiClient) Libraries() ([]library, error) {
 		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// set headers
-	req.Header.Set("X-Emby-Token", c.token)
-	req.Header.Set("Accept", "application/json")
-
 	// send request
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending libraries request: %v: %w", err, autoscan.ErrFatal)
+		return nil, fmt.Errorf("libraries: %w", err)
 	}
 
 	defer res.Body.Close()
-
-	// validate response
-	err = c.validateResponseStatus("libraries", 200, res, autoscan.ErrFatal)
-	if err != nil {
-		return nil, err
-	}
 
 	// decode response
 	type Response struct {
@@ -162,27 +151,15 @@ func (c apiClient) Scan(path string) error {
 	reqURL := autoscan.JoinURL(c.url, "Library", "Media", "Updated")
 	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(b))
 	if err != nil {
-		// May only occur when the user has provided an invalid URL
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// set headers
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Emby-Token", c.token)
-
 	// send request
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
-		return fmt.Errorf("failed sending scan request: %v: %w", err, autoscan.ErrTargetUnavailable)
+		return fmt.Errorf("scan: %w", err)
 	}
 
 	defer res.Body.Close()
-
-	// validate response
-	err = c.validateResponseStatus("scan", 204, res, autoscan.ErrRetryScan)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

@@ -94,8 +94,8 @@ func (c apiClient) Libraries() ([]library, error) {
 	type Response struct {
 		Library []struct {
 			Name    string `xml:"title,attr"`
+			ID      int    `xml:"key,attr"`
 			Section []struct {
-				ID   int    `xml:"id,attr"`
 				Path string `xml:"path,attr"`
 			} `xml:"Location"`
 		} `xml:"Directory"`
@@ -111,8 +111,8 @@ func (c apiClient) Libraries() ([]library, error) {
 	for _, lib := range resp.Library {
 		for _, folder := range lib.Section {
 			libraries = append(libraries, library{
-				ID:   folder.ID,
 				Name: lib.Name,
+				ID:   lib.ID,
 				Path: folder.Path,
 			})
 		}

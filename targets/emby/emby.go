@@ -1,6 +1,9 @@
 package emby
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
 )
@@ -19,26 +22,26 @@ type target struct {
 
 	log     zerolog.Logger
 	rewrite autoscan.Rewriter
-	api     *apiClient
+	api     apiClient
 }
 
-func New(c Config) (*target, error) {
+func New(c Config) (autoscan.Target, error) {
+	l := autoscan.GetLogger(c.Verbosity).With().
+		Str("target", "emby").
+		Str("url", c.URL).
+		Logger()
+
 	rewriter, err := autoscan.NewRewriter(c.Rewrite)
 	if err != nil {
 		return nil, err
 	}
 
-	api := newAPIClient(c)
+	api := newAPIClient(c.URL, c.Token, l)
 
 	libraries, err := api.Libraries()
 	if err != nil {
 		return nil, err
 	}
-
-	l := autoscan.GetLogger(c.Verbosity).With().
-		Str("target", "emby").
-		Str("url", c.URL).
-		Logger()
 
 	l.Debug().
 		Interface("libraries", libraries).
@@ -57,4 +60,47 @@ func New(c Config) (*target, error) {
 
 func (t target) Available() error {
 	return t.api.Available()
+}
+
+func (t target) Scan(scans []autoscan.Scan) error {
+	// ensure scan tasks present (should never fail)
+	if len(scans) == 0 {
+		return nil
+	}
+
+	// determine library for this scan
+	scanFolder := t.rewrite(scans[0].Folder)
+
+	lib, err := t.getScanLibrary(scanFolder)
+	if err != nil {
+		t.log.Error().
+			Err(err).
+			Msg("No target libraries found")
+		return fmt.Errorf("no target libraries found: %v: %w", err, autoscan.ErrFatal)
+	}
+
+	l := t.log.With().
+		Str("path", scanFolder).
+		Str("library", lib.Name).
+		Logger()
+
+	// send scan request
+	l.Trace().Msg("Sending scan request")
+
+	if err := t.api.Scan(scanFolder); err != nil {
+		return err
+	}
+
+	l.Info().Msg("Scan moved to target")
+	return nil
+}
+
+func (t target) getScanLibrary(folder string) (*library, error) {
+	for _, l := range t.libraries {
+		if strings.HasPrefix(folder, l.Path) {
+			return &l, nil
+		}
+	}
+
+	return nil, fmt.Errorf("%v: failed determining library", folder)
 }

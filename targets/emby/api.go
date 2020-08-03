@@ -7,25 +7,28 @@ import (
 	"net/http"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/rs/zerolog"
 )
 
 type apiClient struct {
-	client *http.Client
-	url    string
-	token  string
+	client  *http.Client
+	log     zerolog.Logger
+	baseURL string
+	token   string
 }
 
-func newAPIClient(c Config) *apiClient {
-	return &apiClient{
-		client: &http.Client{},
-		url:    c.URL,
-		token:  c.Token,
+func newAPIClient(baseURL string, token string, log zerolog.Logger) apiClient {
+	return apiClient{
+		client:  &http.Client{},
+		log:     log,
+		baseURL: baseURL,
+		token:   token,
 	}
 }
 
 func (c apiClient) do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Emby-Token", c.token)
+	req.Header.Set("Accept", "application/json") // Force JSON Response.
 
 	res, err := c.client.Do(req)
 	if err != nil {
@@ -36,13 +39,18 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 		return res, nil
 	}
 
+	c.log.Trace().
+		Stringer("request_url", res.Request.URL).
+		Int("response_status", res.StatusCode).
+		Msg("Request failed")
+
 	// statusCode not in the 2xx range, close response
 	res.Body.Close()
 
 	switch res.StatusCode {
 	case 401:
 		return nil, fmt.Errorf("invalid emby token: %s: %w", res.Status, autoscan.ErrFatal)
-	case 500, 503, 504:
+	case 404, 500, 503, 504:
 		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrTargetUnavailable)
 	default:
 		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrFatal)
@@ -51,7 +59,7 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 
 func (c apiClient) Available() error {
 	// create request
-	reqURL := autoscan.JoinURL(c.url, "emby", "System", "Info")
+	reqURL := autoscan.JoinURL(c.baseURL, "emby", "System", "Info")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed creating availability request: %v: %w", err, autoscan.ErrFatal)
@@ -74,7 +82,7 @@ type library struct {
 
 func (c apiClient) Libraries() ([]library, error) {
 	// create request
-	reqURL := autoscan.JoinURL(c.url, "emby", "Library", "SelectableMediaFolders")
+	reqURL := autoscan.JoinURL(c.baseURL, "emby", "Library", "SelectableMediaFolders")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
@@ -141,7 +149,7 @@ func (c apiClient) Scan(path string) error {
 	}
 
 	// create request
-	reqURL := autoscan.JoinURL(c.url, "Library", "Media", "Updated")
+	reqURL := autoscan.JoinURL(c.baseURL, "Library", "Media", "Updated")
 	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(b))
 	if err != nil {
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)

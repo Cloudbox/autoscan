@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -112,22 +111,9 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	}
 
 	// 1. do stuff with existingScans
-	err = p.callTargets(targets, existingScans)
-
-	switch {
-	// No error -> continue
-	case err == nil:
-		break
-
-	// Retryable error -> increment and return without error
-	case errors.Is(err, autoscan.ErrRetryScan):
-		if incrementErr := p.store.Retry(scans[0].Folder, p.maxRetries); incrementErr != nil {
-			return fmt.Errorf("%v: %w", incrementErr, autoscan.ErrFatal)
-		}
-		return nil
-
 	// Fatal or Target Unavailable -> return original error
-	default:
+	err = p.callTargets(targets, existingScans)
+	if err != nil {
 		return err
 	}
 

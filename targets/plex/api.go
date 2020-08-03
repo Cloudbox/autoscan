@@ -2,7 +2,6 @@ package plex
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -110,7 +109,7 @@ func (c apiClient) Libraries() ([]library, error) {
 	type Response struct {
 		MediaContainer struct {
 			Libraries []struct {
-				ID       int    `json:"key"`
+				ID       int    `json:"key,string"`
 				Name     string `json:"title"`
 				Sections []struct {
 					Path string `json:"path"`
@@ -120,7 +119,7 @@ func (c apiClient) Libraries() ([]library, error) {
 	}
 
 	resp := new(Response)
-	if err := xml.NewDecoder(res.Body).Decode(resp); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(resp); err != nil {
 		return nil, fmt.Errorf("failed decoding libraries response: %v: %w", err, autoscan.ErrFatal)
 	}
 

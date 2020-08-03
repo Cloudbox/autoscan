@@ -3,9 +3,7 @@ package sonarr
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"path"
-	"strconv"
 
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog/hlog"
@@ -51,9 +49,7 @@ type sonarrEvent struct {
 	} `json:"episodeFile"`
 
 	Series struct {
-		Title  string
-		Path   string
-		TvdbID int
+		Path string
 	} `json:"series"`
 }
 
@@ -86,28 +82,10 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// Rewrite the path based on the provided rewriter.
 	fullPath := h.rewrite(path.Join(event.Series.Path, event.File.RelativePath))
 
-	// Retrieve the size of the file.
-	size, err := fileSize(fullPath)
-	if err != nil {
-		rlog.Warn().
-			Err(err).
-			Str("path", fullPath).
-			Msg("File does not exist")
-
-		rw.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	scan := autoscan.Scan{
 		File:     path.Base(fullPath),
 		Folder:   path.Dir(fullPath),
 		Priority: h.priority,
-		Size:     size,
-	}
-
-	if event.Series.TvdbID != 0 {
-		scan.Metadata.Provider = autoscan.TVDb
-		scan.Metadata.ID = strconv.Itoa(event.Series.TvdbID)
 	}
 
 	err = h.callback(scan)
@@ -121,13 +99,4 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rlog.Info().
 		Str("path", fullPath).
 		Msg("Scan moved to processor")
-}
-
-var fileSize = func(name string) (uint64, error) {
-	info, err := os.Stat(name)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint64(info.Size()), nil
 }

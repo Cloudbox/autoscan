@@ -15,7 +15,6 @@ func TestHandler(t *testing.T) {
 	type Given struct {
 		Config  Config
 		Fixture string
-		Size    uint64
 	}
 
 	type Expected struct {
@@ -44,20 +43,14 @@ func TestHandler(t *testing.T) {
 			Given{
 				Config:  standardConfig,
 				Fixture: "testdata/westworld.json",
-				Size:    38943275,
 			},
 			Expected{
 				StatusCode: 200,
 				Scans: []autoscan.Scan{
 					{
-						File:   "Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv",
-						Folder: "/mnt/unionfs/Media/TV/Westworld/Season 1",
-						Metadata: autoscan.Metadata{
-							ID:       "296762",
-							Provider: autoscan.TVDb,
-						},
+						File:     "Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv",
+						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 1",
 						Priority: 5,
-						Size:     38943275,
 					},
 				},
 			},
@@ -86,10 +79,6 @@ func TestHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			fileSize = func(name string) (uint64, error) {
-				return tc.Given.Size, nil
-			}
-
 			callback := func(scans ...autoscan.Scan) error {
 				if !reflect.DeepEqual(tc.Expected.Scans, scans) {
 					t.Log(scans)

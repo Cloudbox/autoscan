@@ -19,7 +19,7 @@ type ScanWithTime struct {
 }
 
 const sqlGetAllWithTime = `
-SELECT folder, file, priority, size, retries, IFNULL(meta_provider, ""), IFNULL(meta_id, ""), time FROM scan
+SELECT folder, file, priority, retries, time FROM scan
 `
 
 func (store datastore) GetAllWithTime() (scans []ScanWithTime, err error) {
@@ -37,7 +37,7 @@ func (store datastore) GetAllWithTime() (scans []ScanWithTime, err error) {
 		withTime := ScanWithTime{}
 		scan := &withTime.Scan
 
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Size, &scan.Retries, &scan.Metadata.Provider, &scan.Metadata.ID, &withTime.Time)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &withTime.Time)
 		if err != nil {
 			return scans, err
 		}
@@ -50,37 +50,21 @@ func (store datastore) GetAllWithTime() (scans []ScanWithTime, err error) {
 }
 
 const sqlGetScan = `
-SELECT folder, file, priority, size, time, retries, meta_provider, meta_id FROM scan
+SELECT folder, file, priority, time, retries FROM scan
 WHERE folder = $1 AND file = $2
 `
 
 func GetScan(t *testing.T, db *sql.DB, folder string, file string) (scan autoscan.Scan, scanTime time.Time) {
 	t.Helper()
 
-	var metaProvider sql.NullString
-	var metaID sql.NullString
-
 	row := db.QueryRow(sqlGetScan, folder, file)
 
-	err := row.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Size, &scanTime, &scan.Retries, &metaProvider, &metaID)
+	err := row.Scan(&scan.Folder, &scan.File, &scan.Priority, &scanTime, &scan.Retries)
 	if err != nil {
 		t.Fatalf("Could not scan the row: %v", err)
 	}
 
-	if metaID.String == "" && metaID.Valid {
-		t.Fatal("Meta ID is an empty string, not a NULL")
-	}
-
-	if metaProvider.String == "" && metaProvider.Valid {
-		t.Fatal("Meta Provider is an empty string, not a NULL")
-	}
-
-	scan.Metadata = autoscan.Metadata{
-		ID:       metaID.String,
-		Provider: metaProvider.String,
-	}
-
-	return
+	return scan, scanTime
 }
 
 func TestUpsert(t *testing.T) {
@@ -97,13 +81,12 @@ func TestUpsert(t *testing.T) {
 
 	var testCases = []Test{
 		{
-			Name: "Empty Metadata fields should return NULL",
+			Name: "All fields",
 			Scans: []autoscan.Scan{
 				{
 					Folder:   "testfolder/test",
 					File:     "test.mkv",
 					Priority: 5,
-					Size:     300,
 					Retries:  2,
 				},
 			},
@@ -113,46 +96,7 @@ func TestUpsert(t *testing.T) {
 					Folder:   "testfolder/test",
 					File:     "test.mkv",
 					Priority: 5,
-					Size:     300,
 					Retries:  2,
-				},
-			},
-		},
-		{
-			Name: "Metadata can be updated but cannot be removed",
-			Scans: []autoscan.Scan{
-				{
-					Metadata: autoscan.Metadata{
-						ID:       "",
-						Provider: "",
-					},
-				},
-				{
-					Metadata: autoscan.Metadata{
-						ID:       "tt1234",
-						Provider: autoscan.IMDb,
-					},
-				},
-				{
-					Metadata: autoscan.Metadata{
-						ID:       "tt5678",
-						Provider: autoscan.IMDb,
-					},
-				},
-				{
-					Metadata: autoscan.Metadata{
-						ID:       "",
-						Provider: "",
-					},
-				},
-			},
-			Want: Want{
-				Time: time.Time{}.Add(4),
-				Scan: autoscan.Scan{
-					Metadata: autoscan.Metadata{
-						ID:       "tt5678",
-						Provider: autoscan.IMDb,
-					},
 				},
 			},
 		},
@@ -173,26 +117,6 @@ func TestUpsert(t *testing.T) {
 				Time: time.Time{}.Add(3),
 				Scan: autoscan.Scan{
 					Priority: 5,
-				},
-			},
-		},
-		{
-			Name: "Size should always reflect the newest value",
-			Scans: []autoscan.Scan{
-				{
-					Size: 1,
-				},
-				{
-					Size: 3,
-				},
-				{
-					Size: 2,
-				},
-			},
-			Want: Want{
-				Time: time.Time{}.Add(3),
-				Scan: autoscan.Scan{
-					Size: 2,
 				},
 			},
 		},
@@ -306,11 +230,6 @@ func TestGetMatching(t *testing.T) {
 						Folder:   "Amazing folder",
 						File:     "Wholesome file",
 						Priority: 69,
-						Size:     420,
-						Metadata: autoscan.Metadata{
-							ID:       "tt0417299",
-							Provider: autoscan.IMDb,
-						},
 					},
 				},
 			},
@@ -319,11 +238,6 @@ func TestGetMatching(t *testing.T) {
 					Folder:   "Amazing folder",
 					File:     "Wholesome file",
 					Priority: 69,
-					Size:     420,
-					Metadata: autoscan.Metadata{
-						ID:       "tt0417299",
-						Provider: autoscan.IMDb,
-					},
 				},
 			},
 		},

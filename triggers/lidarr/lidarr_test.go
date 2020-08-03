@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -16,7 +15,6 @@ func TestHandler(t *testing.T) {
 	type Given struct {
 		Config  Config
 		Fixture string
-		Sizes   map[string]uint64
 	}
 
 	type Expected struct {
@@ -45,12 +43,6 @@ func TestHandler(t *testing.T) {
 			Given{
 				Config:  standardConfig,
 				Fixture: "testdata/marshmello.json",
-				Sizes: map[string]uint64{
-					"01 - Down.mp3":            100,
-					"02 - Run It Up.mp3":       500,
-					"03 - Put Yo Hands Up.mp3": 200,
-					"04 - Let’s Get Down.mp3":  1200,
-				},
 			},
 			Expected{
 				StatusCode: 200,
@@ -59,25 +51,21 @@ func TestHandler(t *testing.T) {
 						File:     "01 - Down.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
-						Size:     100,
 					},
 					{
 						File:     "02 - Run It Up.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
-						Size:     500,
 					},
 					{
 						File:     "03 - Put Yo Hands Up.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
-						Size:     200,
 					},
 					{
 						File:     "04 - Let’s Get Down.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
-						Size:     1200,
 					},
 				},
 			},
@@ -106,10 +94,6 @@ func TestHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			fileSize = func(name string) (uint64, error) {
-				return tc.Given.Sizes[filepath.Base(name)], nil
-			}
-
 			callback := func(scans ...autoscan.Scan) error {
 				if !reflect.DeepEqual(tc.Expected.Scans, scans) {
 					t.Log(scans)

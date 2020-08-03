@@ -3,9 +3,7 @@ package radarr
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"path"
-	"strconv"
 
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog/hlog"
@@ -46,11 +44,6 @@ type radarrEvent struct {
 	Type    string `json:"eventType"`
 	Upgrade bool   `json:"isUpgrade"`
 
-	Details struct {
-		TmdbID int
-		ImdbID string
-	} `json:"remoteMovie"`
-
 	File struct {
 		RelativePath string
 	} `json:"movieFile"`
@@ -89,31 +82,10 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// Rewrite the path based on the provided rewriter.
 	fullPath := h.rewrite(path.Join(event.Movie.FolderPath, event.File.RelativePath))
 
-	// Retrieve the size of the file.
-	size, err := fileSize(fullPath)
-	if err != nil {
-		rlog.Warn().
-			Err(err).
-			Str("path", fullPath).
-			Msg("File does not exist")
-
-		rw.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	scan := autoscan.Scan{
 		File:     path.Base(fullPath),
 		Folder:   path.Dir(fullPath),
 		Priority: h.priority,
-		Size:     size,
-	}
-
-	if event.Details.ImdbID != "" {
-		scan.Metadata.Provider = autoscan.IMDb
-		scan.Metadata.ID = event.Details.ImdbID
-	} else if event.Details.TmdbID != 0 {
-		scan.Metadata.Provider = autoscan.TMDb
-		scan.Metadata.ID = strconv.Itoa(event.Details.TmdbID)
 	}
 
 	err = h.callback(scan)
@@ -127,13 +99,4 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rlog.Info().
 		Str("path", fullPath).
 		Msg("Scan moved to processor")
-}
-
-var fileSize = func(name string) (uint64, error) {
-	info, err := os.Stat(name)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint64(info.Size()), nil
 }

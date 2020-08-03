@@ -3,48 +3,51 @@ package plex
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/cloudbox/autoscan"
-	"github.com/rs/zerolog"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type apiClient struct {
-	url   string
-	token string
-	log   zerolog.Logger
+	client *http.Client
+	url    string
+	token  string
 }
 
-func newApiClient(c Config) *apiClient {
+func newAPIClient(c Config) *apiClient {
 	return &apiClient{
-		url:   c.URL,
-		token: c.Token,
-		log: autoscan.GetLogger(c.Verbosity).With().
-			Str("target", "plex").
-			Str("url", c.URL).
-			Logger(),
+		client: &http.Client{},
+		url:    c.URL,
+		token:  c.Token,
 	}
 }
 
-func (c apiClient) validateResponseStatus(requestType string, successStatus int, res *http.Response,
-	unexpectedErrorType error) error {
-	switch res.StatusCode {
-	case successStatus:
-		// success
-		return nil
-	case 401:
-		// unauthorized
-		return fmt.Errorf("plex token is invalid: failed validating %v request response: %w",
-			requestType, autoscan.ErrFatal)
-	case 503, 504:
-		// unavailable
-		return fmt.Errorf("%v: failed validating %v request response: %w",
-			res.Status, requestType, autoscan.ErrTargetUnavailable)
+func (c apiClient) do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Accept", "application/xml")
+	req.Header.Set("X-Plex-Token", c.token)
+
+	res, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrTargetUnavailable)
 	}
 
-	return fmt.Errorf("%v: failed validating %v request response: %w",
-		res.Status, requestType, unexpectedErrorType)
+	if res.StatusCode >= 200 && res.StatusCode < 300 {
+		return res, nil
+	}
+
+	// statusCode not in the 2xx range, close response
+	res.Body.Close()
+
+	switch res.StatusCode {
+	case 401:
+		return nil, fmt.Errorf("invalid plex token: %s: %w", res.Status, autoscan.ErrFatal)
+	case 500, 503, 504:
+		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrTargetUnavailable)
+	default:
+		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrFatal)
+	}
 }
 
 func (c apiClient) Available() error {
@@ -55,24 +58,13 @@ func (c apiClient) Available() error {
 		return fmt.Errorf("failed creating availability request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// set headers
-	req.Header.Set("X-Plex-Token", c.token)
-	req.Header.Set("Accept", "application/json")
-
 	// send request
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
-		return fmt.Errorf("failed sending availability request: %v: %w", err, autoscan.ErrTargetUnavailable)
+		return fmt.Errorf("availability: %w", err)
 	}
 
-	defer res.Body.Close()
-
-	// validate response
-	err = c.validateResponseStatus("availability", 200, res, autoscan.ErrTargetUnavailable)
-	if err != nil {
-		return err
-	}
-
+	res.Body.Close()
 	return nil
 }
 
@@ -90,30 +82,20 @@ func (c apiClient) Libraries() ([]library, error) {
 		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// set headers
-	req.Header.Set("X-Plex-Token", c.token)
-	req.Header.Set("Accept", "application/xml")
-
 	// send request
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending libraries request: %v: %w", err, autoscan.ErrFatal)
+		return nil, fmt.Errorf("libraries: %w", err)
 	}
 
 	defer res.Body.Close()
-
-	// validate response
-	err = c.validateResponseStatus("libraries", 200, res, autoscan.ErrFatal)
-	if err != nil {
-		return nil, err
-	}
 
 	// decode response
 	type Response struct {
 		Library []struct {
 			Name    string `xml:"title,attr"`
 			Section []struct {
-				Id   int    `xml:"id,attr"`
+				ID   int    `xml:"id,attr"`
 				Path string `xml:"path,attr"`
 			} `xml:"Location"`
 		} `xml:"Directory"`
@@ -129,7 +111,7 @@ func (c apiClient) Libraries() ([]library, error) {
 	for _, lib := range resp.Library {
 		for _, folder := range lib.Section {
 			libraries = append(libraries, library{
-				ID:   folder.Id,
+				ID:   folder.ID,
 				Name: lib.Name,
 				Path: folder.Path,
 			})
@@ -139,38 +121,26 @@ func (c apiClient) Libraries() ([]library, error) {
 	return libraries, nil
 }
 
-func (c apiClient) Scan(path string, libraryId int) error {
+func (c apiClient) Scan(path string, libraryID int) error {
 	// create request
-	reqURL := autoscan.JoinURL(c.url, "library", "sections", strconv.Itoa(libraryId), "refresh")
+	reqURL := autoscan.JoinURL(c.url, "library", "sections", strconv.Itoa(libraryID), "refresh")
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
 		// May only occur when the user has provided an invalid URL
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}
 
-	// set headers
-	req.Header.Set("X-Plex-Token", c.token)
-
 	// set params
 	q := url.Values{}
 	q.Add("path", path)
-
 	req.URL.RawQuery = q.Encode()
 
 	// send request
-	res, err := http.DefaultClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
-		return fmt.Errorf("failed sending scan request: %v: %w", err, autoscan.ErrTargetUnavailable)
+		return fmt.Errorf("scan: %w", err)
 	}
 
-	defer res.Body.Close()
-
-	// validate response
-	err = c.validateResponseStatus("scan", 200, res, autoscan.ErrRetryScan)
-	if err != nil {
-		return err
-	}
-
+	res.Body.Close()
 	return nil
-
 }

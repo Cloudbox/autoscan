@@ -7,15 +7,12 @@ import (
 	"net/http"
 
 	"github.com/cloudbox/autoscan"
-	"github.com/rs/zerolog"
 )
 
 type apiClient struct {
-	url   string
-	token string
-
 	client *http.Client
-	log    zerolog.Logger
+	url    string
+	token  string
 }
 
 func newAPIClient(c Config) *apiClient {
@@ -23,20 +20,16 @@ func newAPIClient(c Config) *apiClient {
 		client: &http.Client{},
 		url:    c.URL,
 		token:  c.Token,
-		log: autoscan.GetLogger(c.Verbosity).With().
-			Str("target", "emby").
-			Str("url", c.URL).
-			Logger(),
 	}
 }
 
 func (c apiClient) do(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Emby-Token", c.token)
 
 	res, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
+		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrTargetUnavailable)
 	}
 
 	if res.StatusCode >= 200 && res.StatusCode < 300 {
@@ -153,6 +146,8 @@ func (c apiClient) Scan(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	// send request
 	res, err := c.do(req)

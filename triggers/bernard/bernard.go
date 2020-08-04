@@ -26,10 +26,12 @@ type Config struct {
 
 type drive struct {
 	ID    string `yaml:"id"`
-	Paths []struct {
-		Path    string           `yaml:"path"`
-		Rewrite autoscan.Rewrite `yaml:"rewrite"`
-	} `yaml:"paths"`
+	Paths []path `yaml:"paths"`
+}
+
+type path struct {
+	Path    string           `yaml:"path"`
+	Rewrite autoscan.Rewrite `yaml:"rewrite"`
 }
 
 func New(c Config) (autoscan.Trigger, error) {
@@ -54,14 +56,7 @@ func New(c Config) (autoscan.Trigger, error) {
 		lowe.WithPreRequestHook(limiter.Wait),
 		lowe.WithSafeSleep(120*time.Second))
 
-	rewrites := c.Rewrite
-	for _, d := range c.Drives {
-		for _, p := range d.Paths {
-			rewrites = append(rewrites, p.Rewrite)
-		}
-	}
-
-	rewriter, err := autoscan.NewMultiRewriter(rewrites)
+	rewriter, err := autoscan.NewMultiRewriter(c.Rewrite)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}

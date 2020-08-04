@@ -1,10 +1,8 @@
 package bernard
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/cloudbox/autoscan"
@@ -30,7 +28,8 @@ func New(c Config) (autoscan.Trigger, error) {
 		Str("drive_id", c.DriveID).
 		Logger()
 
-	auth, err := stubbsFromFile(c.AccountPath)
+	const scope = "https://www.googleapis.com/auth/drive.readonly"
+	auth, err := stubbs.FromFile(c.AccountPath, []string{scope}, 3600)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
@@ -140,31 +139,4 @@ func (d daemon) StartAutoSync() error {
 
 	c.Start()
 	return nil
-}
-
-func stubbsFromFile(filename string) (*stubbs.Stubbs, error) {
-	const scope string = "https://www.googleapis.com/auth/drive.readonly"
-
-	type serviceAccount struct {
-		Email string `json:"client_email"`
-		Key   string `json:"private_key"`
-	}
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	sa := new(serviceAccount)
-	err = json.NewDecoder(file).Decode(sa)
-	if err != nil {
-		return nil, err
-	}
-
-	priv, err := stubbs.ParseKey(sa.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	return stubbs.New(sa.Email, &priv, []string{scope}, 3600), nil
 }

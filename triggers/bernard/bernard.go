@@ -69,7 +69,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			cronSchedule: c.CronSchedule,
 			drives:       drives,
 			bernard:      bernard,
-			store:        store,
+			store:        &bds{store},
 		}
 
 		if err := d.InitialSync(); err != nil {
@@ -97,7 +97,7 @@ type daemon struct {
 	cronSchedule string
 	drives       []drive
 	bernard      *lowe.Bernard
-	store        *sqlite.Datastore
+	store        *bds
 	log          zerolog.Logger
 }
 
@@ -109,10 +109,12 @@ func (d daemon) InitialSync() error {
 		switch {
 		case errors.Is(err, ds.ErrFullSync):
 			l.Info().Msg("Starting full sync")
+			start := time.Now()
+
 			if err := d.bernard.FullSync(drive.ID); err != nil {
 				return err
 			}
-			l.Info().Msg("Finished full sync")
+			l.Info().Msgf("Finished full sync in %s", time.Since(start))
 		case err != nil:
 			return err
 		}
@@ -153,14 +155,27 @@ func (d daemon) StartAutoSync() error {
 		for _, drive := range d.drives {
 			l := d.withDriveLog(drive.ID)
 
+			dh, diff := d.store.NewDifferencesHook()
+			ph := NewPostProcessBernardDiff(drive.ID, d.store, diff)
+			ch, paths := NewPathsHook(drive.ID, d.store, diff)
+
 			l.Trace().Msg("Running partial sync")
-			err := d.bernard.PartialSync(drive.ID)
+			start := time.Now()
+
+			err := d.bernard.PartialSync(drive.ID, dh, ph, ch)
 			if err != nil {
-				d.log.Error().Err(err).Msg("Partial sync failed")
+				d.log.Error().
+					Err(err).
+					Msg("Partial sync failed")
 				c.Stop()
 				return
 			}
-			l.Trace().Msg("Partial sync complete")
+
+			l.Trace().
+				Int("added_files", len(paths.AddedFiles)).
+				Int("changed_files", len(paths.ChangedFiles)).
+				Int("removed_files", len(paths.RemovedFiles)).
+				Msgf("Partial sync finished in %s", time.Since(start))
 
 			// do something with the results
 

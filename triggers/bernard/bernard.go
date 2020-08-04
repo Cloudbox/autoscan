@@ -21,17 +21,10 @@ type Config struct {
 	DatastorePath string             `yaml:"database"`
 	Verbosity     string             `yaml:"verbosity"`
 	Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
-	Drives        []drive            `yaml:"drives"`
-}
-
-type drive struct {
-	ID    string `yaml:"id"`
-	Paths []path `yaml:"paths"`
-}
-
-type path struct {
-	Path    string           `yaml:"path"`
-	Rewrite autoscan.Rewrite `yaml:"rewrite"`
+	Drives        []struct {
+		ID      string             `yaml:"id"`
+		Rewrite []autoscan.Rewrite `yaml:"rewrite"`
+	} `yaml:"drives"`
 }
 
 func New(c Config) (autoscan.Trigger, error) {
@@ -56,9 +49,17 @@ func New(c Config) (autoscan.Trigger, error) {
 		lowe.WithPreRequestHook(limiter.Wait),
 		lowe.WithSafeSleep(120*time.Second))
 
-	rewriter, err := autoscan.NewRewriter(c.Rewrite)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
+	var drives []drive
+	for _, d := range c.Drives {
+		rewriter, err := autoscan.NewRewriter(append(d.Rewrite, c.Rewrite...))
+		if err != nil {
+			return nil, err
+		}
+
+		drives = append(drives, drive{
+			ID:       d.ID,
+			Rewriter: rewriter,
+		})
 	}
 
 	trigger := func(callback autoscan.ProcessorFunc) {
@@ -66,8 +67,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			log:          l,
 			callback:     callback,
 			cronSchedule: c.CronSchedule,
-			rewrite:      rewriter,
-			drives:       c.Drives,
+			drives:       drives,
 			bernard:      bernard,
 			store:        store,
 		}
@@ -87,10 +87,14 @@ func New(c Config) (autoscan.Trigger, error) {
 	return trigger, nil
 }
 
+type drive struct {
+	ID       string
+	Rewriter autoscan.Rewriter
+}
+
 type daemon struct {
 	callback     autoscan.ProcessorFunc
 	cronSchedule string
-	rewrite      autoscan.Rewriter
 	drives       []drive
 	bernard      *lowe.Bernard
 	store        *sqlite.Datastore
@@ -157,6 +161,9 @@ func (d daemon) StartAutoSync() error {
 				return
 			}
 			l.Trace().Msg("Partial sync complete")
+
+			// do something with the results
+
 		}
 	})
 

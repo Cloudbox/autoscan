@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 	lowe "github.com/m-rots/bernard"
@@ -38,7 +39,11 @@ func New(c Config) (autoscan.Trigger, error) {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
-	bernard := lowe.New(auth, store)
+	limiter := getRateLimiter(c.AccountPath)
+
+	bernard := lowe.New(auth, store,
+		lowe.WithPreRequestHook(limiter.Wait),
+		lowe.WithSafeSleep(120*time.Second))
 
 	trigger := func(callback autoscan.ProcessorFunc) {
 		d := daemon{

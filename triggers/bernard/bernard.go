@@ -56,7 +56,7 @@ func New(c Config) (autoscan.Trigger, error) {
 		lowe.WithPreRequestHook(limiter.Wait),
 		lowe.WithSafeSleep(120*time.Second))
 
-	rewriter, err := autoscan.NewMultiRewriter(c.Rewrite)
+	rewriter, err := autoscan.NewRewriter(c.Rewrite)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}

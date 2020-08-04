@@ -31,10 +31,10 @@ func TestHandler(t *testing.T) {
 	standardConfig := Config{
 		Name:     "radarr",
 		Priority: 5,
-		Rewrite: autoscan.Rewrite{
+		Rewrite: []autoscan.Rewrite{{
 			From: "/Movies/*",
 			To:   "/mnt/unionfs/Media/Movies/$1",
-		},
+		}},
 	}
 
 	var testCases = []Test{
@@ -61,10 +61,10 @@ func TestHandler(t *testing.T) {
 				Config: Config{
 					Name:     "radarr",
 					Priority: 3,
-					Rewrite: autoscan.Rewrite{
+					Rewrite: []autoscan.Rewrite{{
 						From: "/data/*",
 						To:   "/Media/$1",
-					},
+					}},
 				},
 				Fixture: "testdata/parasite.json",
 			},

@@ -10,10 +10,10 @@ import (
 )
 
 type Config struct {
-	URL       string           `yaml:"url"`
-	Token     string           `yaml:"token"`
-	Rewrite   autoscan.Rewrite `yaml:"rewrite"`
-	Verbosity string           `yaml:"verbosity"`
+	URL       string             `yaml:"url"`
+	Token     string             `yaml:"token"`
+	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity string             `yaml:"verbosity"`
 }
 
 type target struct {

@@ -31,10 +31,10 @@ func TestHandler(t *testing.T) {
 	standardConfig := Config{
 		Name:     "lidarr",
 		Priority: 5,
-		Rewrite: autoscan.Rewrite{
+		Rewrite: []autoscan.Rewrite{{
 			From: "/Music/*",
 			To:   "/mnt/unionfs/Media/Music/$1",
-		},
+		}},
 	}
 
 	var testCases = []Test{

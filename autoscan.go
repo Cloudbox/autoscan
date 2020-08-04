@@ -71,55 +71,25 @@ type Rewrite struct {
 
 type Rewriter func(string) string
 
-func NewRewriter(r Rewrite) (Rewriter, error) {
-	if r.From == "" || r.To == "" {
-		rewriter := func(input string) string {
-			return input
-		}
-
-		return rewriter, nil
-	}
-
-	re, err := regexp.Compile(r.From)
-	if err != nil {
-		return nil, err
-	}
-
-	rewriter := func(input string) string {
-		return re.ReplaceAllString(input, r.To)
-	}
-
-	return rewriter, nil
-}
-
-func NewMultiRewriter(r []Rewrite) (Rewriter, error) {
-	if len(r) == 0 {
-		rewriter := func(input string) string {
-			return input
-		}
-
-		return rewriter, nil
-	}
-
-	rewriters := make(map[Rewrite]Rewriter)
-	rewriter := func(input string) string {
-		for _, rw := range rewriters {
-			output := rw(input)
-			if output != input {
-				return output
-			}
-		}
-
-		return input
-	}
-
-	for _, rewrite := range r {
-		rw, err := NewRewriter(rewrite)
+func NewRewriter(rewriteRules []Rewrite) (Rewriter, error) {
+	var rewrites []regexp.Regexp
+	for _, rule := range rewriteRules {
+		re, err := regexp.Compile(rule.From)
 		if err != nil {
 			return nil, err
 		}
 
-		rewriters[rewrite] = rw
+		rewrites = append(rewrites, *re)
+	}
+
+	rewriter := func(input string) string {
+		for i, r := range rewrites {
+			if r.MatchString(input) {
+				return r.ReplaceAllString(input, rewriteRules[i].To)
+			}
+		}
+
+		return input
 	}
 
 	return rewriter, nil

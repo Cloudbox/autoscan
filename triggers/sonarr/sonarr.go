@@ -10,10 +10,10 @@ import (
 )
 
 type Config struct {
-	Name      string           `yaml:"name"`
-	Priority  int              `yaml:"priority"`
-	Rewrite   autoscan.Rewrite `yaml:"rewrite"`
-	Verbosity string           `yaml:"verbosity"`
+	Name      string             `yaml:"name"`
+	Priority  int                `yaml:"priority"`
+	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity string             `yaml:"verbosity"`
 }
 
 // New creates an autoscan-compatible HTTP Trigger for Sonarr webhooks.

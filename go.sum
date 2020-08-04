@@ -12,6 +12,8 @@ github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f h1:dKccXx7xA56UNq
 github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f/go.mod h1:4rEELDSfUAlBSyUjPG0JnaNGjf13JySHFeRdD/3dLP0=
 github.com/m-rots/bernard v0.3.2 h1:jr7b5sQA+M0975N277Bl8JgeuvgJHRyHpsX/JZGLCKc=
 github.com/m-rots/bernard v0.3.2/go.mod h1:yDQffALXQDh6sTXdFCbI2rJtYuXgx41MyJM6Sf/j7Sc=
+github.com/m-rots/bernard v0.3.3-0.20200804121414-38394a889536 h1:0aY4VrX9R+Y0VArW9EyeZF5JJws4w6aLf7V/YdVHOTQ=
+github.com/m-rots/bernard v0.3.3-0.20200804121414-38394a889536/go.mod h1:yDQffALXQDh6sTXdFCbI2rJtYuXgx41MyJM6Sf/j7Sc=
 github.com/m-rots/stubbs v1.0.0 h1:lBrjn27J32/iGHp7eKPYGcphuqDIg5UIs/YI4q1m63Q=
 github.com/m-rots/stubbs v1.0.0/go.mod h1:iDS6z2oonw2UMo2l0S1WTPJ9git7FWU4YEo6fq7F2WU=
 github.com/m-rots/stubbs v1.0.1-0.20200804111142-55ef5d1857d9 h1:ent/Dhpzz7hiCBiDgJL2iS5G0Yzd/a9GpP6XSOet0Qc=

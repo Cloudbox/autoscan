@@ -7,7 +7,7 @@ require (
 	github.com/alecthomas/kong v0.2.11
 	github.com/justinas/alice v1.2.0
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
-	github.com/m-rots/bernard v0.3.2
+	github.com/m-rots/bernard v0.3.3-0.20200804121414-38394a889536
 	github.com/m-rots/stubbs v1.0.1-0.20200804111142-55ef5d1857d9
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/natefinch/lumberjack v2.0.0+incompatible

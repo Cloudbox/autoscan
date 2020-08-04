@@ -91,3 +91,36 @@ func NewRewriter(r Rewrite) (Rewriter, error) {
 
 	return rewriter, nil
 }
+
+func NewMultiRewriter(r []Rewrite) (Rewriter, error) {
+	if len(r) == 0 {
+		rewriter := func(input string) string {
+			return input
+		}
+
+		return rewriter, nil
+	}
+
+	rewriters := make(map[Rewrite]Rewriter)
+	rewriter := func(input string) string {
+		for _, rw := range rewriters {
+			output := rw(input)
+			if output != input {
+				return output
+			}
+		}
+
+		return input
+	}
+
+	for _, rewrite := range r {
+		rw, err := NewRewriter(rewrite)
+		if err != nil {
+			return nil, err
+		}
+
+		rewriters[rewrite] = rw
+	}
+
+	return rewriter, nil
+}

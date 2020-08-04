@@ -16,11 +16,20 @@ import (
 )
 
 type Config struct {
-	AccountPath   string   `yaml:"account"`
-	CronSchedule  string   `yaml:"cron"`
-	DatastorePath string   `yaml:"database"`
-	Verbosity     string   `yaml:"verbosity"`
-	DriveIDs      []string `yaml:"drives"`
+	AccountPath   string             `yaml:"account"`
+	CronSchedule  string             `yaml:"cron"`
+	DatastorePath string             `yaml:"database"`
+	Verbosity     string             `yaml:"verbosity"`
+	Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
+	Drives        []drive            `yaml:"drives"`
+}
+
+type drive struct {
+	ID    string `yaml:"id"`
+	Paths []struct {
+		Path    string           `yaml:"path"`
+		Rewrite autoscan.Rewrite `yaml:"rewrite"`
+	} `yaml:"paths"`
 }
 
 func New(c Config) (autoscan.Trigger, error) {
@@ -45,12 +54,25 @@ func New(c Config) (autoscan.Trigger, error) {
 		lowe.WithPreRequestHook(limiter.Wait),
 		lowe.WithSafeSleep(120*time.Second))
 
+	rewrites := c.Rewrite
+	for _, d := range c.Drives {
+		for _, p := range d.Paths {
+			rewrites = append(rewrites, p.Rewrite)
+		}
+	}
+
+	rewriter, err := autoscan.NewMultiRewriter(rewrites)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
+	}
+
 	trigger := func(callback autoscan.ProcessorFunc) {
 		d := daemon{
 			log:          l,
 			callback:     callback,
 			cronSchedule: c.CronSchedule,
-			driveIDs:     c.DriveIDs,
+			rewrite:      rewriter,
+			drives:       c.Drives,
 			bernard:      bernard,
 			store:        store,
 		}
@@ -73,21 +95,22 @@ func New(c Config) (autoscan.Trigger, error) {
 type daemon struct {
 	callback     autoscan.ProcessorFunc
 	cronSchedule string
-	driveIDs     []string
+	rewrite      autoscan.Rewriter
+	drives       []drive
 	bernard      *lowe.Bernard
 	store        *sqlite.Datastore
 	log          zerolog.Logger
 }
 
 func (d daemon) InitialSync() error {
-	for _, driveID := range d.driveIDs {
-		l := d.withDriveLog(driveID)
+	for _, drive := range d.drives {
+		l := d.withDriveLog(drive.ID)
 
-		_, err := d.store.PageToken(driveID)
+		_, err := d.store.PageToken(drive.ID)
 		switch {
 		case errors.Is(err, ds.ErrFullSync):
 			l.Info().Msg("Starting full sync")
-			if err := d.bernard.FullSync(driveID); err != nil {
+			if err := d.bernard.FullSync(drive.ID); err != nil {
 				return err
 			}
 			l.Info().Msg("Finished full sync")
@@ -128,11 +151,11 @@ func (d daemon) StartAutoSync() error {
 	c := cron.New()
 
 	job := newSyncJob(func() {
-		for _, driveID := range d.driveIDs {
-			l := d.withDriveLog(driveID)
+		for _, drive := range d.drives {
+			l := d.withDriveLog(drive.ID)
 
 			l.Trace().Msg("Running partial sync")
-			err := d.bernard.PartialSync(driveID)
+			err := d.bernard.PartialSync(drive.ID)
 			if err != nil {
 				d.log.Error().Err(err).Msg("Partial sync failed")
 				c.Stop()

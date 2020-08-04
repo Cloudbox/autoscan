@@ -15,17 +15,16 @@ import (
 )
 
 type Config struct {
-	CronSchedule  string `yaml:"cron"`
-	AccountPath   string `yaml:"account"`
-	DatastorePath string `yaml:"database"`
-	DriveID       string `yaml:"id"`
-	Verbosity     string `yaml:"verbosity"`
+	AccountPath   string   `yaml:"account"`
+	CronSchedule  string   `yaml:"cron"`
+	DatastorePath string   `yaml:"database"`
+	Verbosity     string   `yaml:"verbosity"`
+	DriveIDs      []string `yaml:"drives"`
 }
 
 func New(c Config) (autoscan.Trigger, error) {
 	l := autoscan.GetLogger(c.Verbosity).With().
 		Str("trigger", "bernard").
-		Str("drive_id", c.DriveID).
 		Logger()
 
 	const scope = "https://www.googleapis.com/auth/drive.readonly"
@@ -46,7 +45,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			log:          l,
 			callback:     callback,
 			cronSchedule: c.CronSchedule,
-			driveID:      c.DriveID,
+			driveIDs:     c.DriveIDs,
 			bernard:      bernard,
 			store:        store,
 		}
@@ -69,25 +68,27 @@ func New(c Config) (autoscan.Trigger, error) {
 type daemon struct {
 	callback     autoscan.ProcessorFunc
 	cronSchedule string
-	driveID      string
+	driveIDs     []string
 	bernard      *lowe.Bernard
 	store        *sqlite.Datastore
 	log          zerolog.Logger
 }
 
 func (d daemon) InitialSync() error {
-	_, err := d.store.PageToken(d.driveID)
-	switch {
-	case err == nil:
-		return nil
-	case errors.Is(err, ds.ErrFullSync):
-		d.log.Info().Msg("Starting full sync")
-		if err := d.bernard.FullSync(d.driveID); err != nil {
+	for _, driveID := range d.driveIDs {
+		l := d.withDriveLog(driveID)
+
+		_, err := d.store.PageToken(driveID)
+		switch {
+		case errors.Is(err, ds.ErrFullSync):
+			l.Info().Msg("Starting full sync")
+			if err := d.bernard.FullSync(driveID); err != nil {
+				return err
+			}
+			l.Info().Msg("Finished full sync")
+		case err != nil:
 			return err
 		}
-		d.log.Info().Msg("Finished full sync")
-	default:
-		return err
 	}
 
 	return nil
@@ -122,14 +123,18 @@ func (d daemon) StartAutoSync() error {
 	c := cron.New()
 
 	job := newSyncJob(func() {
-		d.log.Trace().Msg("Running partial sync")
-		err := d.bernard.PartialSync(d.driveID)
-		if err != nil {
-			d.log.Error().Err(err).Msg("Partial sync failed")
-			c.Stop()
-			return
+		for _, driveID := range d.driveIDs {
+			l := d.withDriveLog(driveID)
+
+			l.Trace().Msg("Running partial sync")
+			err := d.bernard.PartialSync(driveID)
+			if err != nil {
+				d.log.Error().Err(err).Msg("Partial sync failed")
+				c.Stop()
+				return
+			}
+			l.Trace().Msg("Partial sync complete")
 		}
-		d.log.Trace().Msg("Partial sync complete")
 	})
 
 	_, err := c.AddFunc(d.cronSchedule, job.Do)
@@ -139,4 +144,8 @@ func (d daemon) StartAutoSync() error {
 
 	c.Start()
 	return nil
+}
+
+func (d daemon) withDriveLog(driveID string) zerolog.Logger {
+	return d.log.With().Str("drive_id", driveID).Logger()
 }

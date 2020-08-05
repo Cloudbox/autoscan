@@ -79,14 +79,9 @@ func New(c Config) (autoscan.Trigger, error) {
 			sem:          sem,
 		}
 
-		if err := d.InitialSync(); err != nil {
-			l.Error().Err(err).Msg("Initial sync failed")
-			return
-		}
-
-		// start job
+		// start job(s)
 		if err := d.StartAutoSync(); err != nil {
-			l.Error().Err(err).Msg("Cron job could not be created")
+			l.Error().Err(err).Msg("Cron jobs could not be created")
 			return
 		}
 	}
@@ -110,28 +105,6 @@ type daemon struct {
 	sem          *semaphore.Weighted
 }
 
-func (d daemon) InitialSync() error {
-	for _, drive := range d.drives {
-		l := d.withDriveLog(drive.ID)
-
-		_, err := d.store.PageToken(drive.ID)
-		switch {
-		case errors.Is(err, ds.ErrFullSync):
-			l.Info().Msg("Starting full sync")
-			start := time.Now()
-
-			if err := d.bernard.FullSync(drive.ID); err != nil {
-				return err
-			}
-			l.Info().Msgf("Finished full sync in %s", time.Since(start))
-		case err != nil:
-			return err
-		}
-	}
-
-	return nil
-}
-
 type syncJob struct {
 	cron  *cron.Cron
 	jobID cron.EntryID
@@ -151,12 +124,25 @@ func newSyncJob(c *cron.Cron, job func() error) *syncJob {
 
 func (d daemon) StartAutoSync() error {
 	c := cron.New()
+	cl := newNoLogger()
 
 	for _, drive := range d.drives {
 		drive := drive
+		fullSync := false
 
+		// full sync required?
+		_, err := d.store.PageToken(drive.ID)
+		switch {
+		case errors.Is(err, ds.ErrFullSync):
+			fullSync = true
+		case err != nil:
+			return fmt.Errorf("failed determining if full sync required: %v: %w", drive.ID, err)
+		}
+
+		// create job
 		job := newSyncJob(c, func() error {
 			l := d.withDriveLog(drive.ID)
+
 			// acquire lock
 			if err := d.sem.Acquire(context.Background(), 1); err != nil {
 				d.log.Error().Err(err).Msg("Failed acquiring semaphore partial sync lock")
@@ -164,6 +150,20 @@ func (d daemon) StartAutoSync() error {
 				return fmt.Errorf("failed acquiring partial sync semaphore: %w", err)
 			}
 			defer d.sem.Release(1)
+
+			// full sync
+			if fullSync {
+				l.Info().Msg("Starting full sync")
+				start := time.Now()
+
+				if err := d.bernard.FullSync(drive.ID); err != nil {
+					return fmt.Errorf("failed full syncing: %v: %w", drive.ID, err)
+				}
+
+				l.Info().Msgf("Finished full sync in %s", time.Since(start))
+				fullSync = false
+				return nil
+			}
 
 			// create partial sync
 			dh, diff := d.store.NewDifferencesHook()
@@ -202,7 +202,7 @@ func (d daemon) StartAutoSync() error {
 			return nil
 		})
 
-		id, err := c.AddJob(d.cronSchedule, cron.NewChain(cron.SkipIfStillRunning(nil)).Then(job))
+		id, err := c.AddJob(d.cronSchedule, cron.NewChain(cron.SkipIfStillRunning(cl)).Then(job))
 		if err != nil {
 			return fmt.Errorf("failed creating auto sync job for drive: %v: %w", drive.ID, err)
 		}

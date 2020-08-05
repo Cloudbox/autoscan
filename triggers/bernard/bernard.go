@@ -20,6 +20,7 @@ type Config struct {
 	AccountPath   string             `yaml:"account"`
 	CronSchedule  string             `yaml:"cron"`
 	DatastorePath string             `yaml:"database"`
+	Priority      int                `yaml:"priority"`
 	Verbosity     string             `yaml:"verbosity"`
 	Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
 	Drives        []struct {
@@ -68,6 +69,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			log:          l,
 			callback:     callback,
 			cronSchedule: c.CronSchedule,
+			priority:     c.Priority,
 			drives:       drives,
 			bernard:      bernard,
 			store:        &bds{store},
@@ -96,6 +98,7 @@ type drive struct {
 type daemon struct {
 	callback     autoscan.ProcessorFunc
 	cronSchedule string
+	priority     int
 	drives       []drive
 	bernard      *lowe.Bernard
 	store        *bds
@@ -179,12 +182,6 @@ func (d daemon) StartAutoSync() error {
 				Int("files_removed", len(paths.RemovedFiles)).
 				Msgf("Partial sync finished in %s", time.Since(start))
 
-			l.Trace().
-				Interface("files_added", paths.AddedFiles).
-				Interface("files_changed", paths.ChangedFiles).
-				Interface("files_removed", paths.RemovedFiles).
-				Msg("Paths hook result")
-
 			// translate paths to scan tasks
 			scans := d.getScanTasks(&(drive), paths)
 
@@ -227,7 +224,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 		scanTasks = append(scanTasks, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
-			Priority: 0,
+			Priority: d.priority,
 			Retries:  0,
 		})
 	}
@@ -249,7 +246,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 		scanTasks = append(scanTasks, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
-			Priority: 0,
+			Priority: d.priority,
 			Retries:  0,
 		})
 	}
@@ -271,7 +268,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 		scanTasks = append(scanTasks, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
-			Priority: 0,
+			Priority: d.priority,
 			Retries:  0,
 		})
 	}

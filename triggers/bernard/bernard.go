@@ -46,7 +46,10 @@ func New(c Config) (autoscan.Trigger, error) {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
-	limiter := getRateLimiter(c.AccountPath)
+	limiter, err := getRateLimiter(c.AccountPath)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
+	}
 
 	bernard := lowe.New(auth, store,
 		lowe.WithPreRequestHook(limiter.Wait),
@@ -65,8 +68,6 @@ func New(c Config) (autoscan.Trigger, error) {
 		})
 	}
 
-	sem := semaphore.NewWeighted(5)
-
 	trigger := func(callback autoscan.ProcessorFunc) {
 		d := daemon{
 			log:          l,
@@ -76,7 +77,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			drives:       drives,
 			bernard:      bernard,
 			store:        &bds{store},
-			sem:          sem,
+			sem:          limiter.Semaphore(),
 		}
 
 		// start job(s)

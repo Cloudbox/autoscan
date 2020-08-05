@@ -153,6 +153,8 @@ func (d daemon) StartAutoSync() error {
 	c := cron.New()
 
 	for _, drive := range d.drives {
+		drive := drive
+
 		job := newSyncJob(c, func() error {
 			l := d.withDriveLog(drive.ID)
 			// acquire lock
@@ -204,7 +206,7 @@ func (d daemon) StartAutoSync() error {
 		if err != nil {
 			return fmt.Errorf("failed creating auto sync job for drive: %v: %w", drive.ID, err)
 		}
-		
+
 		// todo: investigate alternatives (if this is un-safe)
 		job.jobID = id
 	}

@@ -1,8 +1,10 @@
 package bernard
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/sync/semaphore"
 	"path/filepath"
 	"time"
 
@@ -63,6 +65,8 @@ func New(c Config) (autoscan.Trigger, error) {
 		})
 	}
 
+	sem := semaphore.NewWeighted(5)
+
 	trigger := func(callback autoscan.ProcessorFunc) {
 		d := daemon{
 			log:          l,
@@ -72,6 +76,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			drives:       drives,
 			bernard:      bernard,
 			store:        &bds{store},
+			sem:          sem,
 		}
 
 		if err := d.InitialSync(); err != nil {
@@ -102,6 +107,7 @@ type daemon struct {
 	bernard      *lowe.Bernard
 	store        *bds
 	log          zerolog.Logger
+	sem          *semaphore.Weighted
 }
 
 func (d daemon) InitialSync() error {
@@ -127,8 +133,9 @@ func (d daemon) InitialSync() error {
 }
 
 type syncJob struct {
-	cron *cron.Cron
-	fn   func() error
+	cron  *cron.Cron
+	jobID cron.EntryID
+	fn    func() error
 }
 
 func (s syncJob) Run() {
@@ -145,10 +152,18 @@ func newSyncJob(c *cron.Cron, job func() error) *syncJob {
 func (d daemon) StartAutoSync() error {
 	c := cron.New()
 
-	job := newSyncJob(c, func() error {
-		for _, drive := range d.drives {
+	for _, drive := range d.drives {
+		job := newSyncJob(c, func() error {
 			l := d.withDriveLog(drive.ID)
+			// acquire lock
+			if err := d.sem.Acquire(context.Background(), 1); err != nil {
+				d.log.Error().Err(err).Msg("Failed acquiring semaphore partial sync lock")
+				// todo: return an error indicating this job should be stopped
+				return fmt.Errorf("failed acquiring partial sync semaphore: %w", err)
+			}
+			defer d.sem.Release(1)
 
+			// create partial sync
 			dh, diff := d.store.NewDifferencesHook()
 			ph := NewPostProcessBernardDiff(drive.ID, d.store, diff)
 			ch, paths := NewPathsHook(drive.ID, d.store, diff, withOldChangedFilesToRemove(true))
@@ -156,6 +171,7 @@ func (d daemon) StartAutoSync() error {
 			l.Trace().Msg("Running partial sync")
 			start := time.Now()
 
+			// do partial sync
 			err := d.bernard.PartialSync(drive.ID, dh, ph, ch)
 			if err != nil {
 				d.log.Error().
@@ -180,16 +196,17 @@ func (d daemon) StartAutoSync() error {
 					Interface("scans", scans).
 					Msg("Scan tasks to be moved to processor")
 			}
+
+			return nil
+		})
+
+		id, err := c.AddJob(d.cronSchedule, cron.NewChain(cron.SkipIfStillRunning(nil)).Then(job))
+		if err != nil {
+			return fmt.Errorf("failed creating auto sync job for drive: %v: %w", drive.ID, err)
 		}
-
-		return nil
-	})
-
-	_, err := c.AddJob(d.cronSchedule, cron.NewChain(
-		cron.SkipIfStillRunning(nil),
-	).Then(job))
-	if err != nil {
-		return err
+		
+		// todo: investigate alternatives (if this is un-safe)
+		job.jobID = id
 	}
 
 	c.Start()

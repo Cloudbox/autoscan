@@ -172,13 +172,17 @@ func (d daemon) StartAutoSync() error {
 			}
 
 			l.Trace().
-				Int("added_files", len(paths.AddedFiles)).
-				Int("changed_files", len(paths.ChangedFiles)).
-				Int("removed_files", len(paths.RemovedFiles)).
+				Int("files_added", len(paths.AddedFiles)).
+				Int("files_changed", len(paths.ChangedFiles)).
+				Int("files_removed", len(paths.RemovedFiles)).
 				Msgf("Partial sync finished in %s", time.Since(start))
 
 			// do something with the results
-
+			l.Trace().
+				Interface("files_added", paths.AddedFiles).
+				Interface("files_changed", paths.ChangedFiles).
+				Interface("files_removed", paths.RemovedFiles).
+				Msg("Paths hook result")
 		}
 	})
 

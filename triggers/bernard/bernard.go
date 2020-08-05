@@ -3,6 +3,7 @@ package bernard
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -167,6 +168,7 @@ func (d daemon) StartAutoSync() error {
 				d.log.Error().
 					Err(err).
 					Msg("Partial sync failed")
+				// todo: proper error handling here, partial syncs may fail, however, they should be retried and only aborted after N continuous failures
 				c.Stop()
 				return
 			}
@@ -177,12 +179,21 @@ func (d daemon) StartAutoSync() error {
 				Int("files_removed", len(paths.RemovedFiles)).
 				Msgf("Partial sync finished in %s", time.Since(start))
 
-			// do something with the results
 			l.Trace().
 				Interface("files_added", paths.AddedFiles).
 				Interface("files_changed", paths.ChangedFiles).
 				Interface("files_removed", paths.RemovedFiles).
 				Msg("Paths hook result")
+
+			// translate paths to scan tasks
+			scans := d.getScanTasks(&(drive), paths)
+
+			// move scans to processor
+			if len(scans) > 0 {
+				l.Trace().
+					Interface("scans", scans).
+					Msg("Scan tasks to be moved to processor")
+			}
 		}
 	})
 
@@ -193,6 +204,79 @@ func (d daemon) StartAutoSync() error {
 
 	c.Start()
 	return nil
+}
+
+func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
+	pathMap := make(map[string]int)
+	scanTasks := make([]autoscan.Scan, 0)
+
+	for _, p := range paths.AddedFiles {
+		// rewrite path
+		rewritten := drive.Rewriter(p)
+
+		// check if path already seen
+		if _, ok := pathMap[rewritten]; ok {
+			// already a scan task present
+			continue
+		} else {
+			pathMap[rewritten] = 1
+		}
+
+		// add scan task
+		dir, file := filepath.Split(rewritten)
+		scanTasks = append(scanTasks, autoscan.Scan{
+			Folder:   filepath.Clean(dir),
+			File:     file,
+			Priority: 0,
+			Retries:  0,
+		})
+	}
+
+	for _, p := range paths.ChangedFiles {
+		// rewrite path
+		rewritten := drive.Rewriter(p)
+
+		// check if path already seen
+		if _, ok := pathMap[rewritten]; ok {
+			// already a scan task present
+			continue
+		} else {
+			pathMap[rewritten] = 1
+		}
+
+		// add scan task
+		dir, file := filepath.Split(filepath.Clean(rewritten))
+		scanTasks = append(scanTasks, autoscan.Scan{
+			Folder:   filepath.Clean(dir),
+			File:     file,
+			Priority: 0,
+			Retries:  0,
+		})
+	}
+
+	for _, p := range paths.RemovedFiles {
+		// rewrite path
+		rewritten := drive.Rewriter(p)
+
+		// check if path already seen
+		if _, ok := pathMap[rewritten]; ok {
+			// already a scan task present
+			continue
+		} else {
+			pathMap[rewritten] = 1
+		}
+
+		// add scan task
+		dir, file := filepath.Split(rewritten)
+		scanTasks = append(scanTasks, autoscan.Scan{
+			Folder:   filepath.Clean(dir),
+			File:     file,
+			Priority: 0,
+			Retries:  0,
+		})
+	}
+
+	return scanTasks
 }
 
 func (d daemon) withDriveLog(driveID string) zerolog.Logger {

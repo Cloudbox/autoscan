@@ -9,15 +9,9 @@ import (
 )
 
 type Paths struct {
-	sqlite.Difference
-
 	AddedFiles   []string
 	ChangedFiles []string
 	RemovedFiles []string
-
-	//AddedFolders   []string
-	//ChangedFolders []string
-	//RemovedFolders []string
 }
 
 type options struct {
@@ -37,7 +31,6 @@ func buildOptions(opts ...option) *options {
 	for _, opt := range opts {
 		opt(o)
 	}
-
 	return o
 }
 

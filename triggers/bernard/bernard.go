@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/cloudbox/autoscan"
@@ -128,34 +127,25 @@ func (d daemon) InitialSync() error {
 }
 
 type syncJob struct {
-	job       func()
-	mtx       sync.Mutex
-	isRunning bool
+	cron *cron.Cron
+	fn   func() error
 }
 
-func (s *syncJob) Do() {
-	if s.isRunning {
-		return
-	}
-
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	s.isRunning = true
-	s.job()
-	s.isRunning = false
+func (s syncJob) Run() {
+	_ = s.fn()
 }
 
-func newSyncJob(job func()) *syncJob {
+func newSyncJob(c *cron.Cron, job func() error) *syncJob {
 	return &syncJob{
-		job: job,
+		cron: c,
+		fn:   job,
 	}
 }
 
 func (d daemon) StartAutoSync() error {
 	c := cron.New()
 
-	job := newSyncJob(func() {
+	job := newSyncJob(c, func() error {
 		for _, drive := range d.drives {
 			l := d.withDriveLog(drive.ID)
 
@@ -172,8 +162,7 @@ func (d daemon) StartAutoSync() error {
 					Err(err).
 					Msg("Partial sync failed")
 				// todo: proper error handling here, partial syncs may fail, however, they should be retried and only aborted after N continuous failures
-				c.Stop()
-				return
+				return errors.New("partial sync failed")
 			}
 
 			l.Trace().
@@ -192,11 +181,13 @@ func (d daemon) StartAutoSync() error {
 					Msg("Scan tasks to be moved to processor")
 			}
 		}
+
+		return nil
 	})
 
 	_, err := c.AddJob(d.cronSchedule, cron.NewChain(
 		cron.SkipIfStillRunning(nil),
-	).Then(cron.FuncJob(job.Do)))
+	).Then(job))
 	if err != nil {
 		return err
 	}

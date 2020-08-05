@@ -23,8 +23,6 @@ func NewPostProcessBernardDiff(driveID string, store *bds, diff *sqlite.Differen
 				// this removed file was already known as trashed (removed to us)
 				diff.RemovedFiles = append(diff.RemovedFiles[:i], diff.RemovedFiles[i+1:]...)
 				i--
-			default:
-				continue
 			}
 		}
 
@@ -42,8 +40,6 @@ func NewPostProcessBernardDiff(driveID string, store *bds, diff *sqlite.Differen
 				// this removed folder was already known as trashed (removed to us)
 				diff.RemovedFolders = append(diff.RemovedFolders[:i], diff.RemovedFolders[i+1:]...)
 				i--
-			default:
-				continue
 			}
 		}
 
@@ -63,8 +59,6 @@ func NewPostProcessBernardDiff(driveID string, store *bds, diff *sqlite.Differen
 				diff.RemovedFiles = append(diff.RemovedFiles, df)
 				diff.ChangedFiles = append(diff.ChangedFiles[:i], diff.ChangedFiles[i+1:]...)
 				i--
-			default:
-				continue
 			}
 		}
 
@@ -83,8 +77,6 @@ func NewPostProcessBernardDiff(driveID string, store *bds, diff *sqlite.Differen
 				diff.RemovedFolders = append(diff.RemovedFolders, df)
 				diff.ChangedFolders = append(diff.ChangedFolders[:i], diff.ChangedFolders[i+1:]...)
 				i--
-			default:
-				continue
 			}
 		}
 

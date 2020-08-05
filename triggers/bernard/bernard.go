@@ -1,10 +1,8 @@
 package bernard
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sync/semaphore"
 	"path/filepath"
 	"time"
 
@@ -46,7 +44,7 @@ func New(c Config) (autoscan.Trigger, error) {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
-	limiter, err := getRateLimiter(c.AccountPath)
+	limiter, err := getRateLimiter(auth.Email())
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
@@ -77,12 +75,14 @@ func New(c Config) (autoscan.Trigger, error) {
 			drives:       drives,
 			bernard:      bernard,
 			store:        &bds{store},
-			sem:          limiter.Semaphore(),
+			limiter:      limiter,
 		}
 
 		// start job(s)
 		if err := d.StartAutoSync(); err != nil {
-			l.Error().Err(err).Msg("Cron jobs could not be created")
+			l.Error().
+				Err(err).
+				Msg("Failed initialising cron jobs")
 			return
 		}
 	}
@@ -103,22 +103,26 @@ type daemon struct {
 	bernard      *lowe.Bernard
 	store        *bds
 	log          zerolog.Logger
-	sem          *semaphore.Weighted
+	limiter      *rateLimiter
 }
 
 type syncJob struct {
 	cron  *cron.Cron
+	log   zerolog.Logger
 	jobID cron.EntryID
 	fn    func() error
 }
 
 func (s syncJob) Run() {
 	_ = s.fn()
+	// todo: error is fatal ? stop job
+	// todo: error is not fatal but data anomaly ? increase try counter (stop after N tries)
 }
 
-func newSyncJob(c *cron.Cron, job func() error) *syncJob {
+func newSyncJob(c *cron.Cron, log zerolog.Logger, job func() error) *syncJob {
 	return &syncJob{
 		cron: c,
+		log:  log,
 		fn:   job,
 	}
 }
@@ -130,6 +134,7 @@ func (d daemon) StartAutoSync() error {
 	for _, drive := range d.drives {
 		drive := drive
 		fullSync := false
+		l := d.withDriveLog(drive.ID)
 
 		// full sync required?
 		_, err := d.store.PageToken(drive.ID)
@@ -137,20 +142,18 @@ func (d daemon) StartAutoSync() error {
 		case errors.Is(err, ds.ErrFullSync):
 			fullSync = true
 		case err != nil:
-			return fmt.Errorf("failed determining if full sync required: %v: %w", drive.ID, err)
+			return fmt.Errorf("%v: failed determining if full sync required: %v: %w",
+				drive.ID, err, autoscan.ErrFatal)
 		}
 
 		// create job
-		job := newSyncJob(c, func() error {
-			l := d.withDriveLog(drive.ID)
-
+		job := newSyncJob(c, l, func() error {
 			// acquire lock
-			if err := d.sem.Acquire(context.Background(), 1); err != nil {
-				d.log.Error().Err(err).Msg("Failed acquiring semaphore partial sync lock")
-				// todo: return an error indicating this job should be stopped
-				return fmt.Errorf("failed acquiring partial sync semaphore: %w", err)
+			if err := d.limiter.Acquire(1); err != nil {
+				return fmt.Errorf("%v: failed acquiring sync semaphore: %v: %w",
+					drive.ID, err, autoscan.ErrFatal)
 			}
-			defer d.sem.Release(1)
+			defer d.limiter.Release(1)
 
 			// full sync
 			if fullSync {
@@ -158,7 +161,7 @@ func (d daemon) StartAutoSync() error {
 				start := time.Now()
 
 				if err := d.bernard.FullSync(drive.ID); err != nil {
-					return fmt.Errorf("failed full syncing: %v: %w", drive.ID, err)
+					return fmt.Errorf("%v: failed performing full sync: %w", drive.ID, err)
 				}
 
 				l.Info().Msgf("Finished full sync in %s", time.Since(start))
@@ -177,11 +180,7 @@ func (d daemon) StartAutoSync() error {
 			// do partial sync
 			err := d.bernard.PartialSync(drive.ID, dh, ph, ch)
 			if err != nil {
-				d.log.Error().
-					Err(err).
-					Msg("Partial sync failed")
-				// todo: proper error handling here, partial syncs may fail, however, they should be retried and only aborted after N continuous failures
-				return errors.New("partial sync failed")
+				return fmt.Errorf("%v: failed performing partial sync: %w", drive.ID, err)
 			}
 
 			l.Trace().
@@ -205,10 +204,9 @@ func (d daemon) StartAutoSync() error {
 
 		id, err := c.AddJob(d.cronSchedule, cron.NewChain(cron.SkipIfStillRunning(cl)).Then(job))
 		if err != nil {
-			return fmt.Errorf("failed creating auto sync job for drive: %v: %w", drive.ID, err)
+			return fmt.Errorf("%v: failed creating auto sync job for drive: %w", drive.ID, err)
 		}
 
-		// todo: investigate alternatives (if this is un-safe)
 		job.jobID = id
 	}
 

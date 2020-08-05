@@ -95,7 +95,7 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 	// We do not want to try to scan non-existing files.
 	var existingScans []autoscan.Scan
 	for _, scan := range scans {
-		if fileExists(path.Join(scan.Folder, scan.File)) {
+		if scan.Removed != fileExists(path.Join(scan.Folder, scan.File)) {
 			existingScans = append(existingScans, scan)
 		}
 	}

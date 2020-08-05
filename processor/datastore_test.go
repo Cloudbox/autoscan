@@ -19,7 +19,7 @@ type ScanWithTime struct {
 }
 
 const sqlGetAllWithTime = `
-SELECT folder, file, priority, retries, time FROM scan
+SELECT folder, file, priority, retries, removed, time FROM scan
 `
 
 func (store datastore) GetAllWithTime() (scans []ScanWithTime, err error) {
@@ -37,7 +37,7 @@ func (store datastore) GetAllWithTime() (scans []ScanWithTime, err error) {
 		withTime := ScanWithTime{}
 		scan := &withTime.Scan
 
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &withTime.Time)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &scan.Removed, &withTime.Time)
 		if err != nil {
 			return scans, err
 		}
@@ -50,7 +50,7 @@ func (store datastore) GetAllWithTime() (scans []ScanWithTime, err error) {
 }
 
 const sqlGetScan = `
-SELECT folder, file, priority, time, retries FROM scan
+SELECT folder, file, priority, time, retries, removed FROM scan
 WHERE folder = $1 AND file = $2
 `
 
@@ -59,7 +59,7 @@ func GetScan(t *testing.T, db *sql.DB, folder string, file string) (scan autosca
 
 	row := db.QueryRow(sqlGetScan, folder, file)
 
-	err := row.Scan(&scan.Folder, &scan.File, &scan.Priority, &scanTime, &scan.Retries)
+	err := row.Scan(&scan.Folder, &scan.File, &scan.Priority, &scanTime, &scan.Retries, &scan.Removed)
 	if err != nil {
 		t.Fatalf("Could not scan the row: %v", err)
 	}
@@ -88,6 +88,7 @@ func TestUpsert(t *testing.T) {
 					File:     "test.mkv",
 					Priority: 5,
 					Retries:  2,
+					Removed:  true,
 				},
 			},
 			Want: Want{
@@ -97,6 +98,7 @@ func TestUpsert(t *testing.T) {
 					File:     "test.mkv",
 					Priority: 5,
 					Retries:  2,
+					Removed:  true,
 				},
 			},
 		},
@@ -230,6 +232,7 @@ func TestGetMatching(t *testing.T) {
 						Folder:   "Amazing folder",
 						File:     "Wholesome file",
 						Priority: 69,
+						Removed:  true,
 					},
 				},
 			},
@@ -238,6 +241,7 @@ func TestGetMatching(t *testing.T) {
 					Folder:   "Amazing folder",
 					File:     "Wholesome file",
 					Priority: 69,
+					Removed:  true,
 				},
 			},
 		},

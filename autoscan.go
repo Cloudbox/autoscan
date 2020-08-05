@@ -15,6 +15,7 @@ type Scan struct {
 	File     string
 	Priority int
 	Retries  int
+	Removed  bool
 }
 
 type ProcessorFunc func(...Scan) error

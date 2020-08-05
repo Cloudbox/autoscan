@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS scan (
 	"priority" INTEGER NOT NULL,
 	"time" DATETIME NOT NULL,
 	"retries" INTEGER NOT NULL,
+	"removed" BOOLEAN NOT NULL,
 	PRIMARY KEY(folder, file)
 )
 `
@@ -45,16 +46,17 @@ func newDatastore(path string) (*datastore, error) {
 }
 
 const sqlUpsert = `
-INSERT INTO scan (folder, file, priority, time, retries)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO scan (folder, file, priority, time, retries, removed)
+VALUES (?, ?, ?, ?, ?, ?)
 ON CONFLICT (folder, file) DO UPDATE SET
 	priority = MAX(excluded.priority, scan.priority),
 	time = excluded.time,
-	retries = excluded.retries
+	retries = excluded.retries,
+	removed = min(excluded.removed, scan.removed)
 `
 
 func (store datastore) upsert(tx *sql.Tx, scan autoscan.Scan) error {
-	_, err := tx.Exec(sqlUpsert, scan.Folder, scan.File, scan.Priority, now(), scan.Retries)
+	_, err := tx.Exec(sqlUpsert, scan.Folder, scan.File, scan.Priority, now(), scan.Retries, scan.Removed)
 	return err
 }
 
@@ -78,7 +80,7 @@ func (store datastore) Upsert(scans []autoscan.Scan) error {
 }
 
 const sqlGetMatching = `
-SELECT folder, file, priority, retries FROM scan
+SELECT folder, file, priority, retries, removed FROM scan
 WHERE folder = (
 	SELECT folder
 	FROM scan
@@ -102,7 +104,7 @@ func (store datastore) GetMatching(minAge time.Duration) (scans []autoscan.Scan,
 	defer rows.Close()
 	for rows.Next() {
 		scan := autoscan.Scan{}
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &scan.Removed)
 		if err != nil {
 			return scans, err
 		}
@@ -165,7 +167,7 @@ func (store datastore) Retry(folder string, maxRetries int) error {
 }
 
 const sqlGetAll = `
-SELECT folder, file, priority, retries FROM scan
+SELECT folder, file, priority, retries, removed FROM scan
 `
 
 func (store datastore) GetAll() (scans []autoscan.Scan, err error) {
@@ -181,7 +183,7 @@ func (store datastore) GetAll() (scans []autoscan.Scan, err error) {
 	defer rows.Close()
 	for rows.Next() {
 		scan := autoscan.Scan{}
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &scan.Removed)
 		if err != nil {
 			return scans, err
 		}

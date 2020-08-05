@@ -20,8 +20,31 @@ type Paths struct {
 	//RemovedFolders []string
 }
 
-func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.Hook, *Paths) {
+type options struct {
+	oldChangedFilesToRemove bool
+}
+
+type option func(*options)
+
+func withOldChangedFilesToRemove(removed bool) option {
+	return func(opts *options) {
+		opts.oldChangedFilesToRemove = removed
+	}
+}
+
+func buildOptions(opts ...option) *options {
+	o := &options{}
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	return o
+}
+
+func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference, opt ...option) (bernard.Hook, *Paths) {
 	var paths Paths
+
+	opts := buildOptions(opt...)
 
 	hook := func(drive datastore.Drive, files []datastore.File, folders []datastore.Folder, removed []string) error {
 		folderMaps := getDiffFolderMaps(diff)
@@ -39,12 +62,23 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 
 		// get changed file paths
 		for _, f := range diff.ChangedFiles {
+			// new path
 			p, err := getFolderPath(store, driveID, f.New.Parent, folderMaps.Current)
 			if err != nil {
 				return fmt.Errorf("failed building file path for changed file %v: %w", f.New.ID, err)
 			}
 
 			paths.ChangedFiles = append(paths.ChangedFiles, filepath.Join(p, f.New.Name))
+
+			// old (removed) path
+			if opts.oldChangedFilesToRemove && !f.Old.Trashed && f.Old.ID != "" {
+				p, err := getFolderPath(store, driveID, f.Old.Parent, folderMaps.Old)
+				if err != nil {
+					return fmt.Errorf("failed building removed file path for changed file %v: %w", f.Old.ID, err)
+				}
+
+				paths.RemovedFiles = append(paths.RemovedFiles, filepath.Join(p, f.Old.Name))
+			}
 		}
 
 		// get removed file paths
@@ -57,39 +91,45 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 			paths.RemovedFiles = append(paths.RemovedFiles, filepath.Join(p, f.Name))
 		}
 
-		// get new and old roots for changed folders
-		newRoots, oldRoots := getRootChangedFolders(diff)
+		if opts.oldChangedFilesToRemove {
+			// get new and old roots for changed folders
+			newRoots, oldRoots := getRootChangedFolders(diff)
 
-		// get changed file paths (descendants of newRoots)
-		changedNewFiles, err := getChangedFolderFiles(store, driveID, newRoots, folderMaps.Current, fileMaps.Current)
-		if err != nil {
-			return fmt.Errorf("failed building changed folder descendant files: %w", err)
-		}
-
-		for _, f := range changedNewFiles {
-			p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Current)
+			// get changed file paths (descendants of newRoots)
+			changedNewFiles, err := getChangedFolderFiles(store, driveID, newRoots, folderMaps.Current, fileMaps.Current)
 			if err != nil {
-				return fmt.Errorf("failed building changed file path for change folder "+
-					"descendant file %v: %w", f.ID, err)
+				return fmt.Errorf("failed building changed folder descendant files: %w", err)
 			}
 
-			paths.ChangedFiles = append(paths.ChangedFiles, filepath.Join(p, f.Name))
-		}
+			for _, f := range changedNewFiles {
+				p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Current)
+				if err != nil {
+					return fmt.Errorf("failed building changed file path for change folder "+
+						"descendant file %v: %w", f.ID, err)
+				}
 
-		// get descendents of changed folders (old paths - removed)
-		removedOldFiles, err := getChangedFolderFiles(store, driveID, oldRoots, folderMaps.Old, fileMaps.Old)
-		if err != nil {
-			return fmt.Errorf("failed building removed folder descendant files: %w", err)
-		}
-
-		for _, f := range removedOldFiles {
-			p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Old)
-			if err != nil {
-				return fmt.Errorf("failed building removed file path for change folder "+
-					"descendant file %v: %w", f.ID, err)
+				paths.ChangedFiles = append(paths.ChangedFiles, filepath.Join(p, f.Name))
 			}
 
-			paths.RemovedFiles = append(paths.RemovedFiles, filepath.Join(p, f.Name))
+			// get descendents of changed folders (old paths - removed)
+			removedOldFiles, err := getChangedFolderFiles(store, driveID, oldRoots, folderMaps.Old, fileMaps.Old)
+			if err != nil {
+				return fmt.Errorf("failed building removed folder descendant files: %w", err)
+			}
+
+			for _, f := range removedOldFiles {
+				if f.Trashed {
+					continue
+				}
+
+				p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Old)
+				if err != nil {
+					return fmt.Errorf("failed building removed file path for change folder "+
+						"descendant file %v: %w", f.ID, err)
+				}
+
+				paths.RemovedFiles = append(paths.RemovedFiles, filepath.Join(p, f.Name))
+			}
 		}
 
 		return nil

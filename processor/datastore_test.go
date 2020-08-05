@@ -122,6 +122,26 @@ func TestUpsert(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "Removed should remain false on upsert",
+			Scans: []autoscan.Scan{
+				{
+					Removed: true,
+				},
+				{
+					Removed: false,
+				},
+				{
+					Removed: true,
+				},
+			},
+			Want: Want{
+				Time: time.Time{}.Add(3),
+				Scan: autoscan.Scan{
+					Removed: false,
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

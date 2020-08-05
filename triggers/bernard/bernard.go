@@ -194,7 +194,9 @@ func (d daemon) StartAutoSync() error {
 		}
 	})
 
-	_, err := c.AddFunc(d.cronSchedule, job.Do)
+	_, err := c.AddJob(d.cronSchedule, cron.NewChain(
+		cron.SkipIfStillRunning(nil),
+	).Then(cron.FuncJob(job.Do)))
 	if err != nil {
 		return err
 	}

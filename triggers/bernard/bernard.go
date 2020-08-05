@@ -226,6 +226,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			File:     file,
 			Priority: d.priority,
 			Retries:  0,
+			Removed:  false,
 		})
 	}
 
@@ -248,6 +249,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			File:     file,
 			Priority: d.priority,
 			Retries:  0,
+			Removed:  false,
 		})
 	}
 
@@ -270,6 +272,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			File:     file,
 			Priority: d.priority,
 			Retries:  0,
+			Removed:  true,
 		})
 	}
 

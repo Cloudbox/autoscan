@@ -15,6 +15,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	maxSyncRetries = 5
+)
+
 type Config struct {
 	AccountPath   string             `yaml:"account"`
 	CronSchedule  string             `yaml:"cron"`
@@ -107,23 +111,75 @@ type daemon struct {
 }
 
 type syncJob struct {
+	log      zerolog.Logger
+	attempts int
+	errors   []error
+
 	cron  *cron.Cron
-	log   zerolog.Logger
 	jobID cron.EntryID
 	fn    func() error
 }
 
-func (s syncJob) Run() {
-	_ = s.fn()
-	// todo: error is fatal ? stop job
-	// todo: error is not fatal but data anomaly ? increase try counter (stop after N tries)
+func (s *syncJob) Run() {
+	// increase attempt counter
+	s.attempts++
+
+	// run job
+	err := s.fn()
+
+	// handle job response
+	switch {
+	case err == nil:
+		// job completed successfully
+		s.attempts = 0
+		s.errors = s.errors[:0]
+		return
+
+	case errors.Is(err, autoscan.ErrFatal):
+		// fatal error occurred, we cannot recover from this safely
+		s.log.Error().
+			Err(err).
+			Msg("Fatal error occurred while syncing drive, drive has been stopped...")
+
+		s.cron.Remove(s.jobID)
+		return
+
+	case errors.Is(err, ds.ErrDataAnomaly):
+		// data anomaly occurred, this can generally be recovered from, however, retry logic should be applied
+		s.log.Trace().
+			Err(err).
+			Int("attempts", s.attempts).
+			Msg("Data anomaly occurred while syncing drive")
+
+		s.errors = append(s.errors, err)
+	case err != nil:
+		// an un-expected error occurred, this should be retryable with the same retry logic
+		s.log.Warn().
+			Err(err).
+			Int("attempts", s.attempts).
+			Msg("Unexpected error occurred while syncing drive")
+
+		s.errors = append(s.errors, err)
+	}
+
+	// abort if max retries reached
+	if s.attempts >= maxSyncRetries {
+		s.log.Error().
+			Errs("error", s.errors).
+			Int("attempts", s.attempts).
+			Msg("Consecutive errors occurred while syncing drive, drive has been stopped...")
+
+		s.cron.Remove(s.jobID)
+	}
 }
 
 func newSyncJob(c *cron.Cron, log zerolog.Logger, job func() error) *syncJob {
 	return &syncJob{
-		cron: c,
-		log:  log,
-		fn:   job,
+		log:      log,
+		attempts: 0,
+		errors:   make([]error, 0),
+		cron:     c,
+		fn:       job,
 	}
 }
 

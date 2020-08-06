@@ -107,7 +107,7 @@ jobs:
           always_pull: true
 
       # docker build (branch)
-      - name: docker - build others
+      - name: docker - build other
         if: startsWith(github.ref, 'refs/heads/master') == false
         uses: docker/build-push-action@v1
         with:

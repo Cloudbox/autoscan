@@ -259,10 +259,6 @@ func (d daemon) StartAutoSync() error {
 					return fmt.Errorf("%v: failed moving scans to processor: %v: %w",
 						drive.ID, err, autoscan.ErrFatal)
 				}
-
-				l.Info().
-					Int("files", len(scans)).
-					Msg("Scans moved to processor")
 			}
 
 			return nil

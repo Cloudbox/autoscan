@@ -111,17 +111,13 @@ var (
 	/* Google */
 	ErrFileNotFound   = errors.New("file not found")
 	ErrFolderNotFound = errors.New("folder not found")
-	ErrDriveNotFound  = errors.New("drive not found")
 )
 
 const (
 	/* Google */
 	// - selects
-	sqlSelectFile   = `SELECT id, name, parent, size, md5, trashed FROM file WHERE drive = $1 AND id = $2 LIMIT 1`
-	sqlSelectFolder = `SELECT id, name, trashed, parent FROM folder WHERE drive = $1 AND id = $2 LIMIT 1`
-	//sqlSelectDrive          = `SELECT * FROM drive WHERE id = ? LIMIT 1`
-	//sqlSelectDriveWithName  = `SELECT d.*, f.name FROM drive d JOIN folder f ON f.drive = d.id AND f.id = d.id WHERE d.id = ? LIMIT 1`
-	//sqlSelectDriveTotalSize = `SELECT SUM(f.size) as total_size FROM file f WHERE f.drive = ? AND f.trashed = 0`
+	sqlSelectFile              = `SELECT id, name, parent, size, md5, trashed FROM file WHERE drive = $1 AND id = $2 LIMIT 1`
+	sqlSelectFolder            = `SELECT id, name, trashed, parent FROM folder WHERE drive = $1 AND id = $2 LIMIT 1`
 	sqlSelectFolderDescendants = `
 with cte_Folders as (
 	-- Root Folder

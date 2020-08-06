@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"regexp"
 	"time"
 
 	"github.com/cloudbox/autoscan"
@@ -38,8 +37,6 @@ type Processor struct {
 	maxRetries int
 	minimumAge time.Duration
 	store      *datastore
-	includes   []regexp.Regexp
-	excludes   []regexp.Regexp
 }
 
 func (p *Processor) Add(scans ...autoscan.Scan) error {

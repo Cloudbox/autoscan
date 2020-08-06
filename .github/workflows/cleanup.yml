@@ -7,13 +7,15 @@ on:
 
 jobs:
   cleanup_branch:
-    if: startsWith(github.ref_type, 'branch') == true
+    if: startsWith(github.event.ref_type, 'branch') == true
     runs-on: ubuntu-latest
     steps:
       - name: Determine docker tag
+        env:
+          GH_EVENT_REF: ${{ github.event.ref }}
         id: dockertag
         shell: bash
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/heads/}"
+        run: echo "::set-output name=tag::${GH_EVENT_REF#refs/heads/}"
 
       - name: Remove branch docker tag
         shell: bash
@@ -25,13 +27,15 @@ jobs:
           docker run --rm lumir/remove-dockerhub-tag --user "$username" --password "$password" cloudb0x/autoscan:$tag
 
   cleanup_pr:
-    if: startsWith(github.ref, 'refs/pull/') == true
+    if: startsWith(github.event.ref, 'refs/pull/') == true
+    env:
+      GH_EVENT_REF: ${{ github.event.ref }}
     runs-on: ubuntu-latest
     steps:
       - name: Determine pull request tag
         id: githubpr
         shell: bash
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/pull/}"
+        run: echo "::set-output name=tag::${GH_EVENT_REF#refs/pull/}"
 
       - name: Determine docker tag
         uses: frabert/replace-string-action@master

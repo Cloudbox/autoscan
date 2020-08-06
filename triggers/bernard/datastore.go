@@ -58,6 +58,11 @@ func (d *bds) GetFolderDescendants(driveID string, folderID string) (*folderDesc
 		Files:   make(map[string]datastore.File),
 	}
 
+	if driveID == folderID {
+		// never return descendants when folder is a drive
+		return descendants, nil
+	}
+
 	rows, err := d.DB.Query(sqlSelectFolderDescendants, driveID, folderID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return descendants, nil

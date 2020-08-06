@@ -150,15 +150,14 @@ func (s *syncJob) Run() {
 			Err(err).
 			Int("attempts", s.attempts).
 			Msg("Data anomaly occurred while syncing drive")
-
 		s.errors = append(s.errors, err)
+
 	case err != nil:
 		// an un-expected error occurred, this should be retryable with the same retry logic
 		s.log.Warn().
 			Err(err).
 			Int("attempts", s.attempts).
 			Msg("Unexpected error occurred while syncing drive")
-
 		s.errors = append(s.errors, err)
 	}
 

@@ -2,10 +2,10 @@ name: Docker Cleanup
 
 on:
   delete:
+    branches:
+      - *
   pull_request:
-    types:
-      - closed
-      - removed
+    types: [closed, removed]
 
 jobs:
   cleanup_branch:

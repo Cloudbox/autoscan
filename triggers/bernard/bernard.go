@@ -26,9 +26,13 @@ type Config struct {
 	Priority      int                `yaml:"priority"`
 	Verbosity     string             `yaml:"verbosity"`
 	Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
+	Include       []string           `yaml:"include"`
+	Exclude       []string           `yaml:"exclude"`
 	Drives        []struct {
 		ID      string             `yaml:"id"`
 		Rewrite []autoscan.Rewrite `yaml:"rewrite"`
+		Include []string           `yaml:"include"`
+		Exclude []string           `yaml:"exclude"`
 	} `yaml:"drives"`
 }
 
@@ -64,9 +68,15 @@ func New(c Config) (autoscan.Trigger, error) {
 			return nil, err
 		}
 
+		filterer, err := newFilterer(append(d.Include, c.Include...), append(d.Exclude, c.Exclude...))
+		if err != nil {
+			return nil, err
+		}
+
 		drives = append(drives, drive{
 			ID:       d.ID,
 			Rewriter: rewriter,
+			Allowed:  filterer,
 		})
 	}
 
@@ -97,6 +107,7 @@ func New(c Config) (autoscan.Trigger, error) {
 type drive struct {
 	ID       string
 	Rewriter autoscan.Rewriter
+	Allowed  filterer
 }
 
 type daemon struct {
@@ -258,6 +269,10 @@ func (d daemon) StartAutoSync() error {
 					return fmt.Errorf("%v: failed moving scans to processor: %v: %w",
 						drive.ID, err, autoscan.ErrFatal)
 				}
+
+				l.Info().
+					Int("files", len(scans)).
+					Msg("Scan moved to processor")
 			}
 
 			return nil
@@ -291,6 +306,11 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			pathMap[rewritten] = 1
 		}
 
+		// is this path allowed?
+		if !drive.Allowed(rewritten) {
+			continue
+		}
+
 		// add scan task
 		dir, file := filepath.Split(rewritten)
 		scanTasks = append(scanTasks, autoscan.Scan{
@@ -314,6 +334,11 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			pathMap[rewritten] = 1
 		}
 
+		// is this path allowed?
+		if !drive.Allowed(rewritten) {
+			continue
+		}
+
 		// add scan task
 		dir, file := filepath.Split(filepath.Clean(rewritten))
 		scanTasks = append(scanTasks, autoscan.Scan{
@@ -335,6 +360,11 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			continue
 		} else {
 			pathMap[rewritten] = 1
+		}
+
+		// is this path allowed?
+		if !drive.Allowed(rewritten) {
+			continue
 		}
 
 		// add scan task

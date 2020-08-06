@@ -33,8 +33,6 @@ type config struct {
 	MaxRetries int           `yaml:"retries"`
 	MinimumAge time.Duration `yaml:"minimum-age"`
 	Anchors    []string      `yaml:"anchors"`
-	Include    []string      `yaml:"include"`
-	Exclude    []string      `yaml:"exclude"`
 
 	// Authentication for autoscan.HTTPTrigger
 	Auth struct {
@@ -167,8 +165,6 @@ func main() {
 		DatastorePath: cli.Database,
 		MaxRetries:    c.MaxRetries,
 		MinimumAge:    c.MinimumAge,
-		Include:       c.Include,
-		Exclude:       c.Exclude,
 	})
 
 	if err != nil {

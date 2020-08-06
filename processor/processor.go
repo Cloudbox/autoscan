@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"time"
 
@@ -17,8 +16,6 @@ type Config struct {
 	DatastorePath string
 	MaxRetries    int
 	MinimumAge    time.Duration
-	Include       []string
-	Exclude       []string
 }
 
 func New(c Config) (*Processor, error) {
@@ -27,32 +24,11 @@ func New(c Config) (*Processor, error) {
 		return nil, err
 	}
 
-	includes := make([]regexp.Regexp, 0)
-	excludes := make([]regexp.Regexp, 0)
-
-	for _, pattern := range c.Include {
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("failed compiling include: %v: %w", pattern, err)
-		}
-		includes = append(includes, *re)
-	}
-
-	for _, pattern := range c.Exclude {
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("failed compiling exclude: %v: %w", pattern, err)
-		}
-		excludes = append(excludes, *re)
-	}
-
 	proc := &Processor{
 		anchors:    c.Anchors,
 		maxRetries: c.MaxRetries,
 		minimumAge: c.MinimumAge,
 		store:      store,
-		includes:   includes,
-		excludes:   excludes,
 	}
 	return proc, nil
 }
@@ -66,45 +42,7 @@ type Processor struct {
 	excludes   []regexp.Regexp
 }
 
-func (p *Processor) matchesFilter(scan autoscan.Scan, filters []regexp.Regexp) bool {
-	scanPath := filepath.Join(scan.Folder, scan.File)
-	for _, re := range filters {
-		if re.MatchString(scanPath) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (p *Processor) Add(scans ...autoscan.Scan) error {
-	switch {
-	case len(p.includes) > 0:
-		// includes only
-		filteredScans := make([]autoscan.Scan, 0)
-		for _, scan := range scans {
-			if p.matchesFilter(scan, p.includes) {
-				filteredScans = append(filteredScans, scan)
-				continue
-			}
-		}
-
-		return p.store.Upsert(filteredScans)
-
-	case len(p.excludes) > 0:
-		// excludes only
-		filteredScans := make([]autoscan.Scan, 0)
-		for _, scan := range scans {
-			if p.matchesFilter(scan, p.excludes) {
-				continue
-			}
-			filteredScans = append(filteredScans, scan)
-		}
-
-		return p.store.Upsert(filteredScans)
-	}
-
-	// no filtering of scans
 	return p.store.Upsert(scans)
 }
 

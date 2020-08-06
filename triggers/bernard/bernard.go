@@ -252,7 +252,17 @@ func (d daemon) StartAutoSync() error {
 			if len(scans) > 0 {
 				l.Trace().
 					Interface("scans", scans).
-					Msg("Scan tasks to be moved to processor")
+					Msg("Scans moving to processor")
+
+				err := d.callback(scans...)
+				if err != nil {
+					return fmt.Errorf("%v: failed moving scans to processor: %v: %w",
+						drive.ID, err, autoscan.ErrFatal)
+				}
+
+				l.Info().
+					Int("files", len(scans)).
+					Msg("Scans moved to processor")
 			}
 
 			return nil

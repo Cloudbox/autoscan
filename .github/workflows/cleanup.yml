@@ -1,11 +1,9 @@
 name: Docker Cleanup
 
 on:
-  delete:
-    branches:
-      - *
   pull_request:
     types: [closed, removed]
+  delete:
 
 jobs:
   cleanup_branch:

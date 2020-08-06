@@ -1,0 +1,27 @@
+name: Docker Cleanup
+
+on:
+  delete
+  pull_request:
+    types:
+      - closed
+      - removed
+
+jobs:
+  cleanup_branch:
+    if: startsWith(github.ref_type, 'branch') == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the current branch name
+        id: getbranch
+        shell: bash
+        run: echo "::set-output name=branch::${GITHUB_REF#refs/heads/}"
+
+      - name: Remove branch docker tag
+        shell: bash
+        env:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          tag: ${{ steps.getbranch.outputs.branch }}
+        run: |
+          docker run --rm lumir/remove-dockerhub-tag --user "$username" --password "$password" cloudb0x/autoscan:$tag

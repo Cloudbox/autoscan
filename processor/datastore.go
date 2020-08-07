@@ -56,7 +56,7 @@ ON CONFLICT (folder, file) DO UPDATE SET
 `
 
 func (store datastore) upsert(tx *sql.Tx, scan autoscan.Scan) error {
-	_, err := tx.Exec(sqlUpsert, scan.Folder, scan.File, scan.Priority, now(), scan.Retries, scan.Removed)
+	_, err := tx.Exec(sqlUpsert, scan.Folder, scan.File, scan.Priority, scan.Time, scan.Retries, scan.Removed)
 	return err
 }
 
@@ -223,4 +223,5 @@ func (store datastore) Delete(scans []autoscan.Scan) error {
 	return tx.Commit()
 }
 
+// todo: remove once tests have been refactored for support of Time on Scan struct
 var now = time.Now

@@ -24,15 +24,17 @@ type Config struct {
 	CronSchedule  string             `yaml:"cron"`
 	DatastorePath string             `yaml:"database"`
 	Priority      int                `yaml:"priority"`
+	TimeOffset    time.Duration      `yaml:"time-offset"`
 	Verbosity     string             `yaml:"verbosity"`
 	Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
 	Include       []string           `yaml:"include"`
 	Exclude       []string           `yaml:"exclude"`
 	Drives        []struct {
-		ID      string             `yaml:"id"`
-		Rewrite []autoscan.Rewrite `yaml:"rewrite"`
-		Include []string           `yaml:"include"`
-		Exclude []string           `yaml:"exclude"`
+		ID         string             `yaml:"id"`
+		TimeOffset time.Duration      `yaml:"time-offset"`
+		Rewrite    []autoscan.Rewrite `yaml:"rewrite"`
+		Include    []string           `yaml:"include"`
+		Exclude    []string           `yaml:"exclude"`
 	} `yaml:"drives"`
 }
 
@@ -63,6 +65,8 @@ func New(c Config) (autoscan.Trigger, error) {
 
 	var drives []drive
 	for _, d := range c.Drives {
+		d := d
+
 		rewriter, err := autoscan.NewRewriter(append(d.Rewrite, c.Rewrite...))
 		if err != nil {
 			return nil, err
@@ -73,10 +77,18 @@ func New(c Config) (autoscan.Trigger, error) {
 			return nil, err
 		}
 
+		scanTime := func() time.Time {
+			if d.TimeOffset.Seconds() > 0 {
+				return time.Now().Add(d.TimeOffset)
+			}
+			return time.Now().Add(c.TimeOffset)
+		}
+
 		drives = append(drives, drive{
 			ID:       d.ID,
 			Rewriter: rewriter,
 			Allowed:  filterer,
+			ScanTime: scanTime,
 		})
 	}
 
@@ -108,6 +120,7 @@ type drive struct {
 	ID       string
 	Rewriter autoscan.Rewriter
 	Allowed  filterer
+	ScanTime func() time.Time
 }
 
 type daemon struct {
@@ -319,6 +332,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			Priority: d.priority,
 			Retries:  0,
 			Removed:  false,
+			Time:     drive.ScanTime(),
 		})
 	}
 
@@ -347,6 +361,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			Priority: d.priority,
 			Retries:  0,
 			Removed:  false,
+			Time:     drive.ScanTime(),
 		})
 	}
 
@@ -375,6 +390,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			Priority: d.priority,
 			Retries:  0,
 			Removed:  true,
+			Time:     drive.ScanTime(),
 		})
 	}
 

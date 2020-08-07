@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog/hlog"
@@ -87,6 +88,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Folder:   path.Dir(fullPath),
 		Priority: h.priority,
 		Removed:  false,
+		Time:     time.Now(),
 	}
 
 	err = h.callback(scan)

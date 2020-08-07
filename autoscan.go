@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 // A Scan is at the core of Autoscan.
@@ -16,6 +17,7 @@ type Scan struct {
 	Priority int
 	Retries  int
 	Removed  bool
+	Time     time.Time
 }
 
 type ProcessorFunc func(...Scan) error

@@ -159,6 +159,14 @@ func (s *syncJob) Run() {
 		s.errors = s.errors[:0]
 		return
 
+	case errors.Is(err, lowe.ErrInvalidCredentials), errors.Is(err, ds.ErrDataAnomaly):
+		//retryable error occurred
+		s.log.Trace().
+			Err(err).
+			Int("attempts", s.attempts).
+			Msg("Retryable error occurred while syncing drive")
+		s.errors = append(s.errors, err)
+
 	case errors.Is(err, autoscan.ErrFatal):
 		// fatal error occurred, we cannot recover from this safely
 		s.log.Error().
@@ -168,16 +176,8 @@ func (s *syncJob) Run() {
 		s.cron.Remove(s.jobID)
 		return
 
-	case errors.Is(err, ds.ErrDataAnomaly):
-		// data anomaly occurred, this can generally be recovered from, however, retry logic should be applied
-		s.log.Trace().
-			Err(err).
-			Int("attempts", s.attempts).
-			Msg("Data anomaly occurred while syncing drive")
-		s.errors = append(s.errors, err)
-
 	case err != nil:
-		// an un-expected error occurred, this should be retryable with the same retry logic
+		// an un-expected/un-handled error occurred, this should be retryable with the same retry logic
 		s.log.Warn().
 			Err(err).
 			Int("attempts", s.attempts).

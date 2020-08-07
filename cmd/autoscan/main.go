@@ -188,6 +188,10 @@ func main() {
 
 	// Daemon Triggers
 	for _, t := range c.Triggers.Bernard {
+		if t.DatastorePath == "" {
+			t.DatastorePath = cli.Database
+		}
+
 		trigger, err := bernard.New(t)
 		if err != nil {
 			log.Fatal().

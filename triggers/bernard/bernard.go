@@ -284,9 +284,9 @@ func (d daemon) StartAutoSync() error {
 				}
 
 				l.Info().
-					Int("adds", task.adds).
-					Int("changes", task.changes).
-					Int("removes", task.removes).
+					Int("files_added", task.adds).
+					Int("files_changed", task.changes).
+					Int("files_removed", task.removes).
 					Msg("Scan moved to processor")
 			}
 

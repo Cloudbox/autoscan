@@ -314,7 +314,7 @@ type scanTask struct {
 
 func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 	pathMap := make(map[string]int)
-	scanTasks := &scanTask{
+	task := &scanTask{
 		scans:   make([]autoscan.Scan, 0),
 		adds:    0,
 		changes: 0,
@@ -340,7 +340,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 
 		// add scan task
 		dir, file := filepath.Split(rewritten)
-		scanTasks.scans = append(scanTasks.scans, autoscan.Scan{
+		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
 			Priority: d.priority,
@@ -349,7 +349,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			Time:     drive.ScanTime(),
 		})
 
-		scanTasks.adds++
+		task.adds++
 	}
 
 	for _, p := range paths.ChangedFiles {
@@ -371,7 +371,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 
 		// add scan task
 		dir, file := filepath.Split(filepath.Clean(rewritten))
-		scanTasks.scans = append(scanTasks.scans, autoscan.Scan{
+		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
 			Priority: d.priority,
@@ -380,7 +380,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			Time:     drive.ScanTime(),
 		})
 
-		scanTasks.changes++
+		task.changes++
 	}
 
 	for _, p := range paths.RemovedFiles {
@@ -402,7 +402,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 
 		// add scan task
 		dir, file := filepath.Split(rewritten)
-		scanTasks.scans = append(scanTasks.scans, autoscan.Scan{
+		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
 			Priority: d.priority,
@@ -411,10 +411,10 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			Time:     drive.ScanTime(),
 		})
 
-		scanTasks.removes++
+		task.removes++
 	}
 
-	return scanTasks
+	return task
 }
 
 func (d daemon) withDriveLog(driveID string) zerolog.Logger {

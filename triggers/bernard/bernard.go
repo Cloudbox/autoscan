@@ -268,23 +268,25 @@ func (d daemon) StartAutoSync() error {
 				Int("files_removed", len(paths.RemovedFiles)).
 				Msgf("Partial sync finished in %s", time.Since(start))
 
-			// translate paths to scan tasks
-			scans := d.getScanTasks(&(drive), paths)
+			// translate paths to scan task
+			task := d.getScanTask(&(drive), paths)
 
 			// move scans to processor
-			if len(scans) > 0 {
+			if len(task.scans) > 0 {
 				l.Trace().
-					Interface("scans", scans).
+					Interface("scans", task.scans).
 					Msg("Scans moving to processor")
 
-				err := d.callback(scans...)
+				err := d.callback(task.scans...)
 				if err != nil {
 					return fmt.Errorf("%v: failed moving scans to processor: %v: %w",
 						drive.ID, err, autoscan.ErrFatal)
 				}
 
 				l.Info().
-					Int("files", len(scans)).
+					Int("adds", task.adds).
+					Int("changes", task.changes).
+					Int("removes", task.removes).
 					Msg("Scan moved to processor")
 			}
 
@@ -303,9 +305,21 @@ func (d daemon) StartAutoSync() error {
 	return nil
 }
 
-func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
+type scanTask struct {
+	scans   []autoscan.Scan
+	adds    int
+	changes int
+	removes int
+}
+
+func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 	pathMap := make(map[string]int)
-	scanTasks := make([]autoscan.Scan, 0)
+	scanTasks := &scanTask{
+		scans:   make([]autoscan.Scan, 0),
+		adds:    0,
+		changes: 0,
+		removes: 0,
+	}
 
 	for _, p := range paths.AddedFiles {
 		// rewrite path
@@ -326,7 +340,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 
 		// add scan task
 		dir, file := filepath.Split(rewritten)
-		scanTasks = append(scanTasks, autoscan.Scan{
+		scanTasks.scans = append(scanTasks.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
 			Priority: d.priority,
@@ -334,6 +348,8 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			Removed:  false,
 			Time:     drive.ScanTime(),
 		})
+
+		scanTasks.adds++
 	}
 
 	for _, p := range paths.ChangedFiles {
@@ -355,7 +371,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 
 		// add scan task
 		dir, file := filepath.Split(filepath.Clean(rewritten))
-		scanTasks = append(scanTasks, autoscan.Scan{
+		scanTasks.scans = append(scanTasks.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
 			Priority: d.priority,
@@ -363,6 +379,8 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			Removed:  false,
 			Time:     drive.ScanTime(),
 		})
+
+		scanTasks.changes++
 	}
 
 	for _, p := range paths.RemovedFiles {
@@ -384,7 +402,7 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 
 		// add scan task
 		dir, file := filepath.Split(rewritten)
-		scanTasks = append(scanTasks, autoscan.Scan{
+		scanTasks.scans = append(scanTasks.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			File:     file,
 			Priority: d.priority,
@@ -392,6 +410,8 @@ func (d daemon) getScanTasks(drive *drive, paths *Paths) []autoscan.Scan {
 			Removed:  true,
 			Time:     drive.ScanTime(),
 		})
+
+		scanTasks.removes++
 	}
 
 	return scanTasks

@@ -1,8 +1,6 @@
 name: Docker Cleanup
 
 on:
-  pull_request:
-    types: [closed, removed]
   delete:
 
 jobs:
@@ -27,16 +25,3 @@ jobs:
           tag: ${{ steps.dockertag.outputs.replaced }}
         run: |
           docker run --rm lumir/remove-dockerhub-tag --user "$username" --password "$password" cloudb0x/autoscan:$tag
-
-  cleanup_pr:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Remove pull request docker tag
-        shell: bash
-        env:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          tag: ${{ github.event.number }}
-        run: |
-          docker run --rm lumir/remove-dockerhub-tag --user "$username" --password "$password" cloudb0x/autoscan:pr-$tag-merge

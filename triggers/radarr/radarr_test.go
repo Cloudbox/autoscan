@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 )
@@ -37,6 +38,11 @@ func TestHandler(t *testing.T) {
 		}},
 	}
 
+	currentTime := time.Now()
+	now = func() time.Time {
+		return currentTime
+	}
+
 	var testCases = []Test{
 		{
 			"Returns IMDb if both TMDb and IMDb are given",
@@ -51,6 +57,7 @@ func TestHandler(t *testing.T) {
 						File:     "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
 						Folder:   "/mnt/unionfs/Media/Movies/Interstellar (2014)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 				},
 			},
@@ -75,6 +82,7 @@ func TestHandler(t *testing.T) {
 						File:     "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
 						Folder:   "/Media/Movies/Parasite (2019)",
 						Priority: 3,
+						Time:     currentTime,
 					},
 				},
 			},

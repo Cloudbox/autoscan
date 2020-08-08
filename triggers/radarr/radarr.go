@@ -88,7 +88,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Folder:   path.Dir(fullPath),
 		Priority: h.priority,
 		Removed:  false,
-		Time:     time.Now(),
+		Time:     now(),
 	}
 
 	err = h.callback(scan)
@@ -103,3 +103,5 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Str("path", fullPath).
 		Msg("Scan moved to processor")
 }
+
+var now = time.Now

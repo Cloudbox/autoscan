@@ -80,7 +80,7 @@ func (store datastore) Upsert(scans []autoscan.Scan) error {
 }
 
 const sqlGetMatching = `
-SELECT folder, file, priority, retries, removed FROM scan
+SELECT folder, file, priority, retries, removed, time FROM scan
 WHERE folder = (
 	SELECT folder
 	FROM scan
@@ -104,7 +104,7 @@ func (store datastore) GetMatching(minAge time.Duration) (scans []autoscan.Scan,
 	defer rows.Close()
 	for rows.Next() {
 		scan := autoscan.Scan{}
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &scan.Removed)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &scan.Removed, &scan.Time)
 		if err != nil {
 			return scans, err
 		}
@@ -167,7 +167,7 @@ func (store datastore) Retry(folder string, maxRetries int) error {
 }
 
 const sqlGetAll = `
-SELECT folder, file, priority, retries, removed FROM scan
+SELECT folder, file, priority, retries, removed, time FROM scan
 `
 
 func (store datastore) GetAll() (scans []autoscan.Scan, err error) {
@@ -183,7 +183,7 @@ func (store datastore) GetAll() (scans []autoscan.Scan, err error) {
 	defer rows.Close()
 	for rows.Next() {
 		scan := autoscan.Scan{}
-		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &scan.Removed)
+		err = rows.Scan(&scan.Folder, &scan.File, &scan.Priority, &scan.Retries, &scan.Removed, &scan.Time)
 		if err != nil {
 			return scans, err
 		}
@@ -223,5 +223,4 @@ func (store datastore) Delete(scans []autoscan.Scan) error {
 	return tx.Commit()
 }
 
-// todo: remove once tests have been refactored for support of Time on Scan struct
 var now = time.Now

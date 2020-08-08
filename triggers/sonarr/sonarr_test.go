@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 )
@@ -37,6 +38,11 @@ func TestHandler(t *testing.T) {
 		}},
 	}
 
+	currentTime := time.Now()
+	now = func() time.Time {
+		return currentTime
+	}
+
 	var testCases = []Test{
 		{
 			"Scan has all the correct fields",
@@ -51,6 +57,7 @@ func TestHandler(t *testing.T) {
 						File:     "Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv",
 						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 1",
 						Priority: 5,
+						Time:     currentTime,
 					},
 				},
 			},

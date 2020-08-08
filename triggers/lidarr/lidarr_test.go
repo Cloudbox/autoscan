@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 )
@@ -37,6 +38,11 @@ func TestHandler(t *testing.T) {
 		}},
 	}
 
+	currentTime := time.Now()
+	now = func() time.Time {
+		return currentTime
+	}
+
 	var testCases = []Test{
 		{
 			"Scan has all the correct fields",
@@ -51,21 +57,25 @@ func TestHandler(t *testing.T) {
 						File:     "01 - Down.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 					{
 						File:     "02 - Run It Up.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 					{
 						File:     "03 - Put Yo Hands Up.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 					{
 						File:     "04 - Let’s Get Down.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 				},
 			},

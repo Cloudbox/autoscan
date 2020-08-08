@@ -92,7 +92,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			Folder:   path.Dir(fullPath),
 			Priority: h.priority,
 			Removed:  false,
-			Time:     time.Now(),
+			Time:     now(),
 		})
 	}
 
@@ -109,3 +109,5 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Int("files", len(scans)).
 		Msg("Scan moved to processor")
 }
+
+var now = time.Now

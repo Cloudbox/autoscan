@@ -250,7 +250,7 @@ func (d daemon) StartAutoSync() error {
 			// create partial sync
 			dh, diff := d.store.NewDifferencesHook()
 			ph := NewPostProcessBernardDiff(drive.ID, d.store, diff)
-			ch, paths := NewPathsHook(drive.ID, d.store, diff, withOldChangedFilesToRemove(true))
+			ch, paths := NewPathsHook(drive.ID, d.store, diff)
 
 			l.Trace().Msg("Running partial sync")
 			start := time.Now()

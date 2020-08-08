@@ -78,7 +78,7 @@ That's where rewrite rules come into play. They allow you to translate paths bet
 **Before you begin, make sure you understand how regular expressions work!** \
 Make sure you know how capture groups work, as these are used for the `to` field.
 
-Triggers can receive paths from any source: A remote server, a Docker container and the local file system. The `rewrite` field can be defined for each individual trigger. The `from` should be a regexp pattern describing the path from the trigger's perspective. The `to` should then convert this path into a path which is local to Autoscan.
+Triggers can receive paths from any source: A remote server, a Docker container and the local file system. The `rewrite` field can be defined for each individual trigger. This field can contain multiple rewriting rules. Therefore, each rule should have a `-` to indicate the next rule on the list. The `from` should be a regexp pattern describing the path from the trigger's perspective. The `to` should then convert this path into a path which is local to Autoscan.
 
 Targets work the other way around. They have to convert the path local to Autoscan to a path understood by the target, which can be a Docker container, remote server, etc. The `from` should be a regexp pattern describing the path from Autoscan's perspective. The `to` should then convert this path into a path which is local to the target.
 
@@ -96,24 +96,24 @@ The following config only defines rewrite paths, this should not be used directl
 triggers:
   sonarr:
     - rewrite:
-        # /tv contains folders with tv shows
-        # This path is used within the Sonarr Docker container
-        from: /tv/*
+          # /tv contains folders with tv shows
+          # This path is used within the Sonarr Docker container
+        - from: /tv/*
 
-        # /mnt/unionfs/Media/TV links to the same folder, though from the host OS
-        # This folder is accessed by Autoscan
-        to: /mnt/unionfs/Media/TV/$1
+          # /mnt/unionfs/Media/TV links to the same folder, though from the host OS
+          # This folder is accessed by Autoscan
+          to: /mnt/unionfs/Media/TV/$1
 
 targets:
   plex:
     - rewrite:
-        # Same folder as above, accessible by Autoscan.
-        # Note how we strip the "TV" part,
-        # as we want both Movies and TV.
-        from: /mnt/unionfs/Media/*
+          # Same folder as above, accessible by Autoscan.
+          # Note how we strip the "TV" part,
+          # as we want both Movies and TV.
+        - from: /mnt/unionfs/Media/*
 
-        # This path is used within the Plex Docker container
-        to: /data/$1
+          # This path is used within the Plex Docker container
+          to: /data/$1
 ```
 
 Let's take a look at the journey of the path `/tv/Westworld/Season 1/s01e01.mkv` coming from Sonarr.
@@ -135,7 +135,7 @@ We plan to support two kinds of triggers in GA:
 
 - Daemon processes.
   These triggers run in the background and fetch resources based on a cron schedule or in real-time. \
-  *Currently not available, but expected to arrive in GA.*
+  *Available, but bugs may still exist.*
 
 - Webhooks.
   These triggers expose HTTP handlers which can be added to the trigger's software. \
@@ -151,6 +151,14 @@ Each trigger consists of at least:
 
 - RegExp-based rewriting rules: translate a path given by the trigger to a path on the local file system. \
   *If the paths are identical between the trigger and the local file system, then the `rewrite` field should be ignored.*
+
+#### Daemons
+
+Daemons run in the background and continuously fetch new changes based on a [cron expression](https://crontab.guru).
+
+The following daemons are currently provided by Autoscan:
+
+- Google Drive
 
 #### Webhooks
 
@@ -183,6 +191,26 @@ authentication:
 port: 3030
 
 triggers:
+  bernard:
+    - account: service-account.json
+      cron: "*/5 * * * *" # every five minutes (the "" are important)
+      priority: 0
+      drives:
+        - id: Shared Drive 1
+        - id: Shared Drive 2
+
+      # rewrite drive to the local filesystem
+      rewrite:
+        - from: ^/Media/*
+          to: /mnt/unionfs/Media/$1
+
+      # filter with regular expressions
+      include: # if set, then exclude is ignored
+        - "^/mnt/unionfs/Media/*"
+
+      exclude:
+        - "\.srt$"
+
   sonarr:
     - name: sonarr-docker # /triggers/sonarr-docker
       priority: 2
@@ -190,8 +218,8 @@ triggers:
       # Rewrite the path from within the container
       # to your local filesystem.
       rewrite:
-        from: /tv/*
-        to: /mnt/unionfs/Media/TV/$1
+        - from: /tv/*
+          to: /mnt/unionfs/Media/TV/$1
 
   radarr:
     - name: radarr   # /triggers/radarr
@@ -299,8 +327,8 @@ targets:
     - url: https://plex.domain.tld # URL of your Plex server
       token: XXXX # Plex API Token
       rewrite:
-        from: /mnt/unionfs/Media/* # local file system
-        to: /data/$1 # path accessible by the Plex docker container (if applicable)
+        - from: /mnt/unionfs/Media/* # local file system
+          to: /data/$1 # path accessible by the Plex docker container (if applicable)
 ```
 
 There are a couple of things to take note of in the config:
@@ -321,8 +349,8 @@ targets:
     - url: https://emby.domain.tld # URL of your Emby server
       token: XXXX # Emby API Token
       rewrite:
-        from: /mnt/unionfs/Media/* # local file system
-        to: /data/$1 # path accessible by the Emby docker container (if applicable)
+        - from: /mnt/unionfs/Media/* # local file system
+          to: /data/$1 # path accessible by the Emby docker container (if applicable)
 ```
 
 - URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Emby.
@@ -366,8 +394,8 @@ triggers:
       # Rewrite the path from within the container
       # to your local filesystem.
       rewrite:
-        from: /tv/*
-        to: /mnt/unionfs/Media/TV/$1
+        - from: /tv/*
+          to: /mnt/unionfs/Media/TV/$1
 
   radarr:
     - name: radarr   # /triggers/radarr
@@ -385,15 +413,15 @@ targets:
     - url: https://plex.domain.tld # URL of your Plex server
       token: XXXX # Plex API Token
       rewrite:
-        from: /mnt/unionfs/Media/* # local file system
-        to: /data/$1 # path accessible by the Plex docker container (if applicable)
+        - from: /mnt/unionfs/Media/* # local file system
+          to: /data/$1 # path accessible by the Plex docker container (if applicable)
 
   emby:
     - url: https://emby.domain.tld # URL of your Emby server
       token: XXXX # Emby API Token
       rewrite:
-        from: /mnt/unionfs/Media/* # local file system
-        to: /data/$1 # path accessible by the Emby docker container (if applicable)
+        - from: /mnt/unionfs/Media/* # local file system
+          to: /data/$1 # path accessible by the Emby docker container (if applicable)
 ```
 
 ## Other installation options
@@ -423,7 +451,7 @@ Autoscan's Docker image provides various versions that are available via tags. T
 docker run \
   --name=autoscan \
   -e "PUID=1000" \
-  -e "PGID=1000" \
+  -e "PGID=1001" \
   -p 3030:3030 \
   -v "/opt/autoscan:/config" \
   -v "/mnt/unionfs:/mnt/unionfs:ro" \

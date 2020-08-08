@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 // A Scan is at the core of Autoscan.
@@ -15,6 +16,8 @@ type Scan struct {
 	File     string
 	Priority int
 	Retries  int
+	Removed  bool
+	Time     time.Time
 }
 
 type ProcessorFunc func(...Scan) error
@@ -71,22 +74,25 @@ type Rewrite struct {
 
 type Rewriter func(string) string
 
-func NewRewriter(r Rewrite) (Rewriter, error) {
-	if r.From == "" || r.To == "" {
-		rewriter := func(input string) string {
-			return input
+func NewRewriter(rewriteRules []Rewrite) (Rewriter, error) {
+	var rewrites []regexp.Regexp
+	for _, rule := range rewriteRules {
+		re, err := regexp.Compile(rule.From)
+		if err != nil {
+			return nil, err
 		}
 
-		return rewriter, nil
-	}
-
-	re, err := regexp.Compile(r.From)
-	if err != nil {
-		return nil, err
+		rewrites = append(rewrites, *re)
 	}
 
 	rewriter := func(input string) string {
-		return re.ReplaceAllString(input, r.To)
+		for i, r := range rewrites {
+			if r.MatchString(input) {
+				return r.ReplaceAllString(input, rewriteRules[i].To)
+			}
+		}
+
+		return input
 	}
 
 	return rewriter, nil

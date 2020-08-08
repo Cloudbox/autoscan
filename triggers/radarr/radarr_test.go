@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 )
@@ -31,10 +32,15 @@ func TestHandler(t *testing.T) {
 	standardConfig := Config{
 		Name:     "radarr",
 		Priority: 5,
-		Rewrite: autoscan.Rewrite{
+		Rewrite: []autoscan.Rewrite{{
 			From: "/Movies/*",
 			To:   "/mnt/unionfs/Media/Movies/$1",
-		},
+		}},
+	}
+
+	currentTime := time.Now()
+	now = func() time.Time {
+		return currentTime
 	}
 
 	var testCases = []Test{
@@ -51,6 +57,7 @@ func TestHandler(t *testing.T) {
 						File:     "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
 						Folder:   "/mnt/unionfs/Media/Movies/Interstellar (2014)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 				},
 			},
@@ -61,10 +68,10 @@ func TestHandler(t *testing.T) {
 				Config: Config{
 					Name:     "radarr",
 					Priority: 3,
-					Rewrite: autoscan.Rewrite{
+					Rewrite: []autoscan.Rewrite{{
 						From: "/data/*",
 						To:   "/Media/$1",
-					},
+					}},
 				},
 				Fixture: "testdata/parasite.json",
 			},
@@ -75,6 +82,7 @@ func TestHandler(t *testing.T) {
 						File:     "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
 						Folder:   "/Media/Movies/Parasite (2019)",
 						Priority: 3,
+						Time:     currentTime,
 					},
 				},
 			},

@@ -20,6 +20,7 @@ import (
 	"github.com/cloudbox/autoscan/processor"
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
+	"github.com/cloudbox/autoscan/triggers/bernard"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
@@ -41,9 +42,10 @@ type config struct {
 
 	// autoscan.HTTPTrigger
 	Triggers struct {
-		Lidarr []lidarr.Config `yaml:"lidarr"`
-		Radarr []radarr.Config `yaml:"radarr"`
-		Sonarr []sonarr.Config `yaml:"sonarr"`
+		Bernard []bernard.Config `yaml:"bernard"`
+		Lidarr  []lidarr.Config  `yaml:"lidarr"`
+		Radarr  []radarr.Config  `yaml:"radarr"`
+		Sonarr  []sonarr.Config  `yaml:"sonarr"`
 	} `yaml:"triggers"`
 
 	// autoscan.Target
@@ -184,7 +186,24 @@ func main() {
 		log.Warn().Msg("Webhooks running without authentication")
 	}
 
-	// triggers
+	// Daemon Triggers
+	for _, t := range c.Triggers.Bernard {
+		if t.DatastorePath == "" {
+			t.DatastorePath = cli.Database
+		}
+
+		trigger, err := bernard.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("trigger", "bernard").
+				Msg("Failed initialising trigger")
+		}
+
+		go trigger(proc.Add)
+	}
+
+	// HTTP Triggers
 	for _, t := range c.Triggers.Lidarr {
 		trigger, err := lidarr.New(t)
 		if err != nil {
@@ -234,6 +253,7 @@ func main() {
 	}()
 
 	log.Info().
+		Int("bernard", len(c.Triggers.Bernard)).
 		Int("lidarr", len(c.Triggers.Lidarr)).
 		Int("sonarr", len(c.Triggers.Sonarr)).
 		Int("radarr", len(c.Triggers.Radarr)).
@@ -294,9 +314,9 @@ func main() {
 			default:
 				log.Error().
 					Err(err).
-					Msg("Not all targets are available, retrying in 5 seconds...")
+					Msg("Not all targets are available, retrying in 15 seconds...")
 
-				time.Sleep(5 * time.Second)
+				time.Sleep(15 * time.Second)
 				continue
 			}
 		}
@@ -327,6 +347,11 @@ func main() {
 
 			case errors.Is(err, autoscan.ErrTargetUnavailable):
 				targetsAvailable = false
+				log.Error().
+					Err(err).
+					Msg("Not all targets are available, retrying in 15 seconds...")
+
+				time.Sleep(15 * time.Second)
 
 			default:
 				// unexpected error

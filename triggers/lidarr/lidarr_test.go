@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 )
@@ -31,10 +32,15 @@ func TestHandler(t *testing.T) {
 	standardConfig := Config{
 		Name:     "lidarr",
 		Priority: 5,
-		Rewrite: autoscan.Rewrite{
+		Rewrite: []autoscan.Rewrite{{
 			From: "/Music/*",
 			To:   "/mnt/unionfs/Media/Music/$1",
-		},
+		}},
+	}
+
+	currentTime := time.Now()
+	now = func() time.Time {
+		return currentTime
 	}
 
 	var testCases = []Test{
@@ -51,21 +57,25 @@ func TestHandler(t *testing.T) {
 						File:     "01 - Down.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 					{
 						File:     "02 - Run It Up.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 					{
 						File:     "03 - Put Yo Hands Up.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 					{
 						File:     "04 - Let’s Get Down.mp3",
 						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
 						Priority: 5,
+						Time:     currentTime,
 					},
 				},
 			},

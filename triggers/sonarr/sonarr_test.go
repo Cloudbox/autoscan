@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 )
@@ -31,10 +32,15 @@ func TestHandler(t *testing.T) {
 	standardConfig := Config{
 		Name:     "sonarr",
 		Priority: 5,
-		Rewrite: autoscan.Rewrite{
+		Rewrite: []autoscan.Rewrite{{
 			From: "/TV/*",
 			To:   "/mnt/unionfs/Media/TV/$1",
-		},
+		}},
+	}
+
+	currentTime := time.Now()
+	now = func() time.Time {
+		return currentTime
 	}
 
 	var testCases = []Test{
@@ -51,6 +57,7 @@ func TestHandler(t *testing.T) {
 						File:     "Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv",
 						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 1",
 						Priority: 5,
+						Time:     currentTime,
 					},
 				},
 			},

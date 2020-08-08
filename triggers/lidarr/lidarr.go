@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog/hlog"
 )
 
 type Config struct {
-	Name      string           `yaml:"name"`
-	Priority  int              `yaml:"priority"`
-	Rewrite   autoscan.Rewrite `yaml:"rewrite"`
-	Verbosity string           `yaml:"verbosity"`
+	Name      string             `yaml:"name"`
+	Priority  int                `yaml:"priority"`
+	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity string             `yaml:"verbosity"`
 }
 
 // New creates an autoscan-compatible HTTP Trigger for Lidarr webhooks.
@@ -90,6 +91,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			File:     path.Base(fullPath),
 			Folder:   path.Dir(fullPath),
 			Priority: h.priority,
+			Removed:  false,
+			Time:     now(),
 		})
 	}
 
@@ -106,3 +109,5 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Int("files", len(scans)).
 		Msg("Scan moved to processor")
 }
+
+var now = time.Now

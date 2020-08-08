@@ -194,7 +194,6 @@ triggers:
   bernard:
     - account: service-account.json
       cron: "*/5 * * * *" # every five minutes (the "" are important)
-      database: bernard.db
       priority: 0
       drives:
         - id: Shared Drive 1
@@ -452,7 +451,7 @@ Autoscan's Docker image provides various versions that are available via tags. T
 docker run \
   --name=autoscan \
   -e "PUID=1000" \
-  -e "PGID=1000" \
+  -e "PGID=1001" \
   -p 3030:3030 \
   -v "/opt/autoscan:/config" \
   -v "/mnt/unionfs:/mnt/unionfs:ro" \

@@ -3,6 +3,7 @@ package bernard
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/m-rots/bernard/datastore"
 	"github.com/m-rots/bernard/datastore/sqlite"
 )
@@ -10,6 +11,8 @@ import (
 type bds struct {
 	*sqlite.Datastore
 }
+
+const sqlSelectFile = `SELECT id, name, parent, size, md5, trashed FROM file WHERE drive = $1 AND id = $2 LIMIT 1`
 
 func (d *bds) GetFile(driveID string, fileID string) (*datastore.File, error) {
 	f := new(datastore.File)
@@ -19,7 +22,7 @@ func (d *bds) GetFile(driveID string, fileID string) (*datastore.File, error) {
 
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, ErrFileNotFound
+		return nil, fmt.Errorf("%v: file not found: %w", fileID, sql.ErrNoRows)
 	case err != nil:
 		return nil, err
 	default:
@@ -29,15 +32,17 @@ func (d *bds) GetFile(driveID string, fileID string) (*datastore.File, error) {
 	return f, nil
 }
 
-func (d *bds) GetFolder(driveID string, fileID string) (*datastore.Folder, error) {
+const sqlSelectFolder = `SELECT id, name, trashed, parent FROM folder WHERE drive = $1 AND id = $2 LIMIT 1`
+
+func (d *bds) GetFolder(driveID string, folderID string) (*datastore.Folder, error) {
 	f := new(datastore.Folder)
 
-	row := d.DB.QueryRow(sqlSelectFolder, driveID, fileID)
+	row := d.DB.QueryRow(sqlSelectFolder, driveID, folderID)
 	err := row.Scan(&f.ID, &f.Name, &f.Trashed, &f.Parent)
 
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return nil, ErrFolderNotFound
+		return nil, fmt.Errorf("%v: folder not found: %w", folderID, sql.ErrNoRows)
 	case err != nil:
 		return nil, err
 	default:
@@ -46,6 +51,54 @@ func (d *bds) GetFolder(driveID string, fileID string) (*datastore.Folder, error
 
 	return f, nil
 }
+
+const sqlSelectFolderDescendants = `
+with cte_Folders as (
+	-- Root Folder
+	SELECT
+	'folder' as [type]
+	, f.id
+	, f.drive
+	, f.name
+	, f.trashed
+	, f.parent
+	FROM folder f
+	WHERE f.drive = $1 AND f.id = $2
+	-- Descendant folders
+	UNION
+	SELECT
+	'folder' as [type] 
+	, f.id
+	, f.drive
+	, f.name
+	, f.trashed
+	, f.parent
+	FROM cte_Folders cte
+	JOIN folder f ON f.drive = cte.drive AND f.parent = cte.id
+	WHERE cte.[type] = 'folder'
+), cte_Combined as (
+	-- Folders
+	SELECT 
+	*
+	FROM cte_Folders cte
+	
+	-- Files
+	UNION
+	SELECT
+	'file' as [type]
+	, f.id
+	, f.drive 
+	, f.name 
+	, f.trashed
+	, f.parent 
+	FROM cte_Folders cte
+	JOIN file f ON f.drive = cte.drive AND f.parent = cte.id
+	WHERE cte.[type] = 'folder'
+)
+SELECT DISTINCT
+*
+FROM cte_Combined cte
+`
 
 type folderDescendants struct {
 	Folders map[string]datastore.Folder
@@ -111,63 +164,3 @@ func (d *bds) GetFolderDescendants(driveID string, folderID string) (*folderDesc
 
 	return descendants, rows.Err()
 }
-
-var (
-	/* Google */
-	ErrFileNotFound   = errors.New("file not found")
-	ErrFolderNotFound = errors.New("folder not found")
-)
-
-const (
-	/* Google */
-	// - selects
-	sqlSelectFile              = `SELECT id, name, parent, size, md5, trashed FROM file WHERE drive = $1 AND id = $2 LIMIT 1`
-	sqlSelectFolder            = `SELECT id, name, trashed, parent FROM folder WHERE drive = $1 AND id = $2 LIMIT 1`
-	sqlSelectFolderDescendants = `
-with cte_Folders as (
-	-- Root Folder
-	SELECT
-	'folder' as [type]
-	, f.id
-	, f.drive
-	, f.name
-	, f.trashed
-	, f.parent
-	FROM folder f
-	WHERE f.drive = $1 AND f.id = $2
-	-- Descendant folders
-	UNION
-	SELECT
-	'folder' as [type] 
-	, f.id
-	, f.drive
-	, f.name
-	, f.trashed
-	, f.parent
-	FROM cte_Folders cte
-	JOIN folder f ON f.drive = cte.drive AND f.parent = cte.id
-	WHERE cte.[type] = 'folder'
-), cte_Combined as (
-	-- Folders
-	SELECT 
-	*
-	FROM cte_Folders cte
-	
-	-- Files
-	UNION
-	SELECT
-	'file' as [type]
-	, f.id
-	, f.drive 
-	, f.name 
-	, f.trashed
-	, f.parent 
-	FROM cte_Folders cte
-	JOIN file f ON f.drive = cte.drive AND f.parent = cte.id
-	WHERE cte.[type] = 'folder'
-)
-SELECT DISTINCT
-*
-FROM cte_Combined cte
-`
-)

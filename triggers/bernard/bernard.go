@@ -3,6 +3,7 @@ package bernard
 import (
 	"errors"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"path/filepath"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	ds "github.com/m-rots/bernard/datastore"
 	"github.com/m-rots/bernard/datastore/sqlite"
 	"github.com/m-rots/stubbs"
-	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -208,7 +208,6 @@ func newSyncJob(c *cron.Cron, log zerolog.Logger, job func() error) *syncJob {
 
 func (d daemon) StartAutoSync() error {
 	c := cron.New()
-	cl := newNoLogger()
 
 	for _, drive := range d.drives {
 		drive := drive
@@ -293,7 +292,7 @@ func (d daemon) StartAutoSync() error {
 			return nil
 		})
 
-		id, err := c.AddJob(d.cronSchedule, cron.NewChain(cron.SkipIfStillRunning(cl)).Then(job))
+		id, err := c.AddJob(d.cronSchedule, cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
 		if err != nil {
 			return fmt.Errorf("%v: failed creating auto sync job for drive: %w", drive.ID, err)
 		}

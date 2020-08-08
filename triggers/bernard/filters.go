@@ -15,7 +15,7 @@ func newFilterer(includes []string, excludes []string) (filterer, error) {
 	for _, pattern := range includes {
 		re, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("failed compiling include: %v: %w", pattern, err)
+			return nil, fmt.Errorf("compiling include: %v: %w", pattern, err)
 		}
 		reIncludes = append(reIncludes, *re)
 	}
@@ -23,7 +23,7 @@ func newFilterer(includes []string, excludes []string) (filterer, error) {
 	for _, pattern := range excludes {
 		re, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("failed compiling exclude: %v: %w", pattern, err)
+			return nil, fmt.Errorf("compiling exclude: %v: %w", pattern, err)
 		}
 		reExcludes = append(reExcludes, *re)
 	}

@@ -220,7 +220,7 @@ func (d daemon) StartAutoSync() error {
 		case errors.Is(err, ds.ErrFullSync):
 			fullSync = true
 		case err != nil:
-			return fmt.Errorf("%v: failed determining if full sync required: %v: %w",
+			return fmt.Errorf("%v: determining if full sync required: %v: %w",
 				drive.ID, err, autoscan.ErrFatal)
 		}
 
@@ -228,7 +228,7 @@ func (d daemon) StartAutoSync() error {
 		job := newSyncJob(c, l, func() error {
 			// acquire lock
 			if err := d.limiter.Acquire(1); err != nil {
-				return fmt.Errorf("%v: failed acquiring sync semaphore: %v: %w",
+				return fmt.Errorf("%v: acquiring sync semaphore: %v: %w",
 					drive.ID, err, autoscan.ErrFatal)
 			}
 			defer d.limiter.Release(1)
@@ -239,7 +239,7 @@ func (d daemon) StartAutoSync() error {
 				start := time.Now()
 
 				if err := d.bernard.FullSync(drive.ID); err != nil {
-					return fmt.Errorf("%v: failed performing full sync: %w", drive.ID, err)
+					return fmt.Errorf("%v: performing full sync: %w", drive.ID, err)
 				}
 
 				l.Info().Msgf("Finished full sync in %s", time.Since(start))
@@ -258,7 +258,7 @@ func (d daemon) StartAutoSync() error {
 			// do partial sync
 			err := d.bernard.PartialSync(drive.ID, dh, ph, ch)
 			if err != nil {
-				return fmt.Errorf("%v: failed performing partial sync: %w", drive.ID, err)
+				return fmt.Errorf("%v: performing partial sync: %w", drive.ID, err)
 			}
 
 			l.Trace().
@@ -278,7 +278,7 @@ func (d daemon) StartAutoSync() error {
 
 				err := d.callback(task.scans...)
 				if err != nil {
-					return fmt.Errorf("%v: failed moving scans to processor: %v: %w",
+					return fmt.Errorf("%v: moving scans to processor: %v: %w",
 						drive.ID, err, autoscan.ErrFatal)
 				}
 
@@ -294,7 +294,7 @@ func (d daemon) StartAutoSync() error {
 
 		id, err := c.AddJob(d.cronSchedule, cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
 		if err != nil {
-			return fmt.Errorf("%v: failed creating auto sync job for drive: %w", drive.ID, err)
+			return fmt.Errorf("%v: creating auto sync job for drive: %w", drive.ID, err)
 		}
 
 		job.jobID = id

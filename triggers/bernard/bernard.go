@@ -159,7 +159,7 @@ func (s *syncJob) Run() {
 		s.errors = s.errors[:0]
 		return
 
-	case errors.Is(err, lowe.ErrInvalidCredentials), errors.Is(err, ds.ErrDataAnomaly):
+	case errors.Is(err, lowe.ErrInvalidCredentials), errors.Is(err, ds.ErrDataAnomaly), errors.Is(err, lowe.ErrNetwork):
 		//retryable error occurred
 		s.log.Trace().
 			Err(err).

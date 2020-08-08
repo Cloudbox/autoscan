@@ -314,9 +314,9 @@ func main() {
 			default:
 				log.Error().
 					Err(err).
-					Msg("Not all targets are available, retrying in 5 seconds...")
+					Msg("Not all targets are available, retrying in 15 seconds...")
 
-				time.Sleep(5 * time.Second)
+				time.Sleep(15 * time.Second)
 				continue
 			}
 		}
@@ -347,6 +347,11 @@ func main() {
 
 			case errors.Is(err, autoscan.ErrTargetUnavailable):
 				targetsAvailable = false
+				log.Error().
+					Err(err).
+					Msg("Not all targets are available, retrying in 15 seconds...")
+
+				time.Sleep(15 * time.Second)
 
 			default:
 				// unexpected error

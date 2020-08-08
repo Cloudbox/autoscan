@@ -9,7 +9,9 @@ import (
 )
 
 const (
+	// how many requests can be sent per second by all drives using the same account file
 	requestLimit = 8
+	// how many drives can run at once (at the trigger level), e.g. 2 triggers, with 5 drives each.
 	syncLimit    = 5
 )
 

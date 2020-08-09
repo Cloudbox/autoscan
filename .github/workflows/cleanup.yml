@@ -1,7 +1,6 @@
 name: Docker Cleanup
 
-on:
-  delete:
+on: delete
 
 jobs:
   cleanup_branch:

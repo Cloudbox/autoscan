@@ -6,8 +6,6 @@ on:
       - '*'
     tags:
       - 'v*'
-  pull_request:
-    types: [opened, reopened, edited, ready_for_review]
 
 jobs:
   build:

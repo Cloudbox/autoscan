@@ -15,7 +15,7 @@ func NewPostProcessBernardDiff(driveID string, store *bds, diff *sqlite.Differen
 
 			ef, err := store.GetFile(driveID, df.ID)
 			if err != nil {
-				return fmt.Errorf("failed retrieving file (id: %v): %w", df.ID, err)
+				return fmt.Errorf("retrieving file (id: %v): %w", df.ID, err)
 			}
 
 			switch {
@@ -32,7 +32,7 @@ func NewPostProcessBernardDiff(driveID string, store *bds, diff *sqlite.Differen
 
 			ef, err := store.GetFolder(driveID, df.ID)
 			if err != nil {
-				return fmt.Errorf("failed retrieving folder (id: %v): %w", df.ID, err)
+				return fmt.Errorf("retrieving folder (id: %v): %w", df.ID, err)
 			}
 
 			switch {

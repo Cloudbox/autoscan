@@ -14,8 +14,8 @@ github.com/m-rots/bernard v0.3.3-0.20200804121414-38394a889536 h1:0aY4VrX9R+Y0VA
 github.com/m-rots/bernard v0.3.3-0.20200804121414-38394a889536/go.mod h1:yDQffALXQDh6sTXdFCbI2rJtYuXgx41MyJM6Sf/j7Sc=
 github.com/m-rots/stubbs v1.0.0 h1:lBrjn27J32/iGHp7eKPYGcphuqDIg5UIs/YI4q1m63Q=
 github.com/m-rots/stubbs v1.0.0/go.mod h1:iDS6z2oonw2UMo2l0S1WTPJ9git7FWU4YEo6fq7F2WU=
-github.com/m-rots/stubbs v1.0.1-0.20200804111142-55ef5d1857d9 h1:ent/Dhpzz7hiCBiDgJL2iS5G0Yzd/a9GpP6XSOet0Qc=
-github.com/m-rots/stubbs v1.0.1-0.20200804111142-55ef5d1857d9/go.mod h1:Ive+DY/P1EikQ644M3tuyvsO/7ohPLnmEru2L+6hbVw=
+github.com/m-rots/stubbs v1.1.0 h1:QR1LHxFYPasju/sEO0KLmI5/RADF70CW3ZtisCs7XrQ=
+github.com/m-rots/stubbs v1.1.0/go.mod h1:Ive+DY/P1EikQ644M3tuyvsO/7ohPLnmEru2L+6hbVw=
 github.com/mattn/go-sqlite3 v2.0.3+incompatible h1:gXHsfypPkaMZrKbD5209QV9jbUTJKjyR5WD3HYQSd+U=
 github.com/mattn/go-sqlite3 v2.0.3+incompatible/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 github.com/natefinch/lumberjack v2.0.0+incompatible h1:4QJd3OLAMgj7ph+yZTuX13Ld4UpgHp07nNdFX7mqFfM=

@@ -339,7 +339,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir := filepath.Base(rewritten)
+		dir := filepath.Dir(rewritten)
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			Priority: d.priority,
@@ -367,7 +367,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir := filepath.Base(filepath.Clean(rewritten))
+		dir := filepath.Dir(filepath.Clean(rewritten))
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			Priority: d.priority,
@@ -395,7 +395,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir := filepath.Base(rewritten)
+		dir := filepath.Dir(rewritten)
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
 			Priority: d.priority,

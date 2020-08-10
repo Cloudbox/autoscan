@@ -9,22 +9,21 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cloudbox/autoscan/targets/emby"
-
+	"github.com/alecthomas/kong"
+	"github.com/natefinch/lumberjack"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 
-	"github.com/alecthomas/kong"
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
+	"github.com/cloudbox/autoscan/targets/emby"
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/bernard"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
-	"github.com/natefinch/lumberjack"
 )
 
 type config struct {
@@ -163,7 +162,6 @@ func main() {
 	proc, err := processor.New(processor.Config{
 		Anchors:       c.Anchors,
 		DatastorePath: cli.Database,
-		MaxRetries:    c.MaxRetries,
 		MinimumAge:    c.MinimumAge,
 	})
 

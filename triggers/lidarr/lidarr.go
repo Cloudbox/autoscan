@@ -48,11 +48,6 @@ type lidarrEvent struct {
 	Files []struct {
 		Path string
 	} `json:"trackFiles"`
-
-	Artist struct {
-		Name string
-		Path string
-	} `json:"artist"`
 }
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -81,22 +76,14 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var scans []autoscan.Scan
-
-	for _, f := range event.Files {
-		// Rewrite the path based on the provided rewriter.
-		fullPath := h.rewrite(f.Path)
-
-		scans = append(scans, autoscan.Scan{
-			File:     path.Base(fullPath),
-			Folder:   path.Dir(fullPath),
-			Priority: h.priority,
-			Removed:  false,
-			Time:     now(),
-		})
+	folderPath := path.Dir(h.rewrite(event.Files[0].Path))
+	scan := autoscan.Scan{
+		Folder:   folderPath,
+		Priority: h.priority,
+		Time:     now(),
 	}
 
-	err = h.callback(scans...)
+	err = h.callback(scan)
 	if err != nil {
 		l.Error().Err(err).Msg("Processor could not process scans")
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -105,8 +92,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	l.Info().
-		Str("path", h.rewrite(event.Artist.Path)).
-		Int("files", len(scans)).
+		Str("path", folderPath).
 		Msg("Scan moved to processor")
 }
 

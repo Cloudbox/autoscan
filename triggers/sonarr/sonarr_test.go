@@ -54,7 +54,6 @@ func TestHandler(t *testing.T) {
 				StatusCode: 200,
 				Scans: []autoscan.Scan{
 					{
-						File:     "Westworld.S01E01.The.Original.2160p.TrueHD.Atmos.7.1.HEVC.REMUX.mkv",
 						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 1",
 						Priority: 5,
 						Time:     currentTime,

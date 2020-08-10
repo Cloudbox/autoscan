@@ -13,10 +13,7 @@ import (
 // The Scan is used across Triggers, Targets and the Processor.
 type Scan struct {
 	Folder   string
-	File     string
 	Priority int
-	Retries  int
-	Removed  bool
 	Time     time.Time
 }
 
@@ -33,20 +30,9 @@ type HTTPTrigger func(ProcessorFunc) http.Handler
 // A Target receives a Scan from the Processor and translates the Scan
 // into a format understood by the target.
 type Target interface {
-	Scan([]Scan) error
+	Scan(Scan) error
 	Available() error
 }
-
-const (
-	// TVDb provider for use in autoscan.Metadata
-	TVDb = "tvdb"
-
-	// TMDb provider for use in autoscan.Metadata
-	TMDb = "tmdb"
-
-	// IMDb provider for use in autoscan.Metadata
-	IMDb = "imdb"
-)
 
 var (
 	// ErrTargetUnavailable may occur when a Target goes offline

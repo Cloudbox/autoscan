@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"database/sql"
 	"errors"
 	"reflect"
 	"testing"
@@ -14,33 +13,24 @@ import (
 )
 
 const sqlGetScan = `
-SELECT folder, file, priority, time, retries, removed FROM scan
-WHERE folder = $1 AND file = $2
+SELECT folder, priority, time FROM scan
+WHERE folder = ?
 `
 
-func GetScan(t *testing.T, db *sql.DB, folder string, file string) (scan autoscan.Scan, scanTime time.Time) {
-	t.Helper()
+func (store *datastore) GetScan(folder string) (autoscan.Scan, error) {
+	row := store.QueryRow(sqlGetScan, folder)
 
-	row := db.QueryRow(sqlGetScan, folder, file)
+	scan := autoscan.Scan{}
+	err := row.Scan(&scan.Folder, &scan.Priority, &scan.Time)
 
-	err := row.Scan(&scan.Folder, &scan.File, &scan.Priority, &scanTime, &scan.Retries, &scan.Removed)
-	if err != nil {
-		t.Fatalf("Could not scan the row: %v", err)
-	}
-
-	return scan, scanTime
+	return scan, err
 }
 
 func TestUpsert(t *testing.T) {
-	type Want struct {
-		Scan autoscan.Scan
-		Time time.Time
-	}
-
 	type Test struct {
-		Name  string
-		Scans []autoscan.Scan
-		Want  Want
+		Name     string
+		Scans    []autoscan.Scan
+		WantScan autoscan.Scan
 	}
 
 	var testCases = []Test{
@@ -49,22 +39,14 @@ func TestUpsert(t *testing.T) {
 			Scans: []autoscan.Scan{
 				{
 					Folder:   "testfolder/test",
-					File:     "test.mkv",
 					Priority: 5,
-					Retries:  2,
-					Removed:  true,
 					Time:     time.Time{}.Add(1),
 				},
 			},
-			Want: Want{
-				Time: time.Time{}.Add(1),
-				Scan: autoscan.Scan{
-					Folder:   "testfolder/test",
-					File:     "test.mkv",
-					Priority: 5,
-					Retries:  2,
-					Removed:  true,
-				},
+			WantScan: autoscan.Scan{
+				Folder:   "testfolder/test",
+				Priority: 5,
+				Time:     time.Time{}.Add(1),
 			},
 		},
 		{
@@ -83,34 +65,9 @@ func TestUpsert(t *testing.T) {
 					Time:     time.Time{}.Add(3),
 				},
 			},
-			Want: Want{
-				Time: time.Time{}.Add(3),
-				Scan: autoscan.Scan{
-					Priority: 5,
-				},
-			},
-		},
-		{
-			Name: "Removed should remain false on upsert",
-			Scans: []autoscan.Scan{
-				{
-					Removed: true,
-					Time:    time.Time{}.Add(1),
-				},
-				{
-					Removed: false,
-					Time:    time.Time{}.Add(2),
-				},
-				{
-					Removed: true,
-					Time:    time.Time{}.Add(3),
-				},
-			},
-			Want: Want{
-				Time: time.Time{}.Add(3),
-				Scan: autoscan.Scan{
-					Removed: false,
-				},
+			WantScan: autoscan.Scan{
+				Priority: 5,
+				Time:     time.Time{}.Add(3),
 			},
 		},
 	}
@@ -127,100 +84,69 @@ func TestUpsert(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			scan, scanTime := GetScan(t, store.db, tc.Want.Scan.Folder, tc.Want.Scan.File)
-			if !reflect.DeepEqual(tc.Want.Scan, scan) {
-				t.Log(scan)
-				t.Errorf("Scans do not equal")
+			scan, err := store.GetScan(tc.WantScan.Folder)
+			if err != nil {
+				t.Fatal(err)
 			}
 
-			if scanTime != tc.Want.Time {
-				t.Log(scanTime)
-				t.Errorf("Scan times do not equal")
+			if !reflect.DeepEqual(tc.WantScan, scan) {
+				t.Log(scan)
+				t.Errorf("Scans do not equal")
 			}
 		})
 	}
 }
 
-func TestGetMatching(t *testing.T) {
+func TestGetAvailableScan(t *testing.T) {
 	type Test struct {
-		Name   string
-		Now    time.Time
-		MinAge time.Duration
-		Scans  []autoscan.Scan
-		Want   []autoscan.Scan
+		Name      string
+		Now       time.Time
+		MinAge    time.Duration
+		GiveScans []autoscan.Scan
+		WantErr   error
+		WantScan  autoscan.Scan
 	}
 
 	testTime := time.Now().UTC()
 
 	var testCases = []Test{
 		{
-			Name:   "Retrieves no items if all items are too young",
+			Name:   "Retrieves no folders if all folders are too young",
 			Now:    testTime,
 			MinAge: 2 * time.Minute,
-			Scans: []autoscan.Scan{
-				{File: "1", Time: testTime.Add(-1 * time.Minute)},
-				{File: "2", Time: testTime.Add(-1 * time.Minute)},
+			GiveScans: []autoscan.Scan{
+				{Folder: "1", Time: testTime.Add(-1 * time.Minute)},
+				{Folder: "2", Time: testTime.Add(-1 * time.Minute)},
 			},
+			WantErr: autoscan.ErrNoScans,
 		},
 		{
-			Name:   "Retrieves no items if some items are too young",
-			Now:    testTime,
-			MinAge: 9 * time.Minute,
-			Scans: []autoscan.Scan{
-				{File: "1", Time: testTime.Add(-8 * time.Minute)},
-				{File: "2", Time: testTime.Add(-10 * time.Minute)},
-			},
-		},
-		{
-			Name:   "Retrieves all items if all items are older than minimum age minutes",
+			Name:   "Retrieves folder if older than minimum age",
 			Now:    testTime,
 			MinAge: 5 * time.Minute,
-			Scans: []autoscan.Scan{
-				{File: "1", Time: testTime.Add(-6 * time.Minute)},
-				{File: "2", Time: testTime.Add(-6 * time.Minute)},
+			GiveScans: []autoscan.Scan{
+				{Folder: "1", Time: testTime.Add(-6 * time.Minute)},
 			},
-			Want: []autoscan.Scan{
-				{File: "1", Time: testTime.Add(-6 * time.Minute)},
-				{File: "2", Time: testTime.Add(-6 * time.Minute)},
-			},
-		},
-		{
-			Name:   "Retrieves only one folder if all items are older than minimum age minutes",
-			Now:    testTime,
-			MinAge: 5 * time.Minute,
-			Scans: []autoscan.Scan{
-				{Folder: "folder 1", File: "1", Time: testTime.Add(-6 * time.Minute)},
-				{Folder: "folder 2", File: "1", Time: testTime.Add(-6 * time.Minute)},
-			},
-			Want: []autoscan.Scan{
-				{Folder: "folder 1", File: "1", Time: testTime.Add(-6 * time.Minute)},
+			WantScan: autoscan.Scan{
+				Folder: "1", Time: testTime.Add(-6 * time.Minute),
 			},
 		},
 		{
 			Name:   "Returns all fields",
 			Now:    testTime,
 			MinAge: 5 * time.Minute,
-			Scans: []autoscan.Scan{
+			GiveScans: []autoscan.Scan{
 				{
 					Folder:   "Amazing folder",
-					File:     "Wholesome file",
 					Priority: 69,
-					Removed:  true,
 					Time:     testTime.Add(-6 * time.Minute),
 				},
 			},
-			Want: []autoscan.Scan{
-				{
-					Folder:   "Amazing folder",
-					File:     "Wholesome file",
-					Priority: 69,
-					Removed:  true,
-					Time:     testTime.Add(-6 * time.Minute),
-				},
+			WantScan: autoscan.Scan{
+				Folder:   "Amazing folder",
+				Priority: 69,
+				Time:     testTime.Add(-6 * time.Minute),
 			},
-		},
-		{
-			Name: "No scans should return an empty slice",
 		},
 	}
 
@@ -231,19 +157,7 @@ func TestGetMatching(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			tx, err := store.db.Begin()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			for _, scan := range tc.Scans {
-				err = store.upsert(tx, scan)
-				if err != nil {
-					t.Fatal(err)
-				}
-			}
-
-			err = tx.Commit()
+			err = store.Upsert(tc.GiveScans)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -252,96 +166,15 @@ func TestGetMatching(t *testing.T) {
 				return tc.Now
 			}
 
-			scans, err := store.GetMatching(tc.MinAge)
-			if err != nil {
+			scan, err := store.GetAvailableScan(tc.MinAge)
+			if !errors.Is(err, tc.WantErr) {
 				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(scans, tc.Want) {
-				t.Log(scans)
-				t.Log(tc.Want)
-				t.Errorf("Scans do not match")
-			}
-		})
-	}
-}
-
-func TestRetries(t *testing.T) {
-	type Test struct {
-		Name    string
-		Err     error
-		Folder  string
-		Retries int
-		Scans   []autoscan.Scan
-		Want    []autoscan.Scan
-	}
-
-	testTime := time.Now().UTC()
-
-	var testCases = []Test{
-		{
-			Name: "Should not error when no rows are affected",
-			Err:  nil,
-		},
-		{
-			Name:    "Only children of the same folder are incremented",
-			Folder:  "1",
-			Retries: 5,
-			Scans: []autoscan.Scan{
-				{Folder: "1", File: "1", Retries: 0, Time: testTime},
-				{Folder: "1", File: "2", Retries: 2, Time: testTime},
-				{Folder: "2", File: "1", Retries: 0, Time: testTime},
-			},
-			Want: []autoscan.Scan{
-				{Folder: "1", File: "1", Retries: 1, Time: testTime.Add(5 * time.Minute)},
-				{Folder: "1", File: "2", Retries: 3, Time: testTime.Add(5 * time.Minute)},
-				{Folder: "2", File: "1", Retries: 0, Time: testTime.Add(0 * time.Minute)},
-			},
-		},
-		{
-			Name:    "Retry older than max value should get deleted",
-			Folder:  "1",
-			Retries: 2,
-			Scans: []autoscan.Scan{
-				{Folder: "1", File: "1", Retries: 1, Time: testTime},
-				{Folder: "1", File: "2", Retries: 2, Time: testTime},
-			},
-			Want: []autoscan.Scan{
-				{Folder: "1", File: "1", Retries: 2, Time: testTime.Add(5 * time.Minute)},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			store, err := newDatastore(":memory:")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			err = store.Upsert(tc.Scans)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			now = func() time.Time {
-				return testTime.Add(5 * time.Minute)
-			}
-
-			err = store.Retry(tc.Folder, tc.Retries)
-			if !errors.Is(err, tc.Err) {
-				t.Fatal(err)
-			}
-
-			scans, err := store.GetAll()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if !reflect.DeepEqual(scans, tc.Want) {
-				t.Log(scans)
-				t.Log(tc.Want)
-				t.Errorf("Scans do not match")
+			if !reflect.DeepEqual(scan, tc.WantScan) {
+				t.Log(scan)
+				t.Log(tc.WantScan)
+				t.Errorf("Scan does not match")
 			}
 		})
 	}
@@ -349,26 +182,24 @@ func TestRetries(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	type Test struct {
-		Name   string
-		Scans  []autoscan.Scan
-		Delete []autoscan.Scan
-		Want   []autoscan.Scan
+		Name       string
+		GiveScans  []autoscan.Scan
+		GiveDelete autoscan.Scan
+		WantScans  []autoscan.Scan
 	}
 
 	var testCases = []Test{
 		{
-			Name: "Only deletes specific file, not all files in folder nor files in other folders",
-			Scans: []autoscan.Scan{
-				{Folder: "1", File: "1"},
-				{Folder: "1", File: "2"},
-				{Folder: "2", File: "1"},
+			Name: "Only deletes specific folder, not other folders",
+			GiveScans: []autoscan.Scan{
+				{Folder: "1"},
+				{Folder: "2"},
 			},
-			Delete: []autoscan.Scan{
-				{Folder: "1", File: "1"},
+			GiveDelete: autoscan.Scan{
+				Folder: "1",
 			},
-			Want: []autoscan.Scan{
-				{Folder: "1", File: "2"},
-				{Folder: "2", File: "1"},
+			WantScans: []autoscan.Scan{
+				{Folder: "2"},
 			},
 		},
 	}
@@ -380,12 +211,12 @@ func TestDelete(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			err = store.Upsert(tc.Scans)
+			err = store.Upsert(tc.GiveScans)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			err = store.Delete(tc.Delete)
+			err = store.Delete(tc.GiveDelete)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -395,7 +226,7 @@ func TestDelete(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(scans, tc.Want) {
+			if !reflect.DeepEqual(scans, tc.WantScans) {
 				t.Log(scans)
 				t.Errorf("Scans do not match")
 			}

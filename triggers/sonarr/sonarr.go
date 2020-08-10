@@ -81,13 +81,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rewrite the path based on the provided rewriter.
-	fullPath := h.rewrite(path.Join(event.Series.Path, event.File.RelativePath))
+	folderPath := path.Dir(h.rewrite(path.Join(event.Series.Path, event.File.RelativePath)))
 
 	scan := autoscan.Scan{
-		File:     path.Base(fullPath),
-		Folder:   path.Dir(fullPath),
+		Folder:   folderPath,
 		Priority: h.priority,
-		Removed:  false,
 		Time:     now(),
 	}
 
@@ -100,7 +98,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	rlog.Info().
-		Str("path", fullPath).
+		Str("path", folderPath).
 		Msg("Scan moved to processor")
 }
 

@@ -3,7 +3,6 @@ package processor
 import (
 	"fmt"
 	"os"
-	"path"
 	"time"
 
 	"github.com/cloudbox/autoscan"
@@ -13,7 +12,6 @@ import (
 type Config struct {
 	Anchors       []string
 	DatastorePath string
-	MaxRetries    int
 	MinimumAge    time.Duration
 }
 
@@ -25,7 +23,6 @@ func New(c Config) (*Processor, error) {
 
 	proc := &Processor{
 		anchors:    c.Anchors,
-		maxRetries: c.MaxRetries,
 		minimumAge: c.MinimumAge,
 		store:      store,
 	}
@@ -34,7 +31,6 @@ func New(c Config) (*Processor, error) {
 
 type Processor struct {
 	anchors    []string
-	maxRetries int
 	minimumAge time.Duration
 	store      *datastore
 }
@@ -58,13 +54,13 @@ func (p *Processor) CheckAvailability(targets []autoscan.Target) error {
 	return g.Wait()
 }
 
-func (p *Processor) callTargets(targets []autoscan.Target, scans []autoscan.Scan) error {
+func (p *Processor) callTargets(targets []autoscan.Target, scan autoscan.Scan) error {
 	g := new(errgroup.Group)
 
 	for _, target := range targets {
 		target := target
 		g.Go(func() error {
-			return target.Scan(scans)
+			return target.Scan(scan)
 		})
 	}
 
@@ -72,16 +68,9 @@ func (p *Processor) callTargets(targets []autoscan.Target, scans []autoscan.Scan
 }
 
 func (p *Processor) Process(targets []autoscan.Target) error {
-	// Get children of the same folder with the highest priority and oldest date.
-	scans, err := p.store.GetMatching(p.minimumAge)
+	scan, err := p.store.GetAvailableScan(p.minimumAge)
 	if err != nil {
-		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
-	}
-
-	// When no scans are currently available,
-	// return the ErrNoScans.
-	if len(scans) == 0 {
-		return fmt.Errorf("%w", autoscan.ErrNoScans)
+		return err
 	}
 
 	// Check whether all anchors are present
@@ -91,40 +80,15 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 		}
 	}
 
-	// Check which files exist on the file system.
-	// We do not want to try to scan non-existing files.
-	var existingScans []autoscan.Scan
-	for _, scan := range scans {
-		if scan.Removed != fileExists(path.Join(scan.Folder, scan.File)) {
-			existingScans = append(existingScans, scan)
-		}
-	}
-
-	// When no files currently exist on the file system,
-	// then we want to exit early and retry later.
-	if len(existingScans) == 0 {
-		if err = p.store.Retry(scans[0].Folder, p.maxRetries); err != nil {
-			return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
-		}
-
-		return nil
-	}
-
-	// 1. do stuff with existingScans
 	// Fatal or Target Unavailable -> return original error
-	err = p.callTargets(targets, existingScans)
+	err = p.callTargets(targets, scan)
 	if err != nil {
 		return err
 	}
 
-	// 2. remove existingScans from datastore
-	if err = p.store.Delete(existingScans); err != nil {
-		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
-	}
-
-	// 3. update non-existing scans with retry +1
-	if err = p.store.Retry(scans[0].Folder, p.maxRetries); err != nil {
-		return fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
+	err = p.store.Delete(scan)
+	if err != nil {
+		return err
 	}
 
 	return nil

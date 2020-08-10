@@ -73,14 +73,9 @@ func (t target) Available() error {
 	return err
 }
 
-func (t target) Scan(scans []autoscan.Scan) error {
-	// ensure scan tasks present (should never fail)
-	if len(scans) == 0 {
-		return nil
-	}
-
+func (t target) Scan(scan autoscan.Scan) error {
 	// determine library for this scan
-	scanFolder := t.rewrite(scans[0].Folder)
+	scanFolder := t.rewrite(scan.Folder)
 
 	libs, err := t.getScanLibrary(scanFolder)
 	if err != nil {

@@ -3,16 +3,17 @@ package bernard
 import (
 	"errors"
 	"fmt"
-	"github.com/robfig/cron/v3"
 	"path/filepath"
 	"time"
 
-	"github.com/cloudbox/autoscan"
 	lowe "github.com/m-rots/bernard"
 	ds "github.com/m-rots/bernard/datastore"
 	"github.com/m-rots/bernard/datastore/sqlite"
 	"github.com/m-rots/stubbs"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 const (
@@ -338,13 +339,10 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir, file := filepath.Split(rewritten)
+		dir := filepath.Dir(rewritten)
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
-			File:     file,
 			Priority: d.priority,
-			Retries:  0,
-			Removed:  false,
 			Time:     drive.ScanTime(),
 		})
 
@@ -369,13 +367,10 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir, file := filepath.Split(filepath.Clean(rewritten))
+		dir := filepath.Dir(filepath.Clean(rewritten))
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
-			File:     file,
 			Priority: d.priority,
-			Retries:  0,
-			Removed:  false,
 			Time:     drive.ScanTime(),
 		})
 
@@ -400,13 +395,10 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir, file := filepath.Split(rewritten)
+		dir := filepath.Dir(rewritten)
 		task.scans = append(task.scans, autoscan.Scan{
 			Folder:   filepath.Clean(dir),
-			File:     file,
 			Priority: d.priority,
-			Retries:  0,
-			Removed:  true,
 			Time:     drive.ScanTime(),
 		})
 

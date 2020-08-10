@@ -52,32 +52,11 @@ func TestHandler(t *testing.T) {
 			},
 			Expected{
 				StatusCode: 200,
-				Scans: []autoscan.Scan{
-					{
-						File:     "01 - Down.mp3",
-						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
-						Priority: 5,
-						Time:     currentTime,
-					},
-					{
-						File:     "02 - Run It Up.mp3",
-						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
-						Priority: 5,
-						Time:     currentTime,
-					},
-					{
-						File:     "03 - Put Yo Hands Up.mp3",
-						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
-						Priority: 5,
-						Time:     currentTime,
-					},
-					{
-						File:     "04 - Let’s Get Down.mp3",
-						Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
-						Priority: 5,
-						Time:     currentTime,
-					},
-				},
+				Scans: []autoscan.Scan{{
+					Folder:   "/mnt/unionfs/Media/Music/Marshmello/Joytime III (2019)",
+					Priority: 5,
+					Time:     currentTime,
+				}},
 			},
 		},
 		{

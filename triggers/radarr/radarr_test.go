@@ -54,7 +54,6 @@ func TestHandler(t *testing.T) {
 				StatusCode: 200,
 				Scans: []autoscan.Scan{
 					{
-						File:     "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv",
 						Folder:   "/mnt/unionfs/Media/Movies/Interstellar (2014)",
 						Priority: 5,
 						Time:     currentTime,
@@ -79,7 +78,6 @@ func TestHandler(t *testing.T) {
 				StatusCode: 200,
 				Scans: []autoscan.Scan{
 					{
-						File:     "Parasite.2019.2160p.UHD.BluRay.REMUX.HEVC.TrueHD.Atmos.7.1.mkv",
 						Folder:   "/Media/Movies/Parasite (2019)",
 						Priority: 3,
 						Time:     currentTime,

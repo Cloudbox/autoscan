@@ -44,7 +44,7 @@ func New(c Config) (autoscan.Trigger, error) {
 		Logger()
 
 	const scope = "https://www.googleapis.com/auth/drive.readonly"
-	auth, err := stubbs.FromFile(c.AccountPath, []string{scope}, 3600)
+	auth, err := stubbs.FromFile(c.AccountPath, []string{scope})
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}

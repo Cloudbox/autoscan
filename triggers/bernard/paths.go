@@ -25,7 +25,7 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		for _, f := range diff.AddedFiles {
 			p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Current)
 			if err != nil {
-				return fmt.Errorf("failed building file path for added file %v: %w", f.ID, err)
+				return fmt.Errorf("building file path for added file %v: %w", f.ID, err)
 			}
 
 			paths.AddedFiles = append(paths.AddedFiles, filepath.Join(p, f.Name))
@@ -36,7 +36,7 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 			// new path
 			p, err := getFolderPath(store, driveID, f.New.Parent, folderMaps.Current)
 			if err != nil {
-				return fmt.Errorf("failed building file path for changed file %v: %w", f.New.ID, err)
+				return fmt.Errorf("building file path for changed file %v: %w", f.New.ID, err)
 			}
 
 			paths.ChangedFiles = append(paths.ChangedFiles, filepath.Join(p, f.New.Name))
@@ -45,7 +45,7 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 			if !f.Old.Trashed && f.Old.ID != "" {
 				p, err := getFolderPath(store, driveID, f.Old.Parent, folderMaps.Old)
 				if err != nil {
-					return fmt.Errorf("failed building removed file path for changed file %v: %w", f.Old.ID, err)
+					return fmt.Errorf("building removed file path for changed file %v: %w", f.Old.ID, err)
 				}
 
 				paths.RemovedFiles = append(paths.RemovedFiles, filepath.Join(p, f.Old.Name))
@@ -56,7 +56,7 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		for _, f := range diff.RemovedFiles {
 			p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Old)
 			if err != nil {
-				return fmt.Errorf("failed building file path for removed file %v: %w", f.ID, err)
+				return fmt.Errorf("building file path for removed file %v: %w", f.ID, err)
 			}
 
 			paths.RemovedFiles = append(paths.RemovedFiles, filepath.Join(p, f.Name))
@@ -68,14 +68,14 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		// get changed file paths (descendants of newRoots)
 		changedNewFiles, err := getChangedFolderFiles(store, driveID, newRoots, folderMaps.Current, fileMaps.Current)
 		if err != nil {
-			return fmt.Errorf("failed building changed folder descendant files: %w", err)
+			return fmt.Errorf("building changed folder descendant files: %w", err)
 		}
 
 		for _, f := range changedNewFiles {
 			p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Current)
 			if err != nil {
-				return fmt.Errorf("failed building changed file path for change folder "+
-					"descendant file %v: %w", f.ID, err)
+				return fmt.Errorf("building changed file path for change folder descendant file %v: %w",
+					f.ID, err)
 			}
 
 			paths.ChangedFiles = append(paths.ChangedFiles, filepath.Join(p, f.Name))
@@ -84,7 +84,7 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		// get descendents of changed folders (old paths - removed)
 		removedOldFiles, err := getChangedFolderFiles(store, driveID, oldRoots, folderMaps.Old, fileMaps.Old)
 		if err != nil {
-			return fmt.Errorf("failed building removed folder descendant files: %w", err)
+			return fmt.Errorf("building removed folder descendant files: %w", err)
 		}
 
 		for _, f := range removedOldFiles {
@@ -94,8 +94,8 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 
 			p, err := getFolderPath(store, driveID, f.Parent, folderMaps.Old)
 			if err != nil {
-				return fmt.Errorf("failed building removed file path for change folder "+
-					"descendant file %v: %w", f.ID, err)
+				return fmt.Errorf("building removed file path for change folder descendant file %v: %w",
+					f.ID, err)
 			}
 
 			paths.RemovedFiles = append(paths.RemovedFiles, filepath.Join(p, f.Name))
@@ -208,6 +208,11 @@ func getDiffFolderMaps(diff *sqlite.Difference) *diffFolderMaps {
 
 func getFolderPath(store *bds, driveId string, folderId string, folderMap map[string]datastore.Folder) (string, error) {
 	path := ""
+
+	// folderId == driveId
+	if folderId == driveId {
+		return path, nil
+	}
 
 	// get top folder
 	topFolder, ok := folderMap[folderId]

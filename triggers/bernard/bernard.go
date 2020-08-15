@@ -263,8 +263,8 @@ func (d daemon) StartAutoSync() error {
 			}
 
 			l.Trace().
-				Int("changed", len(paths.NewChangedFolders)).
-				Int("removed", len(paths.Removed)).
+				Int("new", len(paths.NewFolders)).
+				Int("old", len(paths.OldFolders)).
 				Msgf("Partial sync finished in %s", time.Since(start))
 
 			// translate paths to scan task
@@ -283,8 +283,8 @@ func (d daemon) StartAutoSync() error {
 				}
 
 				l.Info().
-					Int("changed", task.adds).
-					Int("removed", task.removes).
+					Int("added", task.added).
+					Int("removed", task.removed).
 					Msg("Scan moved to processor")
 			}
 
@@ -305,21 +305,19 @@ func (d daemon) StartAutoSync() error {
 
 type scanTask struct {
 	scans   []autoscan.Scan
-	adds    int
-	changes int
-	removes int
+	added   int
+	removed int
 }
 
 func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 	pathMap := make(map[string]int)
 	task := &scanTask{
 		scans:   make([]autoscan.Scan, 0),
-		adds:    0,
-		changes: 0,
-		removes: 0,
+		added:   0,
+		removed: 0,
 	}
 
-	for _, p := range paths.NewChangedFolders {
+	for _, p := range paths.NewFolders {
 		// rewrite path
 		rewritten := drive.Rewriter(p)
 
@@ -343,10 +341,10 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			Time:     drive.ScanTime(),
 		})
 
-		task.adds++
+		task.added++
 	}
 
-	for _, p := range paths.Removed {
+	for _, p := range paths.OldFolders {
 		// rewrite path
 		rewritten := drive.Rewriter(p)
 
@@ -370,7 +368,7 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 			Time:     drive.ScanTime(),
 		})
 
-		task.removes++
+		task.removed++
 	}
 
 	return task

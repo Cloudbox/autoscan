@@ -9,8 +9,8 @@ import (
 )
 
 type Paths struct {
-	NewChangedFolders []string
-	Removed           []string
+	NewFolders []string
+	OldFolders []string
 }
 
 func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.Hook, *Paths) {
@@ -24,17 +24,17 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 		}
 
 		// get roots from parents
-		rootNewChangedFolders, _ := datastore.RootFolders(parents.NewChanged)
+		rootNewFolders, _ := datastore.RootFolders(parents.New)
 		rootOldFolders, _ := datastore.RootFolders(parents.Old)
 
 		// get new/changed paths
-		for _, folder := range rootNewChangedFolders {
+		for _, folder := range rootNewFolders {
 			p, err := getFolderPath(store, driveID, folder.ID, parents.FolderMaps.Current)
 			if err != nil {
 				return fmt.Errorf("building folder path: %v: %w", folder.ID, err)
 			}
 
-			paths.NewChangedFolders = append(paths.NewChangedFolders, p)
+			paths.NewFolders = append(paths.NewFolders, p)
 		}
 
 		// get removed paths
@@ -44,7 +44,7 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 				return fmt.Errorf("building old folder path: %v: %w", folder.ID, err)
 			}
 
-			paths.Removed = append(paths.Removed, p)
+			paths.OldFolders = append(paths.OldFolders, p)
 		}
 
 		return nil
@@ -79,7 +79,7 @@ func getDiffFolderMaps(diff *sqlite.Difference) *diffFolderMaps {
 }
 
 type Parents struct {
-	NewChanged []datastore.Folder
+	New        []datastore.Folder
 	Old        []datastore.Folder
 	FolderMaps *diffFolderMaps
 }
@@ -87,17 +87,17 @@ type Parents struct {
 func getParents(store *bds, driveId string, diff *sqlite.Difference) (*Parents, error) {
 	folderMaps := getDiffFolderMaps(diff)
 
-	parents := make(map[string]datastore.Folder)
+	newParents := make(map[string]datastore.Folder)
 	oldParents := make(map[string]datastore.Folder)
 
 	// added folders
 	for _, folder := range diff.AddedFolders {
-		parents[folder.ID] = folder
+		newParents[folder.ID] = folder
 	}
 
 	// changed folders
 	for _, folder := range diff.ChangedFolders {
-		parents[folder.New.ID] = folder.New
+		newParents[folder.New.ID] = folder.New
 		oldParents[folder.Old.ID] = folder.Old
 	}
 
@@ -113,11 +113,11 @@ func getParents(store *bds, driveId string, diff *sqlite.Difference) (*Parents, 
 			return nil, err
 		}
 
-		if _, ok := parents[folder.ID]; ok {
+		if _, ok := newParents[folder.ID]; ok {
 			continue
 		}
 
-		parents[folder.ID] = *folder
+		newParents[folder.ID] = *folder
 	}
 
 	// changed files
@@ -128,11 +128,11 @@ func getParents(store *bds, driveId string, diff *sqlite.Difference) (*Parents, 
 			return nil, err
 		}
 
-		if _, ok := parents[currentFolder.ID]; ok {
+		if _, ok := newParents[currentFolder.ID]; ok {
 			continue
 		}
 
-		parents[currentFolder.ID] = *currentFolder
+		newParents[currentFolder.ID] = *currentFolder
 
 		// old
 		oldFolder, err := getFolder(store, driveId, file.Old.Parent, folderMaps.Old)
@@ -159,13 +159,13 @@ func getParents(store *bds, driveId string, diff *sqlite.Difference) (*Parents, 
 
 	// create Parents object
 	p := &Parents{
-		NewChanged: make([]datastore.Folder, 0),
+		New:        make([]datastore.Folder, 0),
 		Old:        make([]datastore.Folder, 0),
 		FolderMaps: folderMaps,
 	}
 
-	for _, folder := range parents {
-		p.NewChanged = append(p.NewChanged, folder)
+	for _, folder := range newParents {
+		p.New = append(p.New, folder)
 	}
 
 	for _, folder := range oldParents {

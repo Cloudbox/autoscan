@@ -263,8 +263,8 @@ func (d daemon) StartAutoSync() error {
 			}
 
 			l.Trace().
-				Int("folders_changed", len(paths.NewChangedFolders)).
-				Int("folders_removed", len(paths.Removed)).
+				Int("changed", len(paths.NewChangedFolders)).
+				Int("removed", len(paths.Removed)).
 				Msgf("Partial sync finished in %s", time.Since(start))
 
 			// translate paths to scan task
@@ -283,8 +283,8 @@ func (d daemon) StartAutoSync() error {
 				}
 
 				l.Info().
-					Int("folders_changed", task.adds).
-					Int("folders_removed", task.removes).
+					Int("changed", task.adds).
+					Int("removed", task.removes).
 					Msg("Scan moved to processor")
 			}
 

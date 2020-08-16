@@ -60,6 +60,27 @@ func TestHandler(t *testing.T) {
 			},
 		},
 		{
+			"Scan has all the correct fields (multi-cd)",
+			Given{
+				Config:  standardConfig,
+				Fixture: "testdata/blink-182.json",
+			},
+			Expected{
+				StatusCode: 200,
+				Scans: []autoscan.Scan{
+					{
+						Folder:   "/mnt/unionfs/Media/Music/blink-182/California (2016)/CD 01",
+						Priority: 5,
+						Time:     currentTime,
+					},
+					{
+						Folder:   "/mnt/unionfs/Media/Music/blink-182/California (2016)/CD 02",
+						Priority: 5,
+						Time:     currentTime,
+					}},
+			},
+		},
+		{
 			"Returns bad request on invalid JSON",
 			Given{
 				Config:  standardConfig,

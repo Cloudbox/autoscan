@@ -76,14 +76,27 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	folderPath := path.Dir(h.rewrite(event.Files[0].Path))
-	scan := autoscan.Scan{
-		Folder:   folderPath,
-		Priority: h.priority,
-		Time:     now(),
+	dirMap := make(map[string]int)
+	folderPaths := make([]string, 0)
+	scans := make([]autoscan.Scan, 0)
+
+	for _, f := range event.Files {
+		folderPath := path.Dir(h.rewrite(f.Path))
+		if _, ok := dirMap[folderPath]; ok {
+			continue
+		}
+		dirMap[folderPath] = 1
+
+		// add scan
+		folderPaths = append(folderPaths, folderPath)
+		scans = append(scans, autoscan.Scan{
+			Folder:   folderPath,
+			Priority: h.priority,
+			Time:     now(),
+		})
 	}
 
-	err = h.callback(scan)
+	err = h.callback(scans...)
 	if err != nil {
 		l.Error().Err(err).Msg("Processor could not process scans")
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -92,7 +105,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	l.Info().
-		Str("path", folderPath).
+		Strs("path", folderPaths).
 		Msg("Scan moved to processor")
 }
 

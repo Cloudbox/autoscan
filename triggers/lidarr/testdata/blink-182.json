@@ -1,0 +1,22 @@
+{
+  "eventType": "Download",
+  "isUpgrade": false,
+  "trackFiles": [
+    {
+      "path": "/Music/blink‐182/California (2016)/CD 01/01 - Cynical.mp3"
+    },
+    {
+      "path": "/Music/blink‐182/California (2016)/CD 01/02 - Bored to Death.mp3"
+    },
+    {
+      "path": "/Music/blink‐182/California (2016)/CD 02/01 - Parking Lot.mp3"
+    },
+    {
+      "path": "/Music/blink‐182/California (2016)/CD 02/02 - Misery.mp3"
+    }
+  ],
+  "artist": {
+    "name": "blink-182",
+    "path": "/Music/blink-182"
+  }
+}

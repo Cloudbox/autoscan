@@ -76,19 +76,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dirMap := make(map[string]int)
-	folderPaths := make([]string, 0)
+	unique := make(map[string]bool)
 	scans := make([]autoscan.Scan, 0)
 
 	for _, f := range event.Files {
 		folderPath := path.Dir(h.rewrite(f.Path))
-		if _, ok := dirMap[folderPath]; ok {
+		if _, ok := unique[folderPath]; ok {
 			continue
 		}
-		dirMap[folderPath] = 1
 
 		// add scan
-		folderPaths = append(folderPaths, folderPath)
+		unique[folderPath] = true
 		scans = append(scans, autoscan.Scan{
 			Folder:   folderPath,
 			Priority: h.priority,
@@ -105,7 +103,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	l.Info().
-		Strs("path", folderPaths).
+		Str("path", scans[0].Folder).
 		Msg("Scan moved to processor")
 }
 

@@ -17,13 +17,13 @@ func NewPathsHook(driveID string, store *bds, diff *sqlite.Difference) (bernard.
 	var paths Paths
 
 	hook := func(drive datastore.Drive, files []datastore.File, folders []datastore.Folder, removed []string) error {
-		// get parents from diff
-		parents, err := getParents(store, driveID, diff)
+		// get folders from diff (that we are interested in)
+		parents, err := getDiffFolders(store, driveID, diff)
 		if err != nil {
 			return fmt.Errorf("getting parents: %w", err)
 		}
 
-		// get roots from parents
+		// get roots from folders
 		rootNewFolders, _ := datastore.RootFolders(parents.New)
 		rootOldFolders, _ := datastore.RootFolders(parents.Old)
 
@@ -84,7 +84,7 @@ type Parents struct {
 	FolderMaps *diffFolderMaps
 }
 
-func getParents(store *bds, driveId string, diff *sqlite.Difference) (*Parents, error) {
+func getDiffFolders(store *bds, driveId string, diff *sqlite.Difference) (*Parents, error) {
 	folderMaps := getDiffFolderMaps(diff)
 
 	newParents := make(map[string]datastore.Folder)
@@ -108,10 +108,6 @@ func getParents(store *bds, driveId string, diff *sqlite.Difference) (*Parents, 
 			return nil, err
 		}
 
-		if _, ok := newParents[folder.ID]; ok {
-			continue
-		}
-
 		newParents[folder.ID] = *folder
 	}
 
@@ -123,20 +119,12 @@ func getParents(store *bds, driveId string, diff *sqlite.Difference) (*Parents, 
 			return nil, err
 		}
 
-		if _, ok := newParents[currentFolder.ID]; ok {
-			continue
-		}
-
 		newParents[currentFolder.ID] = *currentFolder
 
 		// old
 		oldFolder, err := getFolder(store, driveId, file.Old.Parent, folderMaps.Old)
 		if err != nil {
 			return nil, err
-		}
-
-		if _, ok := oldParents[oldFolder.ID]; ok {
-			continue
 		}
 
 		oldParents[oldFolder.ID] = *oldFolder

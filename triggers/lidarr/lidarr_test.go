@@ -60,6 +60,27 @@ func TestHandler(t *testing.T) {
 			},
 		},
 		{
+			"Multiple folders",
+			Given{
+				Config:  standardConfig,
+				Fixture: "testdata/blink-182.json",
+			},
+			Expected{
+				StatusCode: 200,
+				Scans: []autoscan.Scan{
+					{
+						Folder:   "/mnt/unionfs/Media/Music/blink‐182/California (2016)/CD 01",
+						Priority: 5,
+						Time:     currentTime,
+					},
+					{
+						Folder:   "/mnt/unionfs/Media/Music/blink‐182/California (2016)/CD 02",
+						Priority: 5,
+						Time:     currentTime,
+					}},
+			},
+		},
+		{
 			"Returns bad request on invalid JSON",
 			Given{
 				Config:  standardConfig,
@@ -85,8 +106,8 @@ func TestHandler(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			callback := func(scans ...autoscan.Scan) error {
 				if !reflect.DeepEqual(tc.Expected.Scans, scans) {
-					t.Log(scans)
-					t.Log(tc.Expected.Scans)
+					t.Logf("want: %v", tc.Expected.Scans)
+					t.Logf("got:  %v", scans)
 					t.Errorf("Scans do not equal")
 					return errors.New("Scans do not equal")
 				}

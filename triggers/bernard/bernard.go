@@ -263,9 +263,8 @@ func (d daemon) StartAutoSync() error {
 			}
 
 			l.Trace().
-				Int("files_added", len(paths.AddedFiles)).
-				Int("files_changed", len(paths.ChangedFiles)).
-				Int("files_removed", len(paths.RemovedFiles)).
+				Int("new", len(paths.NewFolders)).
+				Int("old", len(paths.OldFolders)).
 				Msgf("Partial sync finished in %s", time.Since(start))
 
 			// translate paths to scan task
@@ -284,9 +283,8 @@ func (d daemon) StartAutoSync() error {
 				}
 
 				l.Info().
-					Int("files_added", task.adds).
-					Int("files_changed", task.changes).
-					Int("files_removed", task.removes).
+					Int("added", task.added).
+					Int("removed", task.removed).
 					Msg("Scan moved to processor")
 			}
 
@@ -307,21 +305,19 @@ func (d daemon) StartAutoSync() error {
 
 type scanTask struct {
 	scans   []autoscan.Scan
-	adds    int
-	changes int
-	removes int
+	added   int
+	removed int
 }
 
 func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 	pathMap := make(map[string]int)
 	task := &scanTask{
 		scans:   make([]autoscan.Scan, 0),
-		adds:    0,
-		changes: 0,
-		removes: 0,
+		added:   0,
+		removed: 0,
 	}
 
-	for _, p := range paths.AddedFiles {
+	for _, p := range paths.NewFolders {
 		// rewrite path
 		rewritten := drive.Rewriter(p)
 
@@ -339,17 +335,16 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir := filepath.Dir(rewritten)
 		task.scans = append(task.scans, autoscan.Scan{
-			Folder:   filepath.Clean(dir),
+			Folder:   filepath.Clean(rewritten),
 			Priority: d.priority,
 			Time:     drive.ScanTime(),
 		})
 
-		task.adds++
+		task.added++
 	}
 
-	for _, p := range paths.ChangedFiles {
+	for _, p := range paths.OldFolders {
 		// rewrite path
 		rewritten := drive.Rewriter(p)
 
@@ -367,42 +362,13 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 		}
 
 		// add scan task
-		dir := filepath.Dir(filepath.Clean(rewritten))
 		task.scans = append(task.scans, autoscan.Scan{
-			Folder:   filepath.Clean(dir),
+			Folder:   filepath.Clean(rewritten),
 			Priority: d.priority,
 			Time:     drive.ScanTime(),
 		})
 
-		task.changes++
-	}
-
-	for _, p := range paths.RemovedFiles {
-		// rewrite path
-		rewritten := drive.Rewriter(p)
-
-		// check if path already seen
-		if _, ok := pathMap[rewritten]; ok {
-			// already a scan task present
-			continue
-		} else {
-			pathMap[rewritten] = 1
-		}
-
-		// is this path allowed?
-		if !drive.Allowed(rewritten) {
-			continue
-		}
-
-		// add scan task
-		dir := filepath.Dir(rewritten)
-		task.scans = append(task.scans, autoscan.Scan{
-			Folder:   filepath.Clean(dir),
-			Priority: d.priority,
-			Time:     drive.ScanTime(),
-		})
-
-		task.removes++
+		task.removed++
 	}
 
 	return task

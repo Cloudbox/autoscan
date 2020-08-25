@@ -76,14 +76,25 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	folderPath := path.Dir(h.rewrite(event.Files[0].Path))
-	scan := autoscan.Scan{
-		Folder:   folderPath,
-		Priority: h.priority,
-		Time:     now(),
+	unique := make(map[string]bool)
+	scans := make([]autoscan.Scan, 0)
+
+	for _, f := range event.Files {
+		folderPath := path.Dir(h.rewrite(f.Path))
+		if _, ok := unique[folderPath]; ok {
+			continue
+		}
+
+		// add scan
+		unique[folderPath] = true
+		scans = append(scans, autoscan.Scan{
+			Folder:   folderPath,
+			Priority: h.priority,
+			Time:     now(),
+		})
 	}
 
-	err = h.callback(scan)
+	err = h.callback(scans...)
 	if err != nil {
 		l.Error().Err(err).Msg("Processor could not process scans")
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -92,7 +103,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	l.Info().
-		Str("path", folderPath).
+		Str("path", scans[0].Folder).
 		Msg("Scan moved to processor")
 }
 

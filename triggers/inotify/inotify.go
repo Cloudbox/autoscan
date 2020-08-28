@@ -37,7 +37,6 @@ type path struct {
 	Path     string
 	Rewriter autoscan.Rewriter
 	Allowed  autoscan.Filterer
-	ScanTime func() time.Time
 }
 
 func New(c Config) (autoscan.Trigger, error) {

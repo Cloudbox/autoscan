@@ -73,7 +73,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			return nil, err
 		}
 
-		filterer, err := newFilterer(append(d.Include, c.Include...), append(d.Exclude, c.Exclude...))
+		filterer, err := autoscan.NewFilterer(append(d.Include, c.Include...), append(d.Exclude, c.Exclude...))
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func New(c Config) (autoscan.Trigger, error) {
 type drive struct {
 	ID       string
 	Rewriter autoscan.Rewriter
-	Allowed  filterer
+	Allowed  autoscan.Filterer
 	ScanTime func() time.Time
 }
 

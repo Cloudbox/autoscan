@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/cloudbox/autoscan/triggers/inotify"
 	"io"
 	"net/http"
 	"os"
@@ -42,6 +43,7 @@ type config struct {
 	// autoscan.HTTPTrigger
 	Triggers struct {
 		Bernard []bernard.Config `yaml:"bernard"`
+		Inotify []inotify.Config `yaml:"inotify"`
 		Lidarr  []lidarr.Config  `yaml:"lidarr"`
 		Radarr  []radarr.Config  `yaml:"radarr"`
 		Sonarr  []sonarr.Config  `yaml:"sonarr"`
@@ -201,6 +203,18 @@ func main() {
 		go trigger(proc.Add)
 	}
 
+	for _, t := range c.Triggers.Inotify {
+		trigger, err := inotify.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("trigger", "inotify").
+				Msg("Failed initialising trigger")
+		}
+
+		go trigger(proc.Add)
+	}
+
 	// HTTP Triggers
 	for _, t := range c.Triggers.Lidarr {
 		trigger, err := lidarr.New(t)
@@ -252,6 +266,7 @@ func main() {
 
 	log.Info().
 		Int("bernard", len(c.Triggers.Bernard)).
+		Int("inotify", len(c.Triggers.Inotify)).
 		Int("lidarr", len(c.Triggers.Lidarr)).
 		Int("sonarr", len(c.Triggers.Sonarr)).
 		Int("radarr", len(c.Triggers.Radarr)).

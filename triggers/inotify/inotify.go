@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -30,6 +31,7 @@ type daemon struct {
 	priority int
 	paths    []path
 	watcher  *fsnotify.Watcher
+	queue    *queue
 	log      zerolog.Logger
 }
 
@@ -71,6 +73,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			callback: callback,
 			priority: c.Priority,
 			paths:    paths,
+			queue:    newQueue(callback, l),
 		}
 
 		// start job(s)
@@ -203,28 +206,105 @@ func (d *daemon) worker() {
 				continue
 			}
 
-			// move to processor
-			err = d.callback(autoscan.Scan{
-				Folder:   filepath.Clean(rewritten),
-				Priority: d.priority,
-				Time:     time.Now(),
-			})
-
-			if err != nil {
-				d.log.Error().
-					Err(err).
-					Str("path", rewritten).
-					Msg("Failed moving scan to processor")
-			} else {
-				d.log.Info().
-					Str("path", rewritten).
-					Msg("Scan moved to processor")
-			}
+			// move to queue
+			d.queue.inputs <- rewritten
 
 		case err := <-d.watcher.Errors:
 			d.log.Error().
 				Err(err).
 				Msg("Failed receiving filesystem events")
 		}
+	}
+}
+
+type queue struct {
+	callback autoscan.ProcessorFunc
+	log      zerolog.Logger
+	priority int
+	inputs   chan string
+	scans    map[string]time.Time
+	lock     *sync.Mutex
+}
+
+func newQueue(cb autoscan.ProcessorFunc, log zerolog.Logger) *queue {
+	q := &queue{
+		callback: cb,
+		log:      log,
+		inputs:   make(chan string),
+		scans:    make(map[string]time.Time),
+		lock:     &sync.Mutex{},
+	}
+
+	go q.worker()
+
+	return q
+}
+
+func (q *queue) add(path string) {
+	// acquire lock
+	q.lock.Lock()
+	defer q.lock.Unlock()
+
+	// queue scan task
+	q.scans[path] = time.Now().Add(10 * time.Second)
+}
+
+func (q *queue) worker() {
+	for {
+		select {
+		case path, ok := <-q.inputs:
+			if !ok {
+				// channel closed
+				return
+			}
+
+			// add path to queue
+			q.add(path)
+
+		default:
+			// process queue
+			q.process()
+		}
+	}
+}
+
+func (q *queue) process() {
+	// acquire lock
+	q.lock.Lock()
+	defer q.lock.Unlock()
+
+	// sleep if no scans queued
+	if len(q.scans) == 0 {
+		time.Sleep(100 * time.Millisecond)
+		return
+	}
+
+	// move scans to processor
+	for p, t := range q.scans {
+		// time has not elapsed
+		if time.Now().Before(t) {
+			continue
+		}
+
+		// move to processor
+		err := q.callback(autoscan.Scan{
+			Folder:   filepath.Clean(p),
+			Priority: q.priority,
+			Time:     time.Now(),
+		})
+
+		if err != nil {
+			q.log.Error().
+				Err(err).
+				Str("path", p).
+				Msg("Failed moving scan to processor")
+		} else {
+			q.log.Info().
+				Str("path", p).
+				Msg("Scan moved to processor")
+		}
+
+		// remove queued scan
+		delete(q.scans, p)
 	}
 }

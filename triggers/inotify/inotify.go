@@ -73,7 +73,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			callback: callback,
 			priority: c.Priority,
 			paths:    paths,
-			queue:    newQueue(callback, l),
+			queue:    newQueue(callback, l, c.Priority),
 		}
 
 		// start job(s)
@@ -226,10 +226,11 @@ type queue struct {
 	lock     *sync.Mutex
 }
 
-func newQueue(cb autoscan.ProcessorFunc, log zerolog.Logger) *queue {
+func newQueue(cb autoscan.ProcessorFunc, log zerolog.Logger, priority int) *queue {
 	q := &queue{
 		callback: cb,
 		log:      log,
+		priority: priority,
 		inputs:   make(chan string),
 		scans:    make(map[string]time.Time),
 		lock:     &sync.Mutex{},

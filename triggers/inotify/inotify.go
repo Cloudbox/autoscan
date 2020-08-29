@@ -28,7 +28,6 @@ type Config struct {
 
 type daemon struct {
 	callback autoscan.ProcessorFunc
-	priority int
 	paths    []path
 	watcher  *fsnotify.Watcher
 	queue    *queue
@@ -71,7 +70,6 @@ func New(c Config) (autoscan.Trigger, error) {
 		d := daemon{
 			log:      l,
 			callback: callback,
-			priority: c.Priority,
 			paths:    paths,
 			queue:    newQueue(callback, l, c.Priority),
 		}
@@ -191,19 +189,18 @@ func (d *daemon) worker() {
 				continue
 			}
 
-			// get file directory
-			eventPath := event.Name
-			if filepath.Ext(event.Name) != "" {
-				// there was likely an extension, lets get the file path
-				eventPath = filepath.Dir(event.Name)
-			}
-
 			// rewrite
-			rewritten := p.Rewriter(eventPath)
+			rewritten := p.Rewriter(event.Name)
 
 			// filter
 			if !p.Allowed(rewritten) {
 				continue
+			}
+
+			// get directory where path has an extension
+			if filepath.Ext(rewritten) != "" {
+				// there was most likely a file extension, use the directory
+				rewritten = filepath.Dir(rewritten)
 			}
 
 			// move to queue

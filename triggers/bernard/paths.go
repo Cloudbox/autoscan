@@ -164,6 +164,18 @@ func getFolder(store *bds, driveId string, folderId string, folderMap map[string
 		return &folder, nil
 	}
 
+	if folderId == driveId {
+		folder := datastore.Folder{
+			ID:      driveId,
+			Name:    "",
+			Parent:  "",
+			Trashed: false,
+		}
+
+		folderMap[driveId] = folder
+		return &folder, nil
+	}
+
 	// search datastore
 	folder, err := store.GetFolder(driveId, folderId)
 	if err != nil {
@@ -181,7 +193,7 @@ func getFolderPath(store *bds, driveId string, folderId string, folderMap map[st
 
 	// folderId == driveId
 	if folderId == driveId {
-		return path, nil
+		return "/", nil
 	}
 
 	// get top folder
@@ -189,7 +201,7 @@ func getFolderPath(store *bds, driveId string, folderId string, folderMap map[st
 	if !ok {
 		f, err := store.GetFolder(driveId, folderId)
 		if err != nil {
-			return path, fmt.Errorf("could not get folder %v: %w", folderId, err)
+			return filepath.Join("/", path), fmt.Errorf("could not get folder %v: %w", folderId, err)
 		}
 
 		topFolder = *f
@@ -205,7 +217,7 @@ func getFolderPath(store *bds, driveId string, folderId string, folderMap map[st
 		if !ok {
 			df, err := store.GetFolder(driveId, nextFolderId)
 			if err != nil {
-				return path, fmt.Errorf("could not get folder %v: %w", nextFolderId, err)
+				return filepath.Join("/", path), fmt.Errorf("could not get folder %v: %w", nextFolderId, err)
 			}
 
 			f = *df
@@ -216,5 +228,5 @@ func getFolderPath(store *bds, driveId string, folderId string, folderMap map[st
 		nextFolderId = f.Parent
 	}
 
-	return path, nil
+	return filepath.Join("/", path), nil
 }

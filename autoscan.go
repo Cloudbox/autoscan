@@ -108,30 +108,35 @@ func NewFilterer(includes []string, excludes []string) (Filterer, error) {
 		reExcludes = append(reExcludes, *re)
 	}
 
+	incSize := len(reIncludes)
+	excSize := len(reExcludes)
+
 	// create filterer
 	var fn Filterer = func(string) bool { return true }
 
-	switch {
-	case len(includes) > 0:
-		// includes
+	if incSize > 0 || excSize > 0 {
 		fn = func(path string) bool {
-			for _, re := range reIncludes {
-				if re.MatchString(path) {
-					return true
-				}
-			}
-			return false
-		}
-
-	case len(excludes) > 0:
-		// excludes
-		fn = func(path string) bool {
+			// check excludes
 			for _, re := range reExcludes {
 				if re.MatchString(path) {
 					return false
 				}
 			}
-			return true
+
+			// no includes (but excludes did not match)
+			if incSize == 0 {
+				return true
+			}
+
+			// check includes
+			for _, re := range reIncludes {
+				if re.MatchString(path) {
+					return true
+				}
+			}
+
+			// no includes passed
+			return false
 		}
 	}
 

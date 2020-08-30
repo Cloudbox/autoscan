@@ -452,7 +452,7 @@ targets:
 
 ### Docker
 
-Autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/repository/docker/cloudb0x/autoscan).
+Autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/r/cloudb0x/autoscan).
 
 Autoscan requires access to all files being passed between the triggers and the targets. \
 *Just mount the source directory, for many people this is `/mnt/unionfs`.*

@@ -24,10 +24,6 @@ In addition, this rewrite introduces a more modular approach and should be easy 
 
 We have not finished all work on Autoscan yet, and are still working on some things.
 
-The major feature which is currently MIA:
-
-- Google Drive monitoring (Shared Drives exclusively)
-
 Some small things we are still working on:
 
 - Automating the testing of the processor's business logic

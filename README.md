@@ -22,13 +22,7 @@ In addition, this rewrite introduces a more modular approach and should be easy 
 
 ## Early Access
 
-**We are looking for technical writers! If you have ideas on how to improve Autoscan's documentation, please write [@m-rots](mailto:stormtimmermans@icloud.com?subject=Autoscan%20technical%20writer) an email.**
-
 We have not finished all work on Autoscan yet, and are still working on some things.
-
-The major feature which is currently MIA:
-
-- Google Drive monitoring (Shared Drives exclusively)
 
 Some small things we are still working on:
 
@@ -159,6 +153,7 @@ Daemons run in the background and continuously fetch new changes based on a [cro
 The following daemons are currently provided by Autoscan:
 
 - Google Drive
+- inotify
 
 #### Webhooks
 
@@ -205,11 +200,28 @@ triggers:
           to: /mnt/unionfs/Media/$1
 
       # filter with regular expressions
-      include: # if set, then exclude is ignored
+      include:
         - "^/mnt/unionfs/Media/*"
-
       exclude:
         - "\.srt$"
+
+  inotify:
+    - priority: 0
+
+      # filter with regular expressions
+      include:
+        - '/mnt/unionfs/Media/*'
+      exclude:
+        - '\.(srt|pdf)$'
+
+      # rewrite inotify path to unified filesystem
+      rewrite:
+            - from: ^/mnt/local/Media/*
+              to: /mnt/unionfs/Media/$1
+
+      # local filesystem paths to monitor
+      paths:
+        - path: /mnt/local/Media
 
   sonarr:
     - name: sonarr-docker # /triggers/sonarr-docker

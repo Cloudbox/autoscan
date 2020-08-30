@@ -73,7 +73,7 @@ func New(c Config) (autoscan.Trigger, error) {
 			return nil, err
 		}
 
-		filterer, err := newFilterer(append(d.Include, c.Include...), append(d.Exclude, c.Exclude...))
+		filterer, err := autoscan.NewFilterer(append(d.Include, c.Include...), append(d.Exclude, c.Exclude...))
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +106,7 @@ func New(c Config) (autoscan.Trigger, error) {
 		}
 
 		// start job(s)
-		if err := d.StartAutoSync(); err != nil {
+		if err := d.startAutoSync(); err != nil {
 			l.Error().
 				Err(err).
 				Msg("Failed initialising cron jobs")
@@ -120,7 +120,7 @@ func New(c Config) (autoscan.Trigger, error) {
 type drive struct {
 	ID       string
 	Rewriter autoscan.Rewriter
-	Allowed  filterer
+	Allowed  autoscan.Filterer
 	ScanTime func() time.Time
 }
 
@@ -207,7 +207,7 @@ func newSyncJob(c *cron.Cron, log zerolog.Logger, job func() error) *syncJob {
 	}
 }
 
-func (d daemon) StartAutoSync() error {
+func (d daemon) startAutoSync() error {
 	c := cron.New()
 
 	for _, drive := range d.drives {

@@ -75,7 +75,7 @@ func New(c Config) (autoscan.Trigger, error) {
 		}
 
 		// start job(s)
-		if err := d.StartMonitoring(); err != nil {
+		if err := d.startMonitoring(); err != nil {
 			l.Error().
 				Err(err).
 				Msg("Failed initialising jobs")
@@ -86,7 +86,7 @@ func New(c Config) (autoscan.Trigger, error) {
 	return trigger, nil
 }
 
-func (d *daemon) StartMonitoring() error {
+func (d *daemon) startMonitoring() error {
 	// create watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {

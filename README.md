@@ -280,7 +280,7 @@ The processor then saves the Scans to its datastore.
 *The processor uses SQLite as its datastore, feel free to hack around!*
 
 In a separate process, the processor selects Scans from the datastore.
-It will always group files belonging to the same folder together and it waits until all the files in that folder are older than the `minimum-age`, which defaults to 5 minutes.
+It will always group files belonging to the same folder together and it waits until all the files in that folder are older than the `minimum-age`, which defaults to 10 minutes.
 
 When all files are older than the minimum age, then the processor will call all the configured targets in parallel to request a folder scan.
 

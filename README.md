@@ -9,16 +9,32 @@ In addition, this rewrite introduces a more modular approach and should be easy 
 
 ## Table of contents
 
-- [Early Access](#early-access)
-  - [Installing autoscan](#installing-autoscan)
-- [Introduction](#introduction)
-  - [Rewriting paths](#rewriting-paths)
-  - [Triggers](#triggers)
-  - [Processor](#processor)
-  - [Targets](#targets)
-  - [Full config file](#full-config-file)
-- [Other installation options](#other-installation-options)
-  - [Docker](#docker)
+- [Autoscan](#autoscan)
+  - [Table of contents](#table-of-contents)
+  - [Early Access](#early-access)
+    - [Installing autoscan](#installing-autoscan)
+  - [Introduction](#introduction)
+    - [Rewriting paths](#rewriting-paths)
+      - [Simple example](#simple-example)
+    - [Triggers](#triggers)
+      - [Daemons](#daemons)
+      - [Webhooks](#webhooks)
+      - [Configuration](#configuration)
+      - [Connecting the -arrs](#connecting-the--arrs)
+    - [Processor](#processor)
+      - [Anchor files](#anchor-files)
+      - [Minimum age](#minimum-age)
+      - [Customising the processor](#customising-the-processor)
+    - [Targets](#targets)
+      - [Plex](#plex)
+      - [Emby](#emby)
+    - [Full config file](#full-config-file)
+  - [Other installation options](#other-installation-options)
+    - [Docker](#docker)
+      - [Version Tags](#version-tags)
+      - [Usage](#usage)
+      - [Parameters](#parameters)
+      - [Cloudbox](#cloudbox)
 
 ## Early Access
 
@@ -152,8 +168,8 @@ Daemons run in the background and continuously fetch new changes based on a [cro
 
 The following daemons are currently provided by Autoscan:
 
-- Google Drive
-- inotify
+- Google Drive (Bernard)
+- Inotify
 
 #### Webhooks
 
@@ -201,16 +217,16 @@ triggers:
 
       # filter with regular expressions
       include:
-        - "^/mnt/unionfs/Media/*"
+        - '^/mnt/unionfs/Media/*'
       exclude:
-        - "\.srt$"
+        - '\.srt$'
 
   inotify:
     - priority: 0
 
       # filter with regular expressions
       include:
-        - '/mnt/unionfs/Media/*'
+        - '^/mnt/unionfs/Media/*'
       exclude:
         - '\.(srt|pdf)$'
 
@@ -266,12 +282,7 @@ The processor then saves the Scans to its datastore.
 In a separate process, the processor selects Scans from the datastore.
 It will always group files belonging to the same folder together and it waits until all the files in that folder are older than the `minimum-age`, which defaults to 5 minutes.
 
-When all files are older than the minimum age, the processor will check whether all files exist on the local file system.
-When at least one file exists on the file system, then the processor will call all the configured targets in parallel to request a folder scan.
-
-When a file does not exist, the processor will increment the `retries` field of the Scan.
-It also resets the timestamp so the file will not get scanned for at least `minimum-age`.
-A Scan can only be retried up to a maximum number of retries, which defaults to 5.
+When all files are older than the minimum age, then the processor will call all the configured targets in parallel to request a folder scan.
 
 #### Anchor files
 
@@ -287,19 +298,23 @@ Each remote mount MUST have its own anchor file and its own name for that anchor
 In addition, make sure to define the 'merged' path to the file and not the remote mount path.
 This helps check whether the union-software is working correctly as well.
 
+#### Minimum age
+
+Autoscan does not check whether scan requests received by triggers exist on the file system.
+Therefore, to make sure a file exists before it reaches the targets, you should set a minimum age.
+The minimum age delays the scan from being send to the targets after it has been added to the queue by a trigger.
+The default minimum age is set at 10 minutes to prevent common synchronisation issues.
+
 #### Customising the processor
 
-The processor allows you to set the maximum number of retries, as well as the minimum age of a Scan.
+The processor allows you to set the minimum age of a Scan.
 In addition, you can also define a list of anchor files.
 
 A snippet of the `config.yml` file:
 
 ```yaml
-# override the maximum number of retries
-retries: 10
-
-# override the minimum age to 2 minutes:
-minimum-age: 2m
+# override the minimum age to 30 minutes:
+minimum-age: 30m
 
 # set multiple anchor files
 anchors:
@@ -377,11 +392,8 @@ With the examples given in the [triggers](#triggers), [processor](#processor) an
 ```yaml
 # <- processor ->
 
-# override the maximum number of retries
-retries: 10
-
-# override the minimum age to 2 minutes:
-minimum-age: 2m
+# override the minimum age to 30 minutes:
+minimum-age: 30m
 
 # set multiple anchor files
 anchors:

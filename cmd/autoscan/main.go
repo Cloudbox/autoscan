@@ -30,7 +30,6 @@ import (
 type config struct {
 	// General configuration
 	Port       int           `yaml:"port"`
-	MaxRetries int           `yaml:"retries"`
 	MinimumAge time.Duration `yaml:"minimum-age"`
 	Anchors    []string      `yaml:"anchors"`
 
@@ -147,8 +146,7 @@ func main() {
 
 	// set default values
 	c := config{
-		MaxRetries: 5,
-		MinimumAge: 300 * time.Second,
+		MinimumAge: 10 * time.Minute,
 		Port:       3030,
 	}
 
@@ -175,7 +173,6 @@ func main() {
 
 	log.Info().
 		Stringer("min_age", c.MinimumAge).
-		Int("max_retries", c.MaxRetries).
 		Strs("anchors", c.Anchors).
 		Msg("Initialised processor")
 

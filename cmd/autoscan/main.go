@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/cloudbox/autoscan/triggers/inotify"
 	"io"
 	"net/http"
 	"os"
@@ -22,6 +21,7 @@ import (
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/bernard"
+	"github.com/cloudbox/autoscan/triggers/inotify"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"

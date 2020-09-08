@@ -90,6 +90,11 @@ func getDiffFolders(store *bds, driveId string, diff *sqlite.Difference) (*Paren
 	newParents := make(map[string]datastore.Folder)
 	oldParents := make(map[string]datastore.Folder)
 
+	// added folders
+	for _, folder := range diff.AddedFolders {
+		newParents[folder.ID] = folder
+	}
+
 	// changed folders
 	for _, folder := range diff.ChangedFolders {
 		newParents[folder.New.ID] = folder.New

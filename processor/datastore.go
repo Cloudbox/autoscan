@@ -31,6 +31,8 @@ func newDatastore(path string) (*datastore, error) {
 		return nil, err
 	}
 
+	db.SetMaxOpenConns(1)
+
 	_, err = db.Exec(sqlSchema)
 	if err != nil {
 		return nil, err

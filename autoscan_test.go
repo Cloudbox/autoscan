@@ -18,8 +18,8 @@ func TestRewriter(t *testing.T) {
 			Input:    "/mnt/unionfs/Media/Movies/Example Movie/movie.mkv",
 			Expected: "/data/Movies/Example Movie/movie.mkv",
 			Rewrites: []Rewrite{{
-				From: "/mnt/unionfs/Media/*",
-				To:   "/data/$1",
+				From: "/mnt/unionfs/Media/",
+				To:   "/data/",
 			}},
 		},
 		{
@@ -37,7 +37,7 @@ func TestRewriter(t *testing.T) {
 			Expected: "/whatever",
 			Rewrites: []Rewrite{{
 				From: "^/Media/",
-				To:   "/$1",
+				To:   "/",
 			}},
 		},
 		{
@@ -45,8 +45,8 @@ func TestRewriter(t *testing.T) {
 			Input:    "/media/b33f/saitoh183/private/Videos/FrenchTV/L'échappée/Season 03",
 			Expected: "/Videos/FrenchTV/L'échappée/Season 03",
 			Rewrites: []Rewrite{{
-				From: "/media/b33f/saitoh183/private/*",
-				To:   "/$1",
+				From: "/media/b33f/saitoh183/private/",
+				To:   "/",
 			}},
 		},
 		{
@@ -59,8 +59,8 @@ func TestRewriter(t *testing.T) {
 			Input:    "/test/example.mp4",
 			Expected: "/test/example.mp4",
 			Rewrites: []Rewrite{{
-				From: "^/Media/*",
-				To:   "/mnt/unionfs/Media/$1",
+				From: "^/Media/",
+				To:   "/mnt/unionfs/Media/",
 			}},
 		},
 		{
@@ -68,8 +68,17 @@ func TestRewriter(t *testing.T) {
 			Input:    "/test/example.mp4",
 			Expected: "/mnt/unionfs/example.mp4",
 			Rewrites: []Rewrite{
-				{From: "^/Media/*", To: "/mnt/unionfs/Media/$1"},
-				{From: "^/test/*", To: "/mnt/unionfs/$1"},
+				{From: "^/Media/", To: "/mnt/unionfs/Media/"},
+				{From: "^/test/", To: "/mnt/unionfs/"},
+			},
+		},
+		{
+			Name:     "Hotio",
+			Input:    "/movies4k/example.mp4",
+			Expected: "/mnt/unionfs/movies4k/example.mp4",
+			Rewrites: []Rewrite{
+				{From: "^/movies/", To: "/mnt/unionfs/movies/"},
+				{From: "^/movies4k/", To: "/mnt/unionfs/movies4k/"},
 			},
 		},
 	}

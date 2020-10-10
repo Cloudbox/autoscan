@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/cloudbox/autoscan"
@@ -74,7 +75,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if event.Type != "Download" || event.File.RelativePath == "" || event.Series.Path == "" {
+	if !strings.EqualFold(event.Type, "Download") || event.File.RelativePath == "" || event.Series.Path == "" {
 		rlog.Error().Msg("Required fields are missing")
 		rw.WriteHeader(http.StatusBadRequest)
 		return

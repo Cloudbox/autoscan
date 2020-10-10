@@ -1,7 +1,7 @@
 # Autoscan
 
 Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.
-Autoscan integrates with Sonarr, Radarr and Lidarr (with Google Drive coming soon!) to fetch changes in near real-time without relying on the file system.
+Autoscan integrates with Sonarr, Radarr, Lidarr and Google Drive to fetch changes in near real-time without relying on the file system.
 
 Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
 Well, Autoscan is a rewrite of the original Plex Autoscan written in the Go language.
@@ -53,12 +53,13 @@ However, we are proud of the rewrite and are eager to know your opinion!
 
 ### Installing autoscan
 
-As Autoscan is still in active development, we highly recommend you to fetch the latest state of the master branch at all times.
+Autoscan offers [pre-compiled binaries](https://github.com/Cloudbox/autoscan/releases/latest) for both Linux and MacOS for each official release. In addition, we also offer a [Docker image](#docker)!
 
-To install the autoscan CLI on your system, make sure:
+Alternatively, you can build the Autoscan binary yourself.
+To build the autoscan CLI on your system, make sure:
 
 1. Your machine runs Linux, macOS or WSL2
-2. You have [Go](https://golang.org/doc/install) installed (1.14 preferred)
+2. You have [Go](https://golang.org/doc/install) installed (1.14 or later preferred)
 3. You have a GCC compiler present \
   *Yup, we need to link to C because of SQLite >:(*
 4. Clone this repository and cd into it from the terminal
@@ -68,8 +69,6 @@ You should now have a binary with the name `autoscan` in the root directory of t
 To start autoscan, simply run `./autoscan`. If you want autoscan to be globally available, move it to `/bin` or `/usr/local/bin`.
 
 If you need to debug certain Autoscan behaviour, either add the `-v` flag for debug mode or the `-vv` flag for trace mode to get even more details about internal behaviour.
-
-We also offer a [Docker image](#docker)! However, its configuration may be a bit complex as it requires a good understanding of Autoscan's rewriting capabilities. We hope to provide detailed instructions on these rewriting capabilities in the near future!
 
 ## Introduction
 
@@ -108,11 +107,11 @@ triggers:
     - rewrite:
           # /tv contains folders with tv shows
           # This path is used within the Sonarr Docker container
-        - from: /tv/*
+        - from: /tv/
 
           # /mnt/unionfs/Media/TV links to the same folder, though from the host OS
           # This folder is accessed by Autoscan
-          to: /mnt/unionfs/Media/TV/$1
+          to: /mnt/unionfs/Media/TV/
 
 targets:
   plex:
@@ -120,10 +119,10 @@ targets:
           # Same folder as above, accessible by Autoscan.
           # Note how we strip the "TV" part,
           # as we want both Movies and TV.
-        - from: /mnt/unionfs/Media/*
+        - from: /mnt/unionfs/Media/
 
           # This path is used within the Plex Docker container
-          to: /data/$1
+          to: /data/
 ```
 
 Let's take a look at the journey of the path `/tv/Westworld/Season 1/s01e01.mkv` coming from Sonarr.
@@ -212,12 +211,12 @@ triggers:
 
       # rewrite drive to the local filesystem
       rewrite:
-        - from: ^/Media/*
-          to: /mnt/unionfs/Media/$1
+        - from: ^/Media/
+          to: /mnt/unionfs/Media/
 
       # filter with regular expressions
       include:
-        - '^/mnt/unionfs/Media/*'
+        - ^/mnt/unionfs/Media/
       exclude:
         - '\.srt$'
 
@@ -226,14 +225,14 @@ triggers:
 
       # filter with regular expressions
       include:
-        - '^/mnt/unionfs/Media/*'
+        - ^/mnt/unionfs/Media/
       exclude:
         - '\.(srt|pdf)$'
 
       # rewrite inotify path to unified filesystem
       rewrite:
-            - from: ^/mnt/local/Media/*
-              to: /mnt/unionfs/Media/$1
+            - from: ^/mnt/local/Media/
+              to: /mnt/unionfs/Media/
 
       # local filesystem paths to monitor
       paths:
@@ -246,8 +245,8 @@ triggers:
       # Rewrite the path from within the container
       # to your local filesystem.
       rewrite:
-        - from: /tv/*
-          to: /mnt/unionfs/Media/TV/$1
+        - from: /tv/
+          to: /mnt/unionfs/Media/TV/
 
   radarr:
     - name: radarr   # /triggers/radarr
@@ -354,8 +353,8 @@ targets:
     - url: https://plex.domain.tld # URL of your Plex server
       token: XXXX # Plex API Token
       rewrite:
-        - from: /mnt/unionfs/Media/* # local file system
-          to: /data/$1 # path accessible by the Plex docker container (if applicable)
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /data/ # path accessible by the Plex docker container (if applicable)
 ```
 
 There are a couple of things to take note of in the config:
@@ -376,8 +375,8 @@ targets:
     - url: https://emby.domain.tld # URL of your Emby server
       token: XXXX # Emby API Token
       rewrite:
-        - from: /mnt/unionfs/Media/* # local file system
-          to: /data/$1 # path accessible by the Emby docker container (if applicable)
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /data/ # path accessible by the Emby docker container (if applicable)
 ```
 
 - URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Emby.
@@ -418,8 +417,8 @@ triggers:
       # Rewrite the path from within the container
       # to your local filesystem.
       rewrite:
-        - from: /tv/*
-          to: /mnt/unionfs/Media/TV/$1
+        - from: /tv/
+          to: /mnt/unionfs/Media/TV/
 
   radarr:
     - name: radarr   # /triggers/radarr
@@ -437,15 +436,15 @@ targets:
     - url: https://plex.domain.tld # URL of your Plex server
       token: XXXX # Plex API Token
       rewrite:
-        - from: /mnt/unionfs/Media/* # local file system
-          to: /data/$1 # path accessible by the Plex docker container (if applicable)
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /data/ # path accessible by the Plex docker container (if applicable)
 
   emby:
     - url: https://emby.domain.tld # URL of your Emby server
       token: XXXX # Emby API Token
       rewrite:
-        - from: /mnt/unionfs/Media/* # local file system
-          to: /data/$1 # path accessible by the Emby docker container (if applicable)
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /data/ # path accessible by the Emby docker container (if applicable)
 ```
 
 ## Other installation options

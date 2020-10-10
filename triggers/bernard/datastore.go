@@ -51,3 +51,23 @@ func (d *bds) GetFolder(driveID string, folderID string) (*datastore.Folder, err
 
 	return f, nil
 }
+
+const sqlSelectDrive = `SELECT d.id, f.name, d.pageToken FROM drive d JOIN folder f ON f.id = d.id WHERE d.id = $1 LIMIT 1`
+
+func (d *bds) GetDrive(driveID string) (*datastore.Drive, error) {
+	drv := new(datastore.Drive)
+
+	row := d.DB.QueryRow(sqlSelectDrive, driveID)
+	err := row.Scan(&drv.ID, &drv.Name, &drv.PageToken)
+
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, fmt.Errorf("%v: drive not found: %w", driveID, sql.ErrNoRows)
+	case err != nil:
+		return nil, err
+	default:
+		break
+	}
+
+	return drv, nil
+}

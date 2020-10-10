@@ -72,6 +72,10 @@ func getDiffFolderMaps(diff *sqlite.Difference) *diffFolderMaps {
 		oldFolders[f.Old.ID] = diff.ChangedFolders[i].Old
 	}
 
+	for i, f := range diff.RemovedFolders {
+		oldFolders[f.ID] = diff.RemovedFolders[i]
+	}
+
 	return &diffFolderMaps{
 		Current: currentFolders,
 		Old:     oldFolders,
@@ -105,7 +109,7 @@ func getDiffFolders(store *bds, driveId string, diff *sqlite.Difference) (*Paren
 	for _, file := range diff.AddedFiles {
 		folder, err := getFolder(store, driveId, file.Parent, folderMaps.Current)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("added file: %w", err)
 		}
 
 		newParents[folder.ID] = *folder
@@ -116,7 +120,7 @@ func getDiffFolders(store *bds, driveId string, diff *sqlite.Difference) (*Paren
 		// current
 		currentFolder, err := getFolder(store, driveId, file.New.Parent, folderMaps.Current)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("changed new file: %w", err)
 		}
 
 		newParents[currentFolder.ID] = *currentFolder
@@ -124,7 +128,7 @@ func getDiffFolders(store *bds, driveId string, diff *sqlite.Difference) (*Paren
 		// old
 		oldFolder, err := getFolder(store, driveId, file.Old.Parent, folderMaps.Old)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("changed old file: %w", err)
 		}
 
 		oldParents[oldFolder.ID] = *oldFolder
@@ -134,7 +138,7 @@ func getDiffFolders(store *bds, driveId string, diff *sqlite.Difference) (*Paren
 	for _, file := range diff.RemovedFiles {
 		oldFolder, err := getFolder(store, driveId, file.Parent, folderMaps.Old)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("removed file: %w", err)
 		}
 
 		oldParents[oldFolder.ID] = *oldFolder

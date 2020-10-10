@@ -375,5 +375,10 @@ func (d daemon) getScanTask(drive *drive, paths *Paths) *scanTask {
 }
 
 func (d daemon) withDriveLog(driveID string) zerolog.Logger {
-	return d.log.With().Str("drive_id", driveID).Logger()
+	drive, err := d.store.GetDrive(driveID)
+	if err != nil {
+		return d.log.With().Str("drive_id", driveID).Logger()
+	}
+
+	return d.log.With().Str("drive_id", driveID).Str("drive_name", drive.Name).Logger()
 }

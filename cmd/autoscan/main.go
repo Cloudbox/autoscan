@@ -339,15 +339,25 @@ func main() {
 
 		case errors.Is(err, autoscan.ErrNoScans):
 			// No scans currently available, let's wait a couple of seconds
-			log.Trace().Msg("Waiting 15 seconds as no scans are available")
+			log.Trace().
+				Msg("No scans are available, retrying in 15 seconds...")
+
 			time.Sleep(15 * time.Second)
 
 		case errors.Is(err, autoscan.ErrAnchorUnavailable):
 			log.Error().
 				Err(err).
-				Msg("Not all anchor files are available, retrying in 5 seconds...")
+				Msg("Not all anchor files are available, retrying in 15 seconds...")
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(15 * time.Second)
+
+		case errors.Is(err, autoscan.ErrTargetUnavailable):
+			targetsAvailable = false
+			log.Error().
+				Err(err).
+				Msg("Not all targets are available, retrying in 15 seconds...")
+
+			time.Sleep(15 * time.Second)
 
 		case errors.Is(err, autoscan.ErrFatal):
 			// fatal error occurred, processor must stop (however, triggers must not)
@@ -357,14 +367,6 @@ func main() {
 
 			// sleep indefinitely
 			select {}
-
-		case errors.Is(err, autoscan.ErrTargetUnavailable):
-			targetsAvailable = false
-			log.Error().
-				Err(err).
-				Msg("Not all targets are available, retrying in 15 seconds...")
-
-			time.Sleep(15 * time.Second)
 
 		default:
 			// unexpected error

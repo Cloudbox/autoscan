@@ -332,43 +332,47 @@ func main() {
 		}
 
 		err = proc.Process(targets)
-		if err != nil {
-			switch {
-			case errors.Is(err, autoscan.ErrNoScans):
-				// No scans currently available, let's wait a couple of seconds
-				log.Trace().Msg("Waiting 5 seconds as no scans are available")
-				time.Sleep(5 * time.Second)
+		switch {
+		case err == nil:
+			// Sleep 5 seconds between successful requests to reduce the load on targets.
+			time.Sleep(5 * time.Second)
 
-			case errors.Is(err, autoscan.ErrAnchorUnavailable):
-				log.Error().
-					Err(err).
-					Msg("Not all anchor files are available, retrying in 5 seconds...")
+		case errors.Is(err, autoscan.ErrNoScans):
+			// No scans currently available, let's wait a couple of seconds
+			log.Trace().
+				Msg("No scans are available, retrying in 15 seconds...")
 
-				time.Sleep(5 * time.Second)
+			time.Sleep(15 * time.Second)
 
-			case errors.Is(err, autoscan.ErrFatal):
-				// fatal error occurred, processor must stop (however, triggers must not)
-				log.Error().
-					Err(err).
-					Msg("Fatal error occurred while processing targets, processor stopped, triggers will continue...")
+		case errors.Is(err, autoscan.ErrAnchorUnavailable):
+			log.Error().
+				Err(err).
+				Msg("Not all anchor files are available, retrying in 15 seconds...")
 
-				// sleep indefinitely
-				select {}
+			time.Sleep(15 * time.Second)
 
-			case errors.Is(err, autoscan.ErrTargetUnavailable):
-				targetsAvailable = false
-				log.Error().
-					Err(err).
-					Msg("Not all targets are available, retrying in 15 seconds...")
+		case errors.Is(err, autoscan.ErrTargetUnavailable):
+			targetsAvailable = false
+			log.Error().
+				Err(err).
+				Msg("Not all targets are available, retrying in 15 seconds...")
 
-				time.Sleep(15 * time.Second)
+			time.Sleep(15 * time.Second)
 
-			default:
-				// unexpected error
-				log.Fatal().
-					Err(err).
-					Msg("Failed processing targets")
-			}
+		case errors.Is(err, autoscan.ErrFatal):
+			// fatal error occurred, processor must stop (however, triggers must not)
+			log.Error().
+				Err(err).
+				Msg("Fatal error occurred while processing targets, processor stopped, triggers will continue...")
+
+			// sleep indefinitely
+			select {}
+
+		default:
+			// unexpected error
+			log.Fatal().
+				Err(err).
+				Msg("Failed processing targets")
 		}
 	}
 }

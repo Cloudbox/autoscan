@@ -206,8 +206,8 @@ triggers:
       cron: "*/5 * * * *" # every five minutes (the "" are important)
       priority: 0
       drives:
-        - id: Shared Drive 1
-        - id: Shared Drive 2
+        - id: 0AMdbD......sUk9PVA    # ID of Shared Drive 1
+        - id: 0AN6wC......FUk9PVA    # ID of Shared Drive 2
 
       # rewrite drive to the local filesystem
       rewrite:

@@ -31,6 +31,7 @@ type config struct {
 	// General configuration
 	Port       int           `yaml:"port"`
 	MinimumAge time.Duration `yaml:"minimum-age"`
+	ScanDelay  time.Duration `yaml:"scan-delay"`
 	Anchors    []string      `yaml:"anchors"`
 
 	// Authentication for autoscan.HTTPTrigger
@@ -147,6 +148,7 @@ func main() {
 	// set default values
 	c := config{
 		MinimumAge: 10 * time.Minute,
+		ScanDelay:  5 * time.Second,
 		Port:       3030,
 	}
 
@@ -334,8 +336,8 @@ func main() {
 		err = proc.Process(targets)
 		switch {
 		case err == nil:
-			// Sleep 5 seconds between successful requests to reduce the load on targets.
-			time.Sleep(5 * time.Second)
+			// Sleep scan-delay between successful requests to reduce the load on targets.
+			time.Sleep(c.ScanDelay)
 
 		case errors.Is(err, autoscan.ErrNoScans):
 			// No scans currently available, let's wait a couple of seconds

@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS scan (
 `
 
 func newDatastore(path string) (*datastore, error) {
-	db, err := sql.Open("sqlite3", path)
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s?%s", path, "cache=shared&mode=rwc&_busy_timeout=5000"))
 	if err != nil {
 		return nil, err
 	}

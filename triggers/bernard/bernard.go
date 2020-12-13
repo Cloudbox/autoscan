@@ -50,10 +50,11 @@ func New(c Config) (autoscan.Trigger, error) {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
-	store, err := sqlite.New(c.DatastorePath)
+	store, err := sqlite.New(fmt.Sprintf("%s?%s", c.DatastorePath, "cache=shared&mode=rwc&_busy_timeout=5000"))
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
+	store.DB.SetMaxOpenConns(1)
 
 	limiter, err := getRateLimiter(auth.Email())
 	if err != nil {

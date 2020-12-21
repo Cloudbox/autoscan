@@ -48,7 +48,7 @@ jobs:
       # get tag name
       - name: tag_name
         if: startsWith(github.ref, 'refs/tags/')
-        uses: olegtarasov/get-tag@v2
+        uses: little-core-labs/get-git-tag@v3.0.2
         with:
           tagRegex: "v?(.+)"
 

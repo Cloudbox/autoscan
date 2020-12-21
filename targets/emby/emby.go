@@ -68,10 +68,11 @@ func (t target) Scan(scan autoscan.Scan) error {
 
 	lib, err := t.getScanLibrary(scanFolder)
 	if err != nil {
-		t.log.Error().
+		t.log.Warn().
 			Err(err).
 			Msg("No target libraries found")
-		return fmt.Errorf("no target libraries found: %v: %w", err, autoscan.ErrFatal)
+
+		return nil
 	}
 
 	l := t.log.With().

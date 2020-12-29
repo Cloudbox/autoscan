@@ -23,6 +23,7 @@ import (
 	"github.com/cloudbox/autoscan/triggers/bernard"
 	"github.com/cloudbox/autoscan/triggers/inotify"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
+	"github.com/cloudbox/autoscan/triggers/manual"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 )
@@ -42,6 +43,7 @@ type config struct {
 
 	// autoscan.HTTPTrigger
 	Triggers struct {
+		Manual  manual.Config    `yaml:"manual"`
 		Bernard []bernard.Config `yaml:"bernard"`
 		Inotify []inotify.Config `yaml:"inotify"`
 		Lidarr  []lidarr.Config  `yaml:"lidarr"`
@@ -215,6 +217,17 @@ func main() {
 	}
 
 	// HTTP Triggers
+	manualTrigger, err := manual.New(c.Triggers.Manual)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("trigger", "manual").
+			Msg("Failed initialising trigger")
+	}
+
+	logHandler := triggers.WithLogger(autoscan.GetLogger(c.Triggers.Manual.Verbosity))
+	mux.Handle("/triggers/manual", logHandler(authHandler(manualTrigger(proc.Add))))
+
 	for _, t := range c.Triggers.Lidarr {
 		trigger, err := lidarr.New(t)
 		if err != nil {
@@ -264,6 +277,7 @@ func main() {
 	}()
 
 	log.Info().
+		Int("manual", 1).
 		Int("bernard", len(c.Triggers.Bernard)).
 		Int("inotify", len(c.Triggers.Inotify)).
 		Int("lidarr", len(c.Triggers.Lidarr)).

@@ -9,49 +9,17 @@ In addition, this rewrite introduces a more modular approach and should be easy 
 
 ## Table of contents
 
-- [Autoscan](#autoscan)
-  - [Table of contents](#table-of-contents)
-  - [Early Access](#early-access)
-    - [Installing autoscan](#installing-autoscan)
-  - [Introduction](#introduction)
-    - [Rewriting paths](#rewriting-paths)
-      - [Simple example](#simple-example)
-    - [Triggers](#triggers)
-      - [Daemons](#daemons)
-      - [Webhooks](#webhooks)
-      - [Configuration](#configuration)
-      - [Connecting the -arrs](#connecting-the--arrs)
-    - [Processor](#processor)
-      - [Anchor files](#anchor-files)
-      - [Minimum age](#minimum-age)
-      - [Customising the processor](#customising-the-processor)
-    - [Targets](#targets)
-      - [Plex](#plex)
-      - [Emby](#emby)
-    - [Full config file](#full-config-file)
-  - [Other installation options](#other-installation-options)
-    - [Docker](#docker)
-      - [Version Tags](#version-tags)
-      - [Usage](#usage)
-      - [Parameters](#parameters)
-      - [Cloudbox](#cloudbox)
+- [Installing autoscan](#installing-autoscan)
+- [Introduction](#introduction)
+  - [Rewriting paths](#rewriting-paths)
+  - [Triggers](#triggers)
+  - [Processor](#processor)
+  - [Targets](#targets)
+  - [Full config file](#full-config-file)
+- [Other installation options](#other-installation-options)
+  - [Docker](#docker)
 
-## Early Access
-
-We have not finished all work on Autoscan yet, and are still working on some things.
-
-Some small things we are still working on:
-
-- Automating the testing of the processor's business logic
-- Automating the testing of Emby
-- Automating the testing of Plex
-
-In addition, the code we currently do have is not yet finalised.
-Certain files may get moved around a bit, internal APIs might change, etc.
-
-However, we are proud of the rewrite and are eager to know your opinion!
-
-### Installing autoscan
+## Installing autoscan
 
 Autoscan offers [pre-compiled binaries](https://github.com/Cloudbox/autoscan/releases/latest) for both Linux and MacOS for each official release. In addition, we also offer a [Docker image](#docker)!
 
@@ -140,15 +108,14 @@ This should be all that's needed to get you going. Good luck!
 Triggers are the 'input' of Autoscan.
 They translate incoming data into a common data format called the Scan.
 
-We plan to support two kinds of triggers in GA:
+Autoscan supports two kinds of triggers:
 
 - Daemon processes.
   These triggers run in the background and fetch resources based on a cron schedule or in real-time. \
-  *Available, but bugs may still exist.*
+  *Bugs may still exist.*
 
 - Webhooks.
-  These triggers expose HTTP handlers which can be added to the trigger's software. \
-  *Available.*
+  These triggers expose HTTP handlers which can be added to the trigger's software.
 
 Each trigger consists of at least:
 
@@ -186,6 +153,8 @@ The following webhooks are currently provided by Autoscan:
 - Radarr
 - Lidarr
 
+Autoscan also supports a `manual` webhook for custom scripts or for software which is not supported by Autoscan directly. The manual endpoint is available at `/triggers/manual`.
+
 #### Configuration
 
 A snippet of the `config.yml` file showcasing what is possible.
@@ -201,6 +170,13 @@ authentication:
 port: 3030
 
 triggers:
+  # The manual trigger is always enabled, the config only adjusts its priority and the rewrite rules.
+  manual:
+    priority: 5
+    rewrite:
+      - from: ^/Media/
+        to: /mnt/unionfs/Media/
+
   bernard:
     - account: service-account.json
       cron: "*/5 * * * *" # every five minutes (the "" are important)
@@ -316,6 +292,7 @@ A snippet of the `config.yml` file:
 minimum-age: 30m
 
 # override the delay between processed scans:
+# defaults to 5 seconds
 scan-delay: 15s
 
 # set multiple anchor files
@@ -402,7 +379,7 @@ anchors:
   - /mnt/unionfs/drive1.anchor
   - /mnt/unionfs/drive2.anchor
 
-# <- triggeres ->
+# <- triggers ->
 
 # Optionally, protect your webhooks with authentication
 authentication:

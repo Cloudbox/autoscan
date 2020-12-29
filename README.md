@@ -153,7 +153,21 @@ The following webhooks are currently provided by Autoscan:
 - Radarr
 - Lidarr
 
+#### Manual Webhook
+
 Autoscan also supports a `manual` webhook for custom scripts or for software which is not supported by Autoscan directly. The manual endpoint is available at `/triggers/manual`.
+
+The manual endpoint accepts one or multiple directory paths as input and should be given one or multiple `dir` query parameters. Just like the other webhooks, the manual webhook is protected with basic authentication if the `auth` option is set in the config file of the user.
+
+URL template: `POST /triggers/manual?dir=$path1&dir=$path2`
+
+The following curl command sends a request to Autoscan to scan the directories `/test/one` and `/test/two`:
+
+```bash
+curl --request POST \
+  --url 'http://localhost:3030/triggers/manual?dir=%2Ftest%2Fone&dir=%2Ftest%2Ftwo' \
+  --header 'Authorization: Basic aGVsbG8gdGhlcmU6Z2VuZXJhbCBrZW5vYmk='
+```
 
 #### Configuration
 

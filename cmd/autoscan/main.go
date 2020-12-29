@@ -116,8 +116,10 @@ func main() {
 	}
 
 	logger := log.Output(io.MultiWriter(zerolog.ConsoleWriter{
-		Out: os.Stderr,
+		TimeFormat: time.Stamp,
+		Out:        os.Stderr,
 	}, zerolog.ConsoleWriter{
+		TimeFormat: time.Stamp,
 		Out: &lumberjack.Logger{
 			Filename:   cli.Log,
 			MaxSize:    5,

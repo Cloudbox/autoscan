@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"database/sql"
 	"errors"
 	"reflect"
 	"testing"
@@ -74,7 +75,12 @@ func TestUpsert(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			store, err := newDatastore(":memory:")
+			db, err := sql.Open("sqlite3", ":memory:")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			store, err := newDatastore(db)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -152,7 +158,12 @@ func TestGetAvailableScan(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			store, err := newDatastore(":memory:")
+			db, err := sql.Open("sqlite3", ":memory:")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			store, err := newDatastore(db)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -206,7 +217,12 @@ func TestDelete(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			store, err := newDatastore(":memory:")
+			db, err := sql.Open("sqlite3", ":memory:")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			store, err := newDatastore(db)
 			if err != nil {
 				t.Fatal(err)
 			}

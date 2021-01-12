@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"time"
@@ -10,13 +11,12 @@ import (
 )
 
 type Config struct {
-	Anchors       []string
-	DatastorePath string
-	MinimumAge    time.Duration
+	Anchors    []string
+	MinimumAge time.Duration
 }
 
-func New(c Config) (*Processor, error) {
-	store, err := newDatastore(c.DatastorePath)
+func New(c Config, db *sql.DB) (*Processor, error) {
+	store, err := newDatastore(db)
 	if err != nil {
 		return nil, err
 	}

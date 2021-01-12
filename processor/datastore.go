@@ -25,15 +25,8 @@ CREATE TABLE IF NOT EXISTS scan (
 )
 `
 
-func newDatastore(path string) (*datastore, error) {
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s?%s", path, "cache=shared&mode=rwc&_busy_timeout=5000"))
-	if err != nil {
-		return nil, err
-	}
-
-	db.SetMaxOpenConns(1)
-
-	_, err = db.Exec(sqlSchema)
+func newDatastore(db *sql.DB) (*datastore, error) {
+	_, err := db.Exec(sqlSchema)
 	if err != nil {
 		return nil, err
 	}

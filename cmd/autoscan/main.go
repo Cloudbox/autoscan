@@ -147,6 +147,7 @@ func main() {
 			Err(err).
 			Msg("Failed opening datastore")
 	}
+	db.SetMaxOpenConns(1)
 
 	// run
 	mux := http.NewServeMux()

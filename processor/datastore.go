@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS scan (
 func newDatastore(db *sql.DB) (*datastore, error) {
 	_, err := db.Exec(sqlSchema)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("exec schema: %w", err)
 	}
 
 	store := &datastore{db}

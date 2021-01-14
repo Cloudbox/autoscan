@@ -27,6 +27,20 @@ func (store *datastore) GetScan(folder string) (autoscan.Scan, error) {
 	return scan, err
 }
 
+func getDatastore(t *testing.T) *datastore {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ds, err := newDatastore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return ds
+}
+
 func TestUpsert(t *testing.T) {
 	type Test struct {
 		Name     string
@@ -75,17 +89,8 @@ func TestUpsert(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			db, err := sql.Open("sqlite3", ":memory:")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			store, err := newDatastore(db)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			err = store.Upsert(tc.Scans)
+			store := getDatastore(t)
+			err := store.Upsert(tc.Scans)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -158,17 +163,8 @@ func TestGetAvailableScan(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			db, err := sql.Open("sqlite3", ":memory:")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			store, err := newDatastore(db)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			err = store.Upsert(tc.GiveScans)
+			store := getDatastore(t)
+			err := store.Upsert(tc.GiveScans)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -217,17 +213,8 @@ func TestDelete(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			db, err := sql.Open("sqlite3", ":memory:")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			store, err := newDatastore(db)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			err = store.Upsert(tc.GiveScans)
+			store := getDatastore(t)
+			err := store.Upsert(tc.GiveScans)
 			if err != nil {
 				t.Fatal(err)
 			}

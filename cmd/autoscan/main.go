@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -26,6 +27,9 @@ import (
 	"github.com/cloudbox/autoscan/triggers/manual"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
+
+	// sqlite3 driver
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type config struct {
@@ -90,8 +94,6 @@ func (v versionFlag) BeforeApply(app *kong.Kong, vars kong.Vars) error {
 	return nil
 }
 
-/* Version */
-
 func main() {
 	// parse cli
 	ctx := kong.Parse(&cli,
@@ -138,6 +140,15 @@ func main() {
 		log.Logger = logger.Level(zerolog.InfoLevel)
 	}
 
+	// datastore
+	db, err := sql.Open("sqlite3", cli.Database)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed opening datastore")
+	}
+	db.SetMaxOpenConns(1)
+
 	// run
 	mux := http.NewServeMux()
 
@@ -166,10 +177,9 @@ func main() {
 	}
 
 	proc, err := processor.New(processor.Config{
-		Anchors:       c.Anchors,
-		DatastorePath: cli.Database,
-		MinimumAge:    c.MinimumAge,
-	})
+		Anchors:    c.Anchors,
+		MinimumAge: c.MinimumAge,
+	}, db)
 
 	if err != nil {
 		log.Fatal().
@@ -191,11 +201,7 @@ func main() {
 
 	// Daemon Triggers
 	for _, t := range c.Triggers.Bernard {
-		if t.DatastorePath == "" {
-			t.DatastorePath = cli.Database
-		}
-
-		trigger, err := bernard.New(t)
+		trigger, err := bernard.New(t, db)
 		if err != nil {
 			log.Fatal().
 				Err(err).

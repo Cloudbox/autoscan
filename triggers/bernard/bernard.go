@@ -1,6 +1,7 @@
 package bernard
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -21,16 +22,15 @@ const (
 )
 
 type Config struct {
-	AccountPath   string             `yaml:"account"`
-	CronSchedule  string             `yaml:"cron"`
-	DatastorePath string             `yaml:"database"`
-	Priority      int                `yaml:"priority"`
-	TimeOffset    time.Duration      `yaml:"time-offset"`
-	Verbosity     string             `yaml:"verbosity"`
-	Rewrite       []autoscan.Rewrite `yaml:"rewrite"`
-	Include       []string           `yaml:"include"`
-	Exclude       []string           `yaml:"exclude"`
-	Drives        []struct {
+	AccountPath  string             `yaml:"account"`
+	CronSchedule string             `yaml:"cron"`
+	Priority     int                `yaml:"priority"`
+	TimeOffset   time.Duration      `yaml:"time-offset"`
+	Verbosity    string             `yaml:"verbosity"`
+	Rewrite      []autoscan.Rewrite `yaml:"rewrite"`
+	Include      []string           `yaml:"include"`
+	Exclude      []string           `yaml:"exclude"`
+	Drives       []struct {
 		ID         string             `yaml:"id"`
 		TimeOffset time.Duration      `yaml:"time-offset"`
 		Rewrite    []autoscan.Rewrite `yaml:"rewrite"`
@@ -39,7 +39,7 @@ type Config struct {
 	} `yaml:"drives"`
 }
 
-func New(c Config) (autoscan.Trigger, error) {
+func New(c Config, db *sql.DB) (autoscan.Trigger, error) {
 	l := autoscan.GetLogger(c.Verbosity).With().
 		Str("trigger", "bernard").
 		Logger()
@@ -50,11 +50,10 @@ func New(c Config) (autoscan.Trigger, error) {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
 
-	store, err := sqlite.New(fmt.Sprintf("%s?%s", c.DatastorePath, "cache=shared&mode=rwc&_busy_timeout=5000"))
+	store, err := sqlite.FromDB(db)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, autoscan.ErrFatal)
 	}
-	store.DB.SetMaxOpenConns(1)
 
 	limiter, err := getRateLimiter(auth.Email())
 	if err != nil {

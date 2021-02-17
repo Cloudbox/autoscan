@@ -66,7 +66,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	l.Trace().Interface("event", event).Msg("Received JSON body")
 
 	if strings.EqualFold(event.Type, "Test") {
-		l.Debug().Msg("Received test event")
+		l.Info().Msg("Received test event")
 		rw.WriteHeader(http.StatusOK)
 		return
 	}

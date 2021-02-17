@@ -261,6 +261,13 @@ To add your webhook to Sonarr, Radarr or Lidarr, do:
 7. Set the URL to Autoscan's URL and add `/triggers/:name` where name is the name set in the trigger's config.
 8. Optional: set username and password.
 
+##### Experimental support for more events
+
+Autoscan also supports the new `On Rename`, `On Series Delete` and `On Episode File Delete` Sonarr events.
+We have marked support for these events as experimental as the webhook payload may still change.
+In addition, we are not 100% sure whether these three events cover all the possible file system interactions.
+So for now, please do keep using Bernard or the Inotify trigger to fetch all scans.
+
 ### Processor
 
 Triggers pass the Scans they receive to the processor.

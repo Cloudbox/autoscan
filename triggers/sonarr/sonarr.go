@@ -53,6 +53,12 @@ type sonarrEvent struct {
 	Series struct {
 		Path string
 	} `json:"series"`
+
+	RenamedFiles []struct {
+		// use PreviousPath as the Series.Path might have changed.
+		PreviousPath string
+		RelativePath string
+	} `json:"renamedEpisodeFiles"`
 }
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -75,32 +81,87 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !strings.EqualFold(event.Type, "Download") || event.File.RelativePath == "" || event.Series.Path == "" {
-		rlog.Error().Msg("Required fields are missing")
-		rw.WriteHeader(http.StatusBadRequest)
-		return
+	var paths []string
+
+	// a Download event is either an upgrade or a new file.
+	// the EpisodeFileDelete event shares the same request format as Download.
+	if strings.EqualFold(event.Type, "Download") || strings.EqualFold(event.Type, "EpisodeFileDelete") {
+		if event.File.RelativePath == "" || event.Series.Path == "" {
+			rlog.Error().Msg("Required fields are missing")
+			return
+		}
+
+		// Use path.Dir to get the directory in which the file is located
+		folderPath := path.Dir(path.Join(event.Series.Path, event.File.RelativePath))
+		paths = append(paths, folderPath)
 	}
 
-	// Rewrite the path based on the provided rewriter.
-	folderPath := path.Dir(h.rewrite(path.Join(event.Series.Path, event.File.RelativePath)))
+	// An entire show has been deleted
+	if strings.EqualFold(event.Type, "SeriesDelete") {
+		if event.Series.Path == "" {
+			rlog.Error().Msg("Required fields are missing")
+			return
+		}
 
-	scan := autoscan.Scan{
-		Folder:   folderPath,
-		Priority: h.priority,
-		Time:     now(),
+		// Scan the folder of the show
+		paths = append(paths, event.Series.Path)
 	}
 
-	err = h.callback(scan)
+	if strings.EqualFold(event.Type, "Rename") {
+		if event.Series.Path == "" {
+			rlog.Error().Msg("Required fields are missing")
+			return
+		}
+
+		// Keep track of which paths we have already added to paths.
+		encountered := make(map[string]bool)
+
+		for _, renamedFile := range event.RenamedFiles {
+			previousPath := path.Dir(renamedFile.PreviousPath)
+			currentPath := path.Dir(path.Join(event.Series.Path, renamedFile.RelativePath))
+
+			// if previousPath not in paths, then add it.
+			if _, ok := encountered[previousPath]; !ok {
+				encountered[previousPath] = true
+				paths = append(paths, previousPath)
+			}
+
+			// if currentPath not in paths, then add it.
+			if _, ok := encountered[currentPath]; !ok {
+				encountered[currentPath] = true
+				paths = append(paths, currentPath)
+			}
+		}
+	}
+
+	var scans []autoscan.Scan
+
+	for _, folderPath := range paths {
+		folderPath := h.rewrite(folderPath)
+
+		scan := autoscan.Scan{
+			Folder:   folderPath,
+			Priority: h.priority,
+			Time:     now(),
+		}
+
+		scans = append(scans, scan)
+	}
+
+	err = h.callback(scans...)
 	if err != nil {
-		rlog.Error().Err(err).Msg("Processor could not process scan")
+		rlog.Error().Err(err).Msg("Processor could not process scans")
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	for _, scan := range scans {
+		rlog.Info().
+			Str("path", scan.Folder).
+			Msg("Scan moved to processor")
+	}
+
 	rw.WriteHeader(http.StatusOK)
-	rlog.Info().
-		Str("path", folderPath).
-		Msg("Scan moved to processor")
 }
 
 var now = time.Now

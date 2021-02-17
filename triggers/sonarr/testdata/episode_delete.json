@@ -1,0 +1,9 @@
+{
+  "eventType": "EpisodeFileDelete",
+  "episodeFile": {
+    "relativePath": "Season 2/Westworld.S02E01.mkv"
+  },
+  "series": {
+    "path": "/TV/Westworld"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "eventType": "Rename",
+  "series": {
+    "path": "/TV/Westworld [imdb:tt0475784]"
+  },
+  "renamedEpisodeFiles": [
+    {
+      "previousPath": "/TV/Westworld/Season 1/Westworld.S01E01.mkv",
+      "relativePath": "Season 1/Westworld.S01E01.mkv"
+    },
+    {
+      "previousPath": "/TV/Westworld/Season 1/Westworld.S01E02.mkv",
+      "relativePath": "Season 1/Westworld.S01E02.mkv"
+    },
+    {
+      "previousPath": "/TV/Westworld/Season 2/Westworld.S01E02.mkv",
+      "relativePath": "Season 2/Westworld.S02E01.mkv"
+    }
+  ]
+}

@@ -158,6 +158,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	for _, scan := range scans {
 		rlog.Info().
 			Str("path", scan.Folder).
+			Str("event", event.Type).
 			Msg("Scan moved to processor")
 	}
 

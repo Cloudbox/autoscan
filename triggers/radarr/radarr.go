@@ -100,6 +100,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 	rlog.Info().
 		Str("path", folderPath).
+		Str("event", event.Type).
 		Msg("Scan moved to processor")
 }
 

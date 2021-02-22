@@ -109,6 +109,11 @@ func (d *daemon) startMonitoring() error {
 }
 
 func (d *daemon) walkFunc(path string, fi os.FileInfo, err error) error {
+	// handle error
+	if err != nil {
+		return fmt.Errorf("walk func: %v: %w", path, err)
+	}
+
 	// ignore non-directory
 	if !fi.Mode().IsDir() {
 		return nil

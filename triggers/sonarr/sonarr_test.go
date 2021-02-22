@@ -45,7 +45,7 @@ func TestHandler(t *testing.T) {
 
 	var testCases = []Test{
 		{
-			"Scan has all the correct fields",
+			"Scan has all the correct fields on Download event",
 			Given{
 				Config:  standardConfig,
 				Fixture: "testdata/westworld.json",
@@ -55,6 +55,72 @@ func TestHandler(t *testing.T) {
 				Scans: []autoscan.Scan{
 					{
 						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 1",
+						Priority: 5,
+						Time:     currentTime,
+					},
+				},
+			},
+		},
+		{
+			"Scan on EpisodeFileDelete",
+			Given{
+				Config:  standardConfig,
+				Fixture: "testdata/episode_delete.json",
+			},
+			Expected{
+				StatusCode: 200,
+				Scans: []autoscan.Scan{
+					{
+						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 2",
+						Priority: 5,
+						Time:     currentTime,
+					},
+				},
+			},
+		},
+		{
+			"Picks up the Rename event without duplicates",
+			Given{
+				Config:  standardConfig,
+				Fixture: "testdata/rename.json",
+			},
+			Expected{
+				StatusCode: 200,
+				Scans: []autoscan.Scan{
+					{
+						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 1",
+						Priority: 5,
+						Time:     currentTime,
+					},
+					{
+						Folder:   "/mnt/unionfs/Media/TV/Westworld [imdb:tt0475784]/Season 1",
+						Priority: 5,
+						Time:     currentTime,
+					},
+					{
+						Folder:   "/mnt/unionfs/Media/TV/Westworld/Season 2",
+						Priority: 5,
+						Time:     currentTime,
+					},
+					{
+						Folder:   "/mnt/unionfs/Media/TV/Westworld [imdb:tt0475784]/Season 2",
+						Priority: 5,
+						Time:     currentTime,
+					},
+				},
+			},
+		},
+		{
+			"Scans show folder on SeriesDelete event",
+			Given{
+				Config:  standardConfig,
+				Fixture: "testdata/series_delete.json",
+			},
+			Expected{
+				StatusCode: 200,
+				Scans: []autoscan.Scan{
+					{
+						Folder:   "/mnt/unionfs/Media/TV/Westworld",
 						Priority: 5,
 						Time:     currentTime,
 					},

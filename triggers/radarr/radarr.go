@@ -70,7 +70,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rlog.Trace().Interface("event", event).Msg("Received JSON body")
 
 	if strings.EqualFold(event.Type, "Test") {
-		rlog.Debug().Msg("Received test event")
+		rlog.Info().Msg("Received test event")
 		rw.WriteHeader(http.StatusOK)
 		return
 	}
@@ -100,6 +100,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 	rlog.Info().
 		Str("path", folderPath).
+		Str("event", event.Type).
 		Msg("Scan moved to processor")
 }
 

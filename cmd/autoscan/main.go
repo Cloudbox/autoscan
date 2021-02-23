@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/goccy/go-yaml"
 	"github.com/natefinch/lumberjack"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v2"
 
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
@@ -63,7 +63,6 @@ type config struct {
 }
 
 var (
-	// Release variables
 	Version   string
 	Timestamp string
 	GitCommit string
@@ -167,13 +166,11 @@ func main() {
 		Port:       3030,
 	}
 
-	decoder := yaml.NewDecoder(file)
-	decoder.SetStrict(true)
+	decoder := yaml.NewDecoder(file, yaml.Strict())
 	err = decoder.Decode(&c)
 	if err != nil {
-		log.Fatal().
-			Err(err).
-			Msg("Failed decoding config")
+		log.Error().Msg("Failed decoding config")
+		log.Fatal().Msg(err.Error())
 	}
 
 	proc, err := processor.New(processor.Config{

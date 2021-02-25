@@ -50,7 +50,7 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 	switch res.StatusCode {
 	case 401:
 		return nil, fmt.Errorf("invalid emby token: %s: %w", res.Status, autoscan.ErrFatal)
-	case 404, 500, 503, 504:
+	case 404, 500, 502, 503, 504:
 		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrTargetUnavailable)
 	default:
 		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrFatal)

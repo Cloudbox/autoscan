@@ -90,12 +90,6 @@ jobs:
           name: build_darwin
           path: dist/*darwin*
 
-      - name: artifact_windows
-        uses: actions/upload-artifact@v2-preview
-        with:
-          name: build_windows
-          path: dist/*windows*
-
       # docker login
       - name: docker login
         env:

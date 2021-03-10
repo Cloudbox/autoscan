@@ -43,8 +43,7 @@ type handler struct {
 }
 
 type sonarrEvent struct {
-	Type    string `json:"eventType"`
-	Upgrade bool   `json:"isUpgrade"`
+	Type string `json:"eventType"`
 
 	File struct {
 		RelativePath string
@@ -88,6 +87,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if strings.EqualFold(event.Type, "Download") || strings.EqualFold(event.Type, "EpisodeFileDelete") {
 		if event.File.RelativePath == "" || event.Series.Path == "" {
 			rlog.Error().Msg("Required fields are missing")
+			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -100,6 +100,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if strings.EqualFold(event.Type, "SeriesDelete") {
 		if event.Series.Path == "" {
 			rlog.Error().Msg("Required fields are missing")
+			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -110,6 +111,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if strings.EqualFold(event.Type, "Rename") {
 		if event.Series.Path == "" {
 			rlog.Error().Msg("Required fields are missing")
+			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
 

@@ -1,0 +1,6 @@
+{
+  "eventType": "MovieDelete",
+  "movie": {
+    "folderPath": "/Movies/Wonder Woman 1984 (2020)"
+  }
+}

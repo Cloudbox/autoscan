@@ -45,7 +45,7 @@ func TestHandler(t *testing.T) {
 
 	var testCases = []Test{
 		{
-			"Returns IMDb if both TMDb and IMDb are given",
+			"Download Event",
 			Given{
 				Config:  standardConfig,
 				Fixture: "testdata/interstellar.json",
@@ -62,24 +62,51 @@ func TestHandler(t *testing.T) {
 			},
 		},
 		{
-			"Returns TMDb if no IMDb is given",
+			"MovieFileDelete Event",
 			Given{
-				Config: Config{
-					Name:     "radarr",
-					Priority: 3,
-					Rewrite: []autoscan.Rewrite{{
-						From: "/data/*",
-						To:   "/Media/$1",
-					}},
-				},
-				Fixture: "testdata/parasite.json",
+				Config:  standardConfig,
+				Fixture: "testdata/movie_file_delete.json",
 			},
 			Expected{
 				StatusCode: 200,
 				Scans: []autoscan.Scan{
 					{
-						Folder:   "/Media/Movies/Parasite (2019)",
-						Priority: 3,
+						Folder:   "/mnt/unionfs/Media/Movies/Tenet (2020)",
+						Priority: 5,
+						Time:     currentTime,
+					},
+				},
+			},
+		},
+		{
+			"MovieDelete Event",
+			Given{
+				Config:  standardConfig,
+				Fixture: "testdata/movie_delete.json",
+			},
+			Expected{
+				StatusCode: 200,
+				Scans: []autoscan.Scan{
+					{
+						Folder:   "/mnt/unionfs/Media/Movies/Wonder Woman 1984 (2020)",
+						Priority: 5,
+						Time:     currentTime,
+					},
+				},
+			},
+		},
+		{
+			"Rename Event",
+			Given{
+				Config:  standardConfig,
+				Fixture: "testdata/rename.json",
+			},
+			Expected{
+				StatusCode: 200,
+				Scans: []autoscan.Scan{
+					{
+						Folder:   "/mnt/unionfs/Media/Movies/Deadpool (2016)",
+						Priority: 5,
 						Time:     currentTime,
 					},
 				},

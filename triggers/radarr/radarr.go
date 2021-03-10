@@ -43,8 +43,7 @@ type handler struct {
 }
 
 type radarrEvent struct {
-	Type    string `json:"eventType"`
-	Upgrade bool   `json:"isUpgrade"`
+	Type string `json:"eventType"`
 
 	File struct {
 		RelativePath string
@@ -75,17 +74,30 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !strings.EqualFold(event.Type, "Download") || event.File.RelativePath == "" || event.Movie.FolderPath == "" {
-		rlog.Error().Msg("Required fields are missing")
-		rw.WriteHeader(http.StatusBadRequest)
-		return
+	var folderPath string
+
+	if strings.EqualFold(event.Type, "Download") || strings.EqualFold(event.Type, "MovieFileDelete") {
+		if event.File.RelativePath == "" || event.Movie.FolderPath == "" {
+			rlog.Error().Msg("Required fields are missing")
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		folderPath = path.Dir(path.Join(event.Movie.FolderPath, event.File.RelativePath))
 	}
 
-	// Rewrite the path based on the provided rewriter.
-	folderPath := path.Dir(h.rewrite(path.Join(event.Movie.FolderPath, event.File.RelativePath)))
+	if strings.EqualFold(event.Type, "MovieDelete") || strings.EqualFold(event.Type, "Rename") {
+		if event.Movie.FolderPath == "" {
+			rlog.Error().Msg("Required fields are missing")
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		folderPath = event.Movie.FolderPath
+	}
 
 	scan := autoscan.Scan{
-		Folder:   folderPath,
+		Folder:   h.rewrite(folderPath),
 		Priority: h.priority,
 		Time:     now(),
 	}
@@ -97,11 +109,12 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rw.WriteHeader(http.StatusOK)
 	rlog.Info().
 		Str("path", folderPath).
 		Str("event", event.Type).
 		Msg("Scan moved to processor")
+
+	rw.WriteHeader(http.StatusOK)
 }
 
 var now = time.Now

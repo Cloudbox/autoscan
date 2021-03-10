@@ -1,12 +1,5 @@
 {
   "eventType": "Download",
-  "isUpgrade": false,
-  "remoteMovie": {
-    "tmdbId": 157336,
-    "imdbId": "tt0816692",
-    "title": "Interstellar",
-    "year": 2014
-  },
   "movieFile": {
     "relativePath": "Interstellar.2014.UHD.BluRay.2160p.REMUX.mkv"
   },

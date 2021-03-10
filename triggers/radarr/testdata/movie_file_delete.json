@@ -1,0 +1,9 @@
+{
+  "eventType": "MovieFileDelete",
+  "movieFile": {
+    "relativePath": "Tenet.2020.mkv"
+  },
+  "movie": {
+    "folderPath": "/Movies/Tenet (2020)"
+  }
+}

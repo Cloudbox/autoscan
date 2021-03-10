@@ -263,9 +263,12 @@ To add your webhook to Sonarr, Radarr or Lidarr, do:
 
 ##### Experimental support for more events
 
-Autoscan also supports the new `On Rename`, `On Series Delete` and `On Episode File Delete` Sonarr events.
-We have marked support for these events as experimental as the webhook payload may still change.
-In addition, we are not 100% sure whether these three events cover all the possible file system interactions.
+Autoscan also supports the following events in the latest versions of Radarr and Sonarr:
+- `Rename`
+- `On Movie Delete` and `On Series Delete`
+- `On Movie File Delete` and `On Episode File Delete`
+
+We are not 100% sure whether these three events cover all the possible file system interactions.
 So for now, please do keep using Bernard or the Inotify trigger to fetch all scans.
 
 ### Processor

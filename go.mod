@@ -8,7 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/justinas/alice v1.2.0
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
-	github.com/l3uddz/bernard v0.3.5-0.20210308200530-fe0c83fa09c8
+	github.com/l3uddz/bernard v0.4.0
 	github.com/m-rots/stubbs v1.1.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible

@@ -331,8 +331,15 @@ func main() {
 	log.Info().Msg("Processor started")
 
 	targetsAvailable := false
-
+	targetsSize := len(targets)
 	for {
+		// sleep indefinitely when no targets setup
+		if targetsSize == 0 {
+			log.Warn().Msg("No targets were initialised, processor stopped, triggers will continue...")
+			select {}
+		}
+
+		// target availability checker
 		if !targetsAvailable {
 			err = proc.CheckAvailability(targets)
 			switch {
@@ -355,6 +362,7 @@ func main() {
 			}
 		}
 
+		// process scans
 		err = proc.Process(targets)
 		switch {
 		case err == nil:

@@ -335,7 +335,7 @@ func main() {
 	for {
 		// sleep indefinitely when no targets setup
 		if targetsSize == 0 {
-			log.Warn().Msg("No targets were initialised, processor stopped, triggers will continue...")
+			log.Warn().Msg("No targets initialised, processor stopped, triggers will continue...")
 			select {}
 		}
 

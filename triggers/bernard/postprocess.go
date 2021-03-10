@@ -2,9 +2,9 @@ package bernard
 
 import (
 	"fmt"
-	"github.com/m-rots/bernard"
-	"github.com/m-rots/bernard/datastore"
-	"github.com/m-rots/bernard/datastore/sqlite"
+	"github.com/l3uddz/bernard"
+	"github.com/l3uddz/bernard/datastore"
+	"github.com/l3uddz/bernard/datastore/sqlite"
 )
 
 func NewPostProcessBernardDiff(driveID string, store *bds, diff *sqlite.Difference) bernard.Hook {

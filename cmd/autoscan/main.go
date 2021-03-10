@@ -29,7 +29,7 @@ import (
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 
 	// sqlite3 driver
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type config struct {
@@ -141,7 +141,7 @@ func main() {
 	}
 
 	// datastore
-	db, err := sql.Open("sqlite3", cli.Database)
+	db, err := sql.Open("sqlite", cli.Database)
 	if err != nil {
 		log.Fatal().
 			Err(err).

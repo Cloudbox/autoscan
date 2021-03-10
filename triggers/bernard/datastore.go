@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/m-rots/bernard/datastore"
-	"github.com/m-rots/bernard/datastore/sqlite"
+	"github.com/l3uddz/bernard/datastore"
+	"github.com/l3uddz/bernard/datastore/sqlite"
 )
 
 type bds struct {

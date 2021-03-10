@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	lowe "github.com/m-rots/bernard"
-	ds "github.com/m-rots/bernard/datastore"
-	"github.com/m-rots/bernard/datastore/sqlite"
+	lowe "github.com/l3uddz/bernard"
+	ds "github.com/l3uddz/bernard/datastore"
+	"github.com/l3uddz/bernard/datastore/sqlite"
 	"github.com/m-rots/stubbs"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"

@@ -2,8 +2,10 @@ package processor
 
 import (
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
+	"github.com/cloudbox/autoscan/migrate"
 	"time"
 
 	"github.com/cloudbox/autoscan"
@@ -16,24 +18,18 @@ type datastore struct {
 	*sql.DB
 }
 
-const sqlSchema = `
-CREATE TABLE IF NOT EXISTS scan (
-	"folder" TEXT NOT NULL,
-	"priority" INTEGER NOT NULL,
-	"time" DATETIME NOT NULL,
-	PRIMARY KEY(folder)
+var (
+	//go:embed migrations
+	embedFS embed.FS
 )
-`
 
-func newDatastore(db *sql.DB) (*datastore, error) {
-	_, err := db.Exec(sqlSchema)
-	if err != nil {
-		return nil, fmt.Errorf("exec schema: %w", err)
+func newDatastore(db *sql.DB, mg *migrate.Migrator) (*datastore, error) {
+	// migrations
+	if err := mg.Migrate(&embedFS, "processor"); err != nil {
+		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
-	store := &datastore{db}
-
-	return store, nil
+	return &datastore{db}, nil
 }
 
 const sqlUpsert = `

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/cloudbox/autoscan/migrate"
 	"io"
 	"net/http"
 	"os"
@@ -176,10 +177,19 @@ func main() {
 			Msg("Failed decoding config")
 	}
 
+	// migrator
+	mg, err := migrate.New(db, "migrations")
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed initialising migrator")
+	}
+
+	// processor
 	proc, err := processor.New(processor.Config{
 		Anchors:    c.Anchors,
 		MinimumAge: c.MinimumAge,
-	}, db)
+	}, db, mg)
 
 	if err != nil {
 		log.Fatal().

@@ -3,6 +3,7 @@ package processor
 import (
 	"database/sql"
 	"errors"
+	"github.com/cloudbox/autoscan/migrate"
 	"reflect"
 	"testing"
 	"time"
@@ -33,7 +34,12 @@ func getDatastore(t *testing.T) *datastore {
 		t.Fatal(err)
 	}
 
-	ds, err := newDatastore(db)
+	mg, err := migrate.New(db, "migrations")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ds, err := newDatastore(db, mg)
 	if err != nil {
 		t.Fatal(err)
 	}

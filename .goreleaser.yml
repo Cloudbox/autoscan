@@ -16,9 +16,6 @@ builds:
       - arm
     goarm:
       - 7
-    ignore: # remove once sqlite package supports darwin/arm64 (see: https://pkg.go.dev/modernc.org/sqlite?utm_source=godoc)
-      - goos: darwin
-        goarch: arm64
     ldflags:
       - -s -w
       - -X "main.Version={{ .Version }}"

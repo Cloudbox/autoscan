@@ -3,6 +3,7 @@ package processor
 import (
 	"database/sql"
 	"fmt"
+	"github.com/cloudbox/autoscan/migrate"
 	"os"
 	"time"
 
@@ -15,8 +16,8 @@ type Config struct {
 	MinimumAge time.Duration
 }
 
-func New(c Config, db *sql.DB) (*Processor, error) {
-	store, err := newDatastore(db)
+func New(c Config, db *sql.DB, mg *migrate.Migrator) (*Processor, error) {
+	store, err := newDatastore(db, mg)
 	if err != nil {
 		return nil, err
 	}

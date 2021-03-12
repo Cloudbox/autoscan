@@ -20,12 +20,12 @@ type datastore struct {
 
 var (
 	//go:embed migrations
-	embedFS embed.FS
+	migrations embed.FS
 )
 
 func newDatastore(db *sql.DB, mg *migrate.Migrator) (*datastore, error) {
 	// migrations
-	if err := mg.Migrate(&embedFS, "processor"); err != nil {
+	if err := mg.Migrate(&migrations, "processor"); err != nil {
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 

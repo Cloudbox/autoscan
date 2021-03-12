@@ -5,10 +5,10 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"github.com/cloudbox/autoscan/migrate"
 	"time"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/cloudbox/autoscan/migrate"
 
 	// sqlite3 driver
 	_ "modernc.org/sqlite"

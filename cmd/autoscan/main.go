@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/cloudbox/autoscan/migrate"
 	"io"
 	"net/http"
 	"os"
@@ -18,7 +17,9 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/cloudbox/autoscan/migrate"
 	"github.com/cloudbox/autoscan/processor"
+	ast "github.com/cloudbox/autoscan/targets/autoscan"
 	"github.com/cloudbox/autoscan/targets/emby"
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
@@ -58,8 +59,9 @@ type config struct {
 
 	// autoscan.Target
 	Targets struct {
-		Plex []plex.Config `yaml:"plex"`
-		Emby []emby.Config `yaml:"emby"`
+		Autoscan []ast.Config  `yaml:"autoscan"`
+		Plex     []plex.Config `yaml:"plex"`
+		Emby     []emby.Config `yaml:"emby"`
 	} `yaml:"targets"`
 }
 
@@ -306,6 +308,19 @@ func main() {
 	// targets
 	targets := make([]autoscan.Target, 0)
 
+	for _, t := range c.Targets.Autoscan {
+		tp, err := ast.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("target", "autoscan").
+				Str("target_url", t.URL).
+				Msg("Failed initialising target")
+		}
+
+		targets = append(targets, tp)
+	}
+
 	for _, t := range c.Targets.Plex {
 		tp, err := plex.New(t)
 		if err != nil {
@@ -333,6 +348,7 @@ func main() {
 	}
 
 	log.Info().
+		Int("autoscan", len(c.Targets.Autoscan)).
 		Int("plex", len(c.Targets.Plex)).
 		Int("emby", len(c.Targets.Emby)).
 		Msg("Initialised targets")

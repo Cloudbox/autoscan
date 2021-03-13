@@ -44,18 +44,6 @@ func TestHandler(t *testing.T) {
 
 	var testCases = []Test{
 		{
-			"Returns bad request when no directories are given",
-			Given{
-				Config: standardConfig,
-				Query: url.Values{
-					"dir": []string{},
-				},
-			},
-			Expected{
-				StatusCode: 400,
-			},
-		},
-		{
 			"Returns 200 when given multiple directories",
 			Given{
 				Config: standardConfig,

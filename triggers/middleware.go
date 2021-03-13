@@ -1,6 +1,7 @@
 package triggers
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"time"
 
@@ -49,16 +50,27 @@ func WithAuth(username, password string) func(http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			l := hlog.FromRequest(r)
-			rw.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 
 			user, pass, ok := r.BasicAuth()
-			if ok && user == username && pass == password {
+			if !ok || user == "" || pass == "" {
+				// prompt auth dialog
+				rw.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+				rw.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			// validate credentials
+			if ok &&
+				subtle.ConstantTimeCompare([]byte(user), []byte(username)) == 1 &&
+				subtle.ConstantTimeCompare([]byte(pass), []byte(password)) == 1 {
 				l.Trace().Msg("Successful authentication")
 				next.ServeHTTP(rw, r)
 				return
 			}
 
+			// invalid credentials
 			l.Warn().Msg("Invalid authentication")
+			rw.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			rw.WriteHeader(http.StatusUnauthorized)
 		})
 	}

@@ -339,7 +339,7 @@ The `minimum-age` and `scan-delay` fields should be given a string in the follow
 While collecting Scans is fun and all, they need to have a final destination.
 Targets are these final destinations and are given Scans from the processor, one batch at a time.
 
-Autoscan currently supports two targets:
+Autoscan currently supports the following targets:
 
 - Plex
 - Emby

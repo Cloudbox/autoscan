@@ -343,6 +343,7 @@ Autoscan currently supports two targets:
 
 - Plex
 - Emby
+- Jellyfin
 - Autoscan
 
 #### Plex
@@ -388,6 +389,27 @@ targets:
 - Token. We need an Emby API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
   *It's a bit out of date, but I'm sure you will manage!*
 - Rewrite. If Emby is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
+
+#### Jellyfin
+
+While Jellyfin provides much better behaviour out of the box than Plex, it still might be useful to use Autoscan for even better performance.
+
+You can setup one or multiple Jellyfin targets in the config:
+
+```yaml
+targets:
+  jellyfin:
+    - url: https://jellyfin.domain.tld # URL of your Jellyfin server
+      token: XXXX # Jellyfin API Token
+      rewrite:
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /data/ # path accessible by the Jellyfin docker container (if applicable)
+```
+
+- URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Jellyfin.
+- Token. We need a Jellyfin API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
+  *It's a bit out of date, but I'm sure you will manage!*
+- Rewrite. If Jellyfin is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
 
 #### Autoscan
 

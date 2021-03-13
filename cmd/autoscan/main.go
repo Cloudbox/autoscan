@@ -21,6 +21,7 @@ import (
 	"github.com/cloudbox/autoscan/processor"
 	ast "github.com/cloudbox/autoscan/targets/autoscan"
 	"github.com/cloudbox/autoscan/targets/emby"
+	"github.com/cloudbox/autoscan/targets/jellyfin"
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/bernard"
@@ -59,14 +60,14 @@ type config struct {
 
 	// autoscan.Target
 	Targets struct {
-		Autoscan []ast.Config  `yaml:"autoscan"`
-		Plex     []plex.Config `yaml:"plex"`
-		Emby     []emby.Config `yaml:"emby"`
+		Autoscan []ast.Config      `yaml:"autoscan"`
+		Plex     []plex.Config     `yaml:"plex"`
+		Emby     []emby.Config     `yaml:"emby"`
+		Jellyfin []jellyfin.Config `yaml:"jellyfin"`
 	} `yaml:"targets"`
 }
 
 var (
-	// Release variables
 	Version   string
 	Timestamp string
 	GitCommit string
@@ -347,10 +348,24 @@ func main() {
 		targets = append(targets, tp)
 	}
 
+	for _, t := range c.Targets.Jellyfin {
+		tp, err := jellyfin.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("target", "jellyfin").
+				Str("target_url", t.URL).
+				Msg("Failed initialising target")
+		}
+
+		targets = append(targets, tp)
+	}
+
 	log.Info().
 		Int("autoscan", len(c.Targets.Autoscan)).
 		Int("plex", len(c.Targets.Plex)).
 		Int("emby", len(c.Targets.Emby)).
+		Int("jellyfin", len(c.Targets.Jellyfin)).
 		Msg("Initialised targets")
 
 	// processor

@@ -27,11 +27,9 @@ Alternatively, you can build the Autoscan binary yourself.
 To build the autoscan CLI on your system, make sure:
 
 1. Your machine runs Linux, macOS or WSL2
-2. You have [Go](https://golang.org/doc/install) installed (1.14 or later preferred)
-3. You have a GCC compiler present \
-  *Yup, we need to link to C because of SQLite >:(*
-4. Clone this repository and cd into it from the terminal
-5. Run `go build -o autoscan ./cmd/autoscan` from the terminal
+2. You have [Go](https://golang.org/doc/install) installed (1.16 or later preferred)
+3. Clone this repository and cd into it from the terminal
+4. Run `go build -o autoscan ./cmd/autoscan` from the terminal
 
 You should now have a binary with the name `autoscan` in the root directory of the project.
 To start autoscan, simply run `./autoscan`. If you want autoscan to be globally available, move it to `/bin` or `/usr/local/bin`.
@@ -168,6 +166,8 @@ curl --request POST \
   --url 'http://localhost:3030/triggers/manual?dir=%2Ftest%2Fone&dir=%2Ftest%2Ftwo' \
   --header 'Authorization: Basic aGVsbG8gdGhlcmU6Z2VuZXJhbCBrZW5vYmk='
 ```
+
+**Note: You can visit `/triggers/manual` within a browser to manually submit requests**
 
 #### Configuration
 
@@ -343,6 +343,7 @@ Autoscan currently supports two targets:
 
 - Plex
 - Emby
+- Autoscan
 
 #### Plex
 
@@ -387,6 +388,21 @@ targets:
 - Token. We need an Emby API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
   *It's a bit out of date, but I'm sure you will manage!*
 - Rewrite. If Emby is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
+
+#### Autoscan
+
+You can also send scan requests to other instances of autoscan!
+
+```yaml
+targets:
+  autoscan:
+    - url: https://autoscan.domain.tld/triggers/manual # URL of the Autoscan manual trigger
+      username: XXXX # Username for remote autoscan instance
+      password: XXXX # Password for remote autoscan instance
+      rewrite:
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /data/ # path accessible by the remote autoscan instance (if applicable)
+```
 
 ### Full config file
 

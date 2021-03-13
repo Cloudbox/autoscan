@@ -49,6 +49,7 @@ func WithAuth(username, password string) func(http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			l := hlog.FromRequest(r)
+			rw.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 
 			user, pass, ok := r.BasicAuth()
 			if ok && user == username && pass == password {

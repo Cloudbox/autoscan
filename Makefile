@@ -4,6 +4,8 @@ TARGET         := $(shell go env GOOS)_$(shell go env GOARCH)
 DIST_PATH      := dist
 BUILD_PATH     := ${DIST_PATH}/${CMD}_${TARGET}
 GO_FILES       := $(shell find . -path ./vendor -prune -or -type f -name '*.go' -print)
+HTML_FILES     := $(shell find . -path ./vendor -prune -or -type f -name '*.html' -print)
+SQL_FILES      := $(shell find . -path ./vendor -prune -or -type f -name '*.sql' -print)
 GIT_COMMIT     := $(shell git rev-parse --short HEAD)
 TIMESTAMP      := $(shell date +%s)
 VERSION        ?= 0.0.0-dev
@@ -32,7 +34,7 @@ vendor_update: ## Update vendor dependencies
 build: vendor ${BUILD_PATH}/${CMD} ## Build application
 
 # Binary
-${BUILD_PATH}/${CMD}: ${GO_FILES} go.sum
+${BUILD_PATH}/${CMD}: ${GO_FILES} ${HTML_FILES} ${SQL_FILES} go.sum
 	@echo "Building for ${TARGET}..." && \
 	mkdir -p ${BUILD_PATH} && \
 	CGO_ENABLED=${CGO} go build \

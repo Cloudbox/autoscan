@@ -320,7 +320,7 @@ minimum-age: 30m
 scan-delay: 15s
 
 # override the interval scan stats are displayed:
-# defaults to 5 minutes
+# defaults to 1 hour
 scan-stats: 1m
 
 # set multiple anchor files

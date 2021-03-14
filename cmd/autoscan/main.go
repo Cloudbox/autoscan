@@ -168,7 +168,7 @@ func main() {
 	c := config{
 		MinimumAge: 10 * time.Minute,
 		ScanDelay:  5 * time.Second,
-		ScanStats:  5 * time.Minute,
+		ScanStats:  1 * time.Hour,
 		Port:       3030,
 	}
 

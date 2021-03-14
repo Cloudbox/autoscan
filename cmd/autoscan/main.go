@@ -390,6 +390,7 @@ func main() {
 					log.Error().
 						Err(err).
 						Msg("Fatal error determining amount of remaining scans, scan stats stopped...")
+					st.Stop()
 					return
 				default:
 					log.Error().

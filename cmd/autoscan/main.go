@@ -40,6 +40,7 @@ type config struct {
 	Port       int           `yaml:"port"`
 	MinimumAge time.Duration `yaml:"minimum-age"`
 	ScanDelay  time.Duration `yaml:"scan-delay"`
+	ScanStats  time.Duration `yaml:"scan-stats"`
 	Anchors    []string      `yaml:"anchors"`
 
 	// Authentication for autoscan.HTTPTrigger
@@ -121,6 +122,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// logger
 	logger := log.Output(io.MultiWriter(zerolog.ConsoleWriter{
 		TimeFormat: time.Stamp,
 		Out:        os.Stderr,
@@ -153,9 +155,7 @@ func main() {
 	}
 	db.SetMaxOpenConns(1)
 
-	// run
-	mux := http.NewServeMux()
-
+	// config
 	file, err := os.Open(cli.Config)
 	if err != nil {
 		log.Fatal().
@@ -168,6 +168,7 @@ func main() {
 	c := config{
 		MinimumAge: 10 * time.Minute,
 		ScanDelay:  5 * time.Second,
+		ScanStats:  5 * time.Minute,
 		Port:       3030,
 	}
 
@@ -212,7 +213,7 @@ func main() {
 		log.Warn().Msg("Webhooks running without authentication")
 	}
 
-	// Daemon Triggers
+	// daemon triggers
 	for _, t := range c.Triggers.Bernard {
 		trigger, err := bernard.New(t, db)
 		if err != nil {
@@ -237,7 +238,9 @@ func main() {
 		go trigger(proc.Add)
 	}
 
-	// HTTP Triggers
+	// http triggers
+	mux := http.NewServeMux()
+
 	manualTrigger, err := manual.New(c.Triggers.Manual)
 	if err != nil {
 		log.Fatal().
@@ -367,6 +370,35 @@ func main() {
 		Int("emby", len(c.Targets.Emby)).
 		Int("jellyfin", len(c.Targets.Jellyfin)).
 		Msg("Initialised targets")
+
+	// scan stats
+	st := time.NewTicker(c.ScanStats)
+	go func() {
+		for {
+			select {
+			case _ = <-st.C:
+				// show amount of scans remaining
+				sm, err := proc.ScansRemaining()
+				switch {
+				case errors.Is(err, autoscan.ErrNoScans), sm == 0:
+					continue
+				case err == nil:
+					log.Info().
+						Int("count", sm).
+						Msg("Scans remaining")
+				case errors.Is(err, autoscan.ErrFatal):
+					log.Error().
+						Err(err).
+						Msg("Fatal error determining amount of remaining scans, scan stats stopped...")
+					return
+				default:
+					log.Error().
+						Err(err).
+						Msg("Failed determining amount of remaining scans")
+				}
+			}
+		}
+	}()
 
 	// processor
 	log.Info().Msg("Processor started")

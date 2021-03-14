@@ -319,13 +319,17 @@ minimum-age: 30m
 # defaults to 5 seconds
 scan-delay: 15s
 
+# override the interval scan stats are displayed:
+# defaults to 5 minutes
+scan-stats: 1m
+
 # set multiple anchor files
 anchors:
   - /mnt/unionfs/drive1.anchor
   - /mnt/unionfs/drive2.anchor
 ```
 
-The `minimum-age` and `scan-delay` fields should be given a string in the following format:
+The `minimum-age`, `scan-delay` and `scan-stats` fields should be given a string in the following format:
 
 - `1s` if the min-age should be set at 1 second.
 - `5m` if the min-age should be set at 5 minutes.

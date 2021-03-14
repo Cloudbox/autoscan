@@ -40,6 +40,11 @@ func (p *Processor) Add(scans ...autoscan.Scan) error {
 	return p.store.Upsert(scans)
 }
 
+// ScansRemaining returns the amount of scans remaining
+func (p *Processor) ScansRemaining() (int, error) {
+	return p.store.GetScansRemaining()
+}
+
 // CheckAvailability checks whether all targets are available.
 // If one target is not available, the error will return.
 func (p *Processor) CheckAvailability(targets []autoscan.Target) error {

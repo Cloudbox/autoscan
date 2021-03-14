@@ -64,6 +64,23 @@ func (store *datastore) Upsert(scans []autoscan.Scan) error {
 	return tx.Commit()
 }
 
+const sqlGetScansRemaining = `SELECT COUNT(folder) FROM scan`
+
+func (store *datastore) GetScansRemaining() (int, error) {
+	row := store.QueryRow(sqlGetScansRemaining)
+
+	remaining := 0
+	err := row.Scan(&remaining)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return remaining, autoscan.ErrNoScans
+	case err != nil:
+		return remaining, fmt.Errorf("get remaining scans: %v: %w", err, autoscan.ErrFatal)
+	}
+
+	return remaining, nil
+}
+
 const sqlGetAvailableScan = `
 SELECT folder, priority, time FROM scan
 WHERE time < ?

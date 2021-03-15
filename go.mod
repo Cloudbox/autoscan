@@ -8,7 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/justinas/alice v1.2.0
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
-	github.com/l3uddz/bernard v0.5.0
+	github.com/l3uddz/bernard v0.5.1
 	github.com/m-rots/stubbs v1.1.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible
@@ -24,6 +24,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	modernc.org/cc/v3 v3.32.0 // indirect
-	modernc.org/sqlite v1.9.0
+	modernc.org/sqlite v1.10.0
 	modernc.org/strutil v1.1.1 // indirect
 )

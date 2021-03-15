@@ -380,12 +380,11 @@ func main() {
 				// show amount of scans remaining
 				sm, err := proc.ScansRemaining()
 				switch {
-				case errors.Is(err, autoscan.ErrNoScans), sm == 0:
-					continue
 				case err == nil:
 					log.Info().
-						Int("count", sm).
-						Msg("Scans remaining")
+						Int("remaining", sm).
+						Int64("processed", proc.ScansProcessed()).
+						Msg("Scan stats")
 				case errors.Is(err, autoscan.ErrFatal):
 					log.Error().
 						Err(err).
@@ -393,6 +392,7 @@ func main() {
 					st.Stop()
 					return
 				default:
+					// ErrNoScans should never occur as COUNT should always at-least return 0
 					log.Error().
 						Err(err).
 						Msg("Failed determining amount of remaining scans")

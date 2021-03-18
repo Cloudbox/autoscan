@@ -73,7 +73,7 @@ func (store *datastore) GetScansRemaining() (int, error) {
 	err := row.Scan(&remaining)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		return remaining, autoscan.ErrNoScans
+		return remaining, nil
 	case err != nil:
 		return remaining, fmt.Errorf("get remaining scans: %v: %w", err, autoscan.ErrFatal)
 	}

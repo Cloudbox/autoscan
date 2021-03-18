@@ -56,7 +56,7 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 
 func (c apiClient) Available() error {
 	// create request
-	req, err := http.NewRequest("HEAD", c.baseURL, nil)
+	req, err := http.NewRequest("HEAD", autoscan.JoinURL(c.baseURL, "triggers", "manual"), nil)
 	if err != nil {
 		return fmt.Errorf("failed creating head request: %v: %w", err, autoscan.ErrFatal)
 	}
@@ -77,7 +77,7 @@ func (c apiClient) Available() error {
 
 func (c apiClient) Scan(path string) error {
 	// create request
-	req, err := http.NewRequest("GET", c.baseURL, nil)
+	req, err := http.NewRequest("POST", autoscan.JoinURL(c.baseURL, "triggers", "manual"), nil)
 	if err != nil {
 		return fmt.Errorf("failed creating scan request: %v: %w", err, autoscan.ErrFatal)
 	}

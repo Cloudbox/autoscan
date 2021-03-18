@@ -62,13 +62,14 @@ type config struct {
 	// autoscan.Target
 	Targets struct {
 		Autoscan []ast.Config      `yaml:"autoscan"`
-		Plex     []plex.Config     `yaml:"plex"`
 		Emby     []emby.Config     `yaml:"emby"`
 		Jellyfin []jellyfin.Config `yaml:"jellyfin"`
+		Plex     []plex.Config     `yaml:"plex"`
 	} `yaml:"targets"`
 }
 
 var (
+	// release variables
 	Version   string
 	Timestamp string
 	GitCommit string
@@ -193,7 +194,9 @@ func main() {
 	proc, err := processor.New(processor.Config{
 		Anchors:    c.Anchors,
 		MinimumAge: c.MinimumAge,
-	}, db, mg)
+		Db:         db,
+		Mg:         mg,
+	})
 
 	if err != nil {
 		log.Fatal().
@@ -372,34 +375,9 @@ func main() {
 		Msg("Initialised targets")
 
 	// scan stats
-	st := time.NewTicker(c.ScanStats)
-	go func() {
-		for {
-			select {
-			case _ = <-st.C:
-				// show amount of scans remaining
-				sm, err := proc.ScansRemaining()
-				switch {
-				case err == nil:
-					log.Info().
-						Int("remaining", sm).
-						Int64("processed", proc.ScansProcessed()).
-						Msg("Scan stats")
-				case errors.Is(err, autoscan.ErrFatal):
-					log.Error().
-						Err(err).
-						Msg("Fatal error determining amount of remaining scans, scan stats stopped...")
-					st.Stop()
-					return
-				default:
-					// ErrNoScans should never occur as COUNT should always at-least return 0
-					log.Error().
-						Err(err).
-						Msg("Failed determining amount of remaining scans")
-				}
-			}
-		}
-	}()
+	if c.ScanStats.Seconds() > 0 {
+		go scanStats(proc, c.ScanStats)
+	}
 
 	// processor
 	log.Info().Msg("Processor started")

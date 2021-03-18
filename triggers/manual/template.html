@@ -61,7 +61,7 @@
         const args = serialize(this);
         // create http request object
         $.ajax({
-            type: 'GET',
+            type: 'POST',
             url: '?' + args,
             success: function () {
                 // successful

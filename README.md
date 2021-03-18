@@ -27,7 +27,7 @@ Alternatively, you can build the Autoscan binary yourself.
 To build the autoscan CLI on your system, make sure:
 
 1. Your machine runs Linux, macOS or WSL2
-2. You have [Go](https://golang.org/doc/install) installed (1.16 or later preferred)
+2. You have [Go](https://golang.org/doc/install) installed (1.16 or later)
 3. Clone this repository and cd into it from the terminal
 4. Run `go build -o autoscan ./cmd/autoscan` from the terminal
 
@@ -320,7 +320,7 @@ minimum-age: 30m
 scan-delay: 15s
 
 # override the interval scan stats are displayed:
-# defaults to 1 hour
+# defaults to 1 hour / 0s to disable
 scan-stats: 1m
 
 # set multiple anchor files
@@ -337,6 +337,11 @@ The `minimum-age`, `scan-delay` and `scan-stats` fields should be given a string
 - `1h` if the min-age should be set at 1 hour.
 
 *Please do not forget the `s`, `m` or `h` suffix, otherwise the time unit defaults to nanoseconds.*
+
+Scan stats will print the following information at a configured interval:
+
+- Scans processed
+- Scans remaining
 
 ### Targets
 
@@ -422,12 +427,12 @@ You can also send scan requests to other instances of autoscan!
 ```yaml
 targets:
   autoscan:
-    - url: https://autoscan.domain.tld/triggers/manual # URL of the Autoscan manual trigger
+    - url: https://autoscan.domain.tld # URL of Autoscan
       username: XXXX # Username for remote autoscan instance
       password: XXXX # Password for remote autoscan instance
       rewrite:
         - from: /mnt/unionfs/Media/ # local file system
-          to: /data/ # path accessible by the remote autoscan instance (if applicable)
+          to: /mnt/nfs/Media/ # path accessible by the remote autoscan instance (if applicable)
 ```
 
 ### Full config file

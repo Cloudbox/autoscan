@@ -16,10 +16,13 @@ import (
 type Config struct {
 	Anchors    []string
 	MinimumAge time.Duration
+
+	Db *sql.DB
+	Mg *migrate.Migrator
 }
 
-func New(c Config, db *sql.DB, mg *migrate.Migrator) (*Processor, error) {
-	store, err := newDatastore(db, mg)
+func New(c Config) (*Processor, error) {
+	store, err := newDatastore(c.Db, c.Mg)
 	if err != nil {
 		return nil, err
 	}

@@ -52,10 +52,19 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	directories := query["dir"]
 
-	// serve template when no directories
-	if len(directories) == 0 {
+	switch r.Method {
+	case "GET":
 		rw.Header().Set("Content-Type", "text/html")
 		_, _ = rw.Write(template)
+		return
+	case "HEAD":
+		rw.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if len(directories) == 0 {
+		rlog.Error().Msg("Manual webhook should receive at least one directory")
+		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

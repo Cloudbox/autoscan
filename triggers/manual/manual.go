@@ -1,6 +1,7 @@
 package manual
 
 import (
+	_ "embed"
 	"net/http"
 	"path"
 	"time"
@@ -14,6 +15,11 @@ type Config struct {
 	Priority  int                `yaml:"priority"`
 	Verbosity string             `yaml:"verbosity"`
 }
+
+var (
+	//go:embed "template.html"
+	template []byte
+)
 
 // New creates an autoscan-compatible HTTP Trigger for manual webhooks.
 func New(c Config) (autoscan.HTTPTrigger, error) {
@@ -46,13 +52,23 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	directories := query["dir"]
 
-	rlog.Trace().Interface("dirs", directories).Msg("Received directories")
+	switch r.Method {
+	case "GET":
+		rw.Header().Set("Content-Type", "text/html")
+		_, _ = rw.Write(template)
+		return
+	case "HEAD":
+		rw.WriteHeader(http.StatusOK)
+		return
+	}
 
 	if len(directories) == 0 {
 		rlog.Error().Msg("Manual webhook should receive at least one directory")
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	rlog.Trace().Interface("dirs", directories).Msg("Received directories")
 
 	scans := make([]autoscan.Scan, 0)
 

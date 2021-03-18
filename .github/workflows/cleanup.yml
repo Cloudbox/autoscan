@@ -7,7 +7,7 @@ jobs:
     if: startsWith(github.event.ref_type, 'branch') == true
     runs-on: ubuntu-latest
     steps:
-      - name: Sanitize branch docker tag
+      - name: docker tag
         uses: frabert/replace-string-action@master
         id: dockertag
         with:
@@ -16,7 +16,7 @@ jobs:
           replace-with: '-'
           flags: 'g'
 
-      - name: Remove branch docker tag
+      - name: remove docker tag
         shell: bash
         env:
           username: ${{ secrets.DOCKER_USERNAME }}

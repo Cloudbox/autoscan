@@ -11,6 +11,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # dependencies
+      - name: goreleaser
+        run: |
+          curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sudo sh -s -- -b /usr/local/bin
+
+      - name: qemu
+        uses: docker/setup-qemu-action@v1
+
+      - name: buildx
+        uses: docker/setup-buildx-action@v1
+
       # checkout
       - name: checkout
         uses: actions/checkout@v2
@@ -21,9 +32,12 @@ jobs:
       - name: go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.14
-      - run: go version
-      - run: go env
+          go-version: 1.16
+
+      - name: go info
+        run: |
+          go version
+          go env
 
       # cache
       - name: cache
@@ -39,24 +53,26 @@ jobs:
         run: |
           make vendor
 
+      # test
+      - name: tests
+        run: |
+          make test
+
+      # git status
+      - name: git status
+        run: git status
+
       # build
       - name: build
         if: startsWith(github.ref, 'refs/tags/') == false
         run: |
           make snapshot
 
-      # get tag name
-      - name: tag_name
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: little-core-labs/get-git-tag@v3.0.2
-        with:
-          tagRegex: "v?(.+)"
-
       # publish
       - name: publish
         if: startsWith(github.ref, 'refs/tags/')
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REF: ${{ github.ref }}
         run: |
           make publish
@@ -74,42 +90,64 @@ jobs:
           name: build_darwin
           path: dist/*darwin*
 
-      # docker build (latest & tag)
-      - name: docker - build latest
-        if: startsWith(github.ref, 'refs/tags/') == true
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: cloudb0x/autoscan
-          dockerfile: docker/Dockerfile
-          tags: latest
-          tag_with_ref: true
-          tag_with_sha: true
-          always_pull: true
+      # docker login
+      - name: docker login
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
 
-      # docker build (master)
-      - name: docker - build master
-        if: github.ref == 'refs/heads/master'
-        uses: docker/build-push-action@v1
+      # docker build (latest & tag)
+      - name: release tag
+        if: startsWith(github.ref, 'refs/tags/') == true
+        uses: little-core-labs/get-git-tag@v3.0.2
+        id: releasetag
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: cloudb0x/autoscan
-          dockerfile: docker/Dockerfile
-          tags: master
-          tag_with_sha: true
-          always_pull: true
+          tagRegex: "v?(.+)"
+
+      - name: docker - build release
+        if: startsWith(github.ref, 'refs/tags/') == true
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          pull: true
+          push: true
+          tags: |
+            cloudb0x/autoscan:${{ steps.releasetag.outputs.tag }}
+            cloudb0x/autoscan:latest
 
       # docker build (branch)
-      - name: docker - build other
-        if: startsWith(github.ref, 'refs/heads/master') == false
-        uses: docker/build-push-action@v1
+      - name: branch name
+        if: startsWith(github.ref, 'refs/tags/') == false
+        id: branch-name
+        uses: tj-actions/branch-names@v2.2
+
+      - name: docker tag
+        if: startsWith(github.ref, 'refs/tags/') == false
+        uses: frabert/replace-string-action@master
+        id: dockertag
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: cloudb0x/autoscan
-          dockerfile: docker/Dockerfile
-          tag_with_ref: true
-          tag_with_sha: false
-          always_pull: true
+          pattern: '[:\.\/]+'
+          string: "${{ steps.branch-name.outputs.current_branch }}"
+          replace-with: '-'
+          flags: 'g'
+
+      - name: docker - build branch
+        if: startsWith(github.ref, 'refs/tags/') == false
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          pull: true
+          push: true
+          tags: |
+            cloudb0x/autoscan:${{ steps.dockertag.outputs.replaced }}
+
+      # cleanup
+      - name: cleanup
+        run: |
+          rm -f ${HOME}/.docker/config.json

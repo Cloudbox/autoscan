@@ -1,4 +1,4 @@
-package emby
+package jellyfin
 
 import (
 	"bytes"
@@ -49,7 +49,7 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 
 	switch res.StatusCode {
 	case 401:
-		return nil, fmt.Errorf("invalid emby token: %s: %w", res.Status, autoscan.ErrFatal)
+		return nil, fmt.Errorf("invalid jellyfin token: %s: %w", res.Status, autoscan.ErrFatal)
 	case 404, 500, 502, 503, 504:
 		return nil, fmt.Errorf("%s: %w", res.Status, autoscan.ErrTargetUnavailable)
 	default:
@@ -59,7 +59,7 @@ func (c apiClient) do(req *http.Request) (*http.Response, error) {
 
 func (c apiClient) Available() error {
 	// create request
-	reqURL := autoscan.JoinURL(c.baseURL, "emby", "System", "Info")
+	reqURL := autoscan.JoinURL(c.baseURL, "System", "Info")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed creating availability request: %v: %w", err, autoscan.ErrFatal)
@@ -82,7 +82,7 @@ type library struct {
 
 func (c apiClient) Libraries() ([]library, error) {
 	// create request
-	reqURL := autoscan.JoinURL(c.baseURL, "emby", "Library", "SelectableMediaFolders")
+	reqURL := autoscan.JoinURL(c.baseURL, "Library", "VirtualFolders")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating libraries request: %v: %w", err, autoscan.ErrFatal)
@@ -98,10 +98,8 @@ func (c apiClient) Libraries() ([]library, error) {
 
 	// decode response
 	type Response struct {
-		Name    string `json:"Name"`
-		Folders []struct {
-			Path string `json:"Path"`
-		} `json:"SubFolders"`
+		Name      string   `json:"Name"`
+		Locations []string `json:"Locations"`
 	}
 
 	resp := make([]Response, 0)
@@ -112,8 +110,8 @@ func (c apiClient) Libraries() ([]library, error) {
 	// process response
 	libraries := make([]library, 0)
 	for _, lib := range resp {
-		for _, folder := range lib.Folders {
-			libPath := folder.Path
+		for _, folder := range lib.Locations {
+			libPath := folder
 
 			// Add trailing slash if there is none.
 			if len(libPath) > 0 && libPath[len(libPath)-1] != '/' {
@@ -145,7 +143,7 @@ func (c apiClient) Scan(path string) error {
 		Updates: []scanRequest{
 			{
 				Path:       path,
-				UpdateType: "Created",
+				UpdateType: "Modified",
 			},
 		},
 	}

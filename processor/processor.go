@@ -4,19 +4,25 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/cloudbox/autoscan/migrate"
+
 	"golang.org/x/sync/errgroup"
 )
 
 type Config struct {
 	Anchors    []string
 	MinimumAge time.Duration
+
+	Db *sql.DB
+	Mg *migrate.Migrator
 }
 
-func New(c Config, db *sql.DB) (*Processor, error) {
-	store, err := newDatastore(db)
+func New(c Config) (*Processor, error) {
+	store, err := newDatastore(c.Db, c.Mg)
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +39,21 @@ type Processor struct {
 	anchors    []string
 	minimumAge time.Duration
 	store      *datastore
+	processed  int64
 }
 
 func (p *Processor) Add(scans ...autoscan.Scan) error {
 	return p.store.Upsert(scans)
+}
+
+// ScansRemaining returns the amount of scans remaining
+func (p *Processor) ScansRemaining() (int, error) {
+	return p.store.GetScansRemaining()
+}
+
+// ScansProcessed returns the amount of scans processed
+func (p *Processor) ScansProcessed() int64 {
+	return atomic.LoadInt64(&p.processed)
 }
 
 // CheckAvailability checks whether all targets are available.
@@ -91,6 +108,7 @@ func (p *Processor) Process(targets []autoscan.Target) error {
 		return err
 	}
 
+	atomic.AddInt64(&p.processed, 1)
 	return nil
 }
 

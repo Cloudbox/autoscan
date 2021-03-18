@@ -27,11 +27,9 @@ Alternatively, you can build the Autoscan binary yourself.
 To build the autoscan CLI on your system, make sure:
 
 1. Your machine runs Linux, macOS or WSL2
-2. You have [Go](https://golang.org/doc/install) installed (1.14 or later preferred)
-3. You have a GCC compiler present \
-  *Yup, we need to link to C because of SQLite >:(*
-4. Clone this repository and cd into it from the terminal
-5. Run `go build -o autoscan ./cmd/autoscan` from the terminal
+2. You have [Go](https://golang.org/doc/install) installed (1.16 or later)
+3. Clone this repository and cd into it from the terminal
+4. Run `go build -o autoscan ./cmd/autoscan` from the terminal
 
 You should now have a binary with the name `autoscan` in the root directory of the project.
 To start autoscan, simply run `./autoscan`. If you want autoscan to be globally available, move it to `/bin` or `/usr/local/bin`.
@@ -168,6 +166,8 @@ curl --request POST \
   --url 'http://localhost:3030/triggers/manual?dir=%2Ftest%2Fone&dir=%2Ftest%2Ftwo' \
   --header 'Authorization: Basic aGVsbG8gdGhlcmU6Z2VuZXJhbCBrZW5vYmk='
 ```
+
+**Note: You can visit `/triggers/manual` within a browser to manually submit requests**
 
 #### Configuration
 
@@ -319,13 +319,17 @@ minimum-age: 30m
 # defaults to 5 seconds
 scan-delay: 15s
 
+# override the interval scan stats are displayed:
+# defaults to 1 hour / 0s to disable
+scan-stats: 1m
+
 # set multiple anchor files
 anchors:
   - /mnt/unionfs/drive1.anchor
   - /mnt/unionfs/drive2.anchor
 ```
 
-The `minimum-age` and `scan-delay` fields should be given a string in the following format:
+The `minimum-age`, `scan-delay` and `scan-stats` fields should be given a string in the following format:
 
 - `1s` if the min-age should be set at 1 second.
 - `5m` if the min-age should be set at 5 minutes.
@@ -334,15 +338,22 @@ The `minimum-age` and `scan-delay` fields should be given a string in the follow
 
 *Please do not forget the `s`, `m` or `h` suffix, otherwise the time unit defaults to nanoseconds.*
 
+Scan stats will print the following information at a configured interval:
+
+- Scans processed
+- Scans remaining
+
 ### Targets
 
 While collecting Scans is fun and all, they need to have a final destination.
 Targets are these final destinations and are given Scans from the processor, one batch at a time.
 
-Autoscan currently supports two targets:
+Autoscan currently supports the following targets:
 
 - Plex
 - Emby
+- Jellyfin
+- Autoscan
 
 #### Plex
 
@@ -387,6 +398,42 @@ targets:
 - Token. We need an Emby API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
   *It's a bit out of date, but I'm sure you will manage!*
 - Rewrite. If Emby is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
+
+#### Jellyfin
+
+While Jellyfin provides much better behaviour out of the box than Plex, it still might be useful to use Autoscan for even better performance.
+
+You can setup one or multiple Jellyfin targets in the config:
+
+```yaml
+targets:
+  jellyfin:
+    - url: https://jellyfin.domain.tld # URL of your Jellyfin server
+      token: XXXX # Jellyfin API Token
+      rewrite:
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /data/ # path accessible by the Jellyfin docker container (if applicable)
+```
+
+- URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Jellyfin.
+- Token. We need a Jellyfin API Token to make requests on your behalf. [This article](https://github.com/MediaBrowser/Emby/wiki/Api-Key-Authentication) should help you out. \
+  *It's a bit out of date, but I'm sure you will manage!*
+- Rewrite. If Jellyfin is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
+
+#### Autoscan
+
+You can also send scan requests to other instances of autoscan!
+
+```yaml
+targets:
+  autoscan:
+    - url: https://autoscan.domain.tld # URL of Autoscan
+      username: XXXX # Username for remote autoscan instance
+      password: XXXX # Password for remote autoscan instance
+      rewrite:
+        - from: /mnt/unionfs/Media/ # local file system
+          to: /mnt/nfs/Media/ # path accessible by the remote autoscan instance (if applicable)
+```
 
 ### Full config file
 

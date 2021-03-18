@@ -1,50 +1,33 @@
 # https://goreleaser.com
 project_name: autoscan
-env:
-  - GO111MODULE=on
-  - CGO_ENABLED=1
 
 # Build
 builds:
-  - id: build_darwin
+  -
     env:
-      - CC=o64-clang
-      - CXX=o64-clang++
-    main: ./cmd/autoscan
-    goos:
-      - darwin
-    goarch:
-      - amd64
-    ldflags:
-      - -s -w
-      - -X "main.Version={{ .Version }}"
-      - -X "main.GitCommit={{ .ShortCommit }}"
-      - -X "main.Timestamp={{ .Timestamp }}"
-    flags:
-      - -trimpath
-
-  - id: build_linux
-    main: ./cmd/autoscan
+      - CGO_ENABLED=0
     goos:
       - linux
+      - darwin
+    main: ./cmd/autoscan
     goarch:
       - amd64
+      - arm64
+      - arm
+    goarm:
+      - 7
     ldflags:
-      - -linkmode external
-      - -extldflags -static
       - -s -w
       - -X "main.Version={{ .Version }}"
       - -X "main.GitCommit={{ .ShortCommit }}"
       - -X "main.Timestamp={{ .Timestamp }}"
     flags:
       - -trimpath
-      - -tags=netgo
-      - -v
 
 # Archive
 archives:
   -
-    name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format: "binary"
 
 # Checksum

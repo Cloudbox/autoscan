@@ -3,6 +3,7 @@ package processor
 import (
 	"database/sql"
 	"errors"
+	"github.com/cloudbox/autoscan/migrate"
 	"reflect"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ import (
 	"github.com/cloudbox/autoscan"
 
 	// sqlite3 driver
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 const sqlGetScan = `
@@ -28,12 +29,17 @@ func (store *datastore) GetScan(folder string) (autoscan.Scan, error) {
 }
 
 func getDatastore(t *testing.T) *datastore {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ds, err := newDatastore(db)
+	mg, err := migrate.New(db, "migrations")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ds, err := newDatastore(db, mg)
 	if err != nil {
 		t.Fatal(err)
 	}

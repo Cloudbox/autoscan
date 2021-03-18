@@ -2,38 +2,34 @@ package processor
 
 import (
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/cloudbox/autoscan/migrate"
 
 	// sqlite3 driver
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type datastore struct {
 	*sql.DB
 }
 
-const sqlSchema = `
-CREATE TABLE IF NOT EXISTS scan (
-	"folder" TEXT NOT NULL,
-	"priority" INTEGER NOT NULL,
-	"time" DATETIME NOT NULL,
-	PRIMARY KEY(folder)
+var (
+	//go:embed migrations
+	migrations embed.FS
 )
-`
 
-func newDatastore(db *sql.DB) (*datastore, error) {
-	_, err := db.Exec(sqlSchema)
-	if err != nil {
-		return nil, fmt.Errorf("exec schema: %w", err)
+func newDatastore(db *sql.DB, mg *migrate.Migrator) (*datastore, error) {
+	// migrations
+	if err := mg.Migrate(&migrations, "processor"); err != nil {
+		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
-	store := &datastore{db}
-
-	return store, nil
+	return &datastore{db}, nil
 }
 
 const sqlUpsert = `
@@ -66,6 +62,23 @@ func (store *datastore) Upsert(scans []autoscan.Scan) error {
 	}
 
 	return tx.Commit()
+}
+
+const sqlGetScansRemaining = `SELECT COUNT(folder) FROM scan`
+
+func (store *datastore) GetScansRemaining() (int, error) {
+	row := store.QueryRow(sqlGetScansRemaining)
+
+	remaining := 0
+	err := row.Scan(&remaining)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return remaining, nil
+	case err != nil:
+		return remaining, fmt.Errorf("get remaining scans: %v: %w", err, autoscan.ErrFatal)
+	}
+
+	return remaining, nil
 }
 
 const sqlGetAvailableScan = `

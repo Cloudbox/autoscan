@@ -1,5 +1,9 @@
 FROM sc4h/alpine-s6overlay:3.12
 
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
 ENV \
   PATH="/app/autoscan:${PATH}" \
   AUTOSCAN_CONFIG="/config/config.yml" \
@@ -8,7 +12,7 @@ ENV \
   AUTOSCAN_VERBOSITY="0"
 
 # Binary
-COPY ["dist/build_linux_linux_amd64/autoscan", "/app/autoscan/autoscan"]
+COPY ["dist/autoscan_${TARGETOS}_${TARGETARCH}${TARGETVARIANT:+_7}/autoscan", "/app/autoscan/autoscan"]
 
 # Add root files
 COPY ["docker/run", "/etc/services.d/autoscan/run"]

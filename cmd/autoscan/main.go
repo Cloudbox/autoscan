@@ -17,8 +17,11 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/cloudbox/autoscan/migrate"
 	"github.com/cloudbox/autoscan/processor"
+	ast "github.com/cloudbox/autoscan/targets/autoscan"
 	"github.com/cloudbox/autoscan/targets/emby"
+	"github.com/cloudbox/autoscan/targets/jellyfin"
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/bernard"
@@ -29,7 +32,7 @@ import (
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 
 	// sqlite3 driver
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type config struct {
@@ -37,6 +40,7 @@ type config struct {
 	Port       int           `yaml:"port"`
 	MinimumAge time.Duration `yaml:"minimum-age"`
 	ScanDelay  time.Duration `yaml:"scan-delay"`
+	ScanStats  time.Duration `yaml:"scan-stats"`
 	Anchors    []string      `yaml:"anchors"`
 
 	// Authentication for autoscan.HTTPTrigger
@@ -57,13 +61,15 @@ type config struct {
 
 	// autoscan.Target
 	Targets struct {
-		Plex []plex.Config `yaml:"plex"`
-		Emby []emby.Config `yaml:"emby"`
+		Autoscan []ast.Config      `yaml:"autoscan"`
+		Emby     []emby.Config     `yaml:"emby"`
+		Jellyfin []jellyfin.Config `yaml:"jellyfin"`
+		Plex     []plex.Config     `yaml:"plex"`
 	} `yaml:"targets"`
 }
 
 var (
-	// Release variables
+	// release variables
 	Version   string
 	Timestamp string
 	GitCommit string
@@ -117,6 +123,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// logger
 	logger := log.Output(io.MultiWriter(zerolog.ConsoleWriter{
 		TimeFormat: time.Stamp,
 		Out:        os.Stderr,
@@ -141,7 +148,7 @@ func main() {
 	}
 
 	// datastore
-	db, err := sql.Open("sqlite3", cli.Database)
+	db, err := sql.Open("sqlite", cli.Database)
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -149,9 +156,7 @@ func main() {
 	}
 	db.SetMaxOpenConns(1)
 
-	// run
-	mux := http.NewServeMux()
-
+	// config
 	file, err := os.Open(cli.Config)
 	if err != nil {
 		log.Fatal().
@@ -164,6 +169,7 @@ func main() {
 	c := config{
 		MinimumAge: 10 * time.Minute,
 		ScanDelay:  5 * time.Second,
+		ScanStats:  1 * time.Hour,
 		Port:       3030,
 	}
 
@@ -176,10 +182,21 @@ func main() {
 			Msg("Failed decoding config")
 	}
 
+	// migrator
+	mg, err := migrate.New(db, "migrations")
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed initialising migrator")
+	}
+
+	// processor
 	proc, err := processor.New(processor.Config{
 		Anchors:    c.Anchors,
 		MinimumAge: c.MinimumAge,
-	}, db)
+		Db:         db,
+		Mg:         mg,
+	})
 
 	if err != nil {
 		log.Fatal().
@@ -194,12 +211,11 @@ func main() {
 
 	// Set authentication. If none and running at least one webhook -> warn user.
 	authHandler := triggers.WithAuth(c.Auth.Username, c.Auth.Password)
-	if (c.Auth.Username == "" || c.Auth.Password == "") &&
-		len(c.Triggers.Radarr)+len(c.Triggers.Sonarr) > 0 {
+	if c.Auth.Username == "" || c.Auth.Password == "" {
 		log.Warn().Msg("Webhooks running without authentication")
 	}
 
-	// Daemon Triggers
+	// daemon triggers
 	for _, t := range c.Triggers.Bernard {
 		trigger, err := bernard.New(t, db)
 		if err != nil {
@@ -224,7 +240,9 @@ func main() {
 		go trigger(proc.Add)
 	}
 
-	// HTTP Triggers
+	// http triggers
+	mux := http.NewServeMux()
+
 	manualTrigger, err := manual.New(c.Triggers.Manual)
 	if err != nil {
 		log.Fatal().
@@ -296,6 +314,19 @@ func main() {
 	// targets
 	targets := make([]autoscan.Target, 0)
 
+	for _, t := range c.Targets.Autoscan {
+		tp, err := ast.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("target", "autoscan").
+				Str("target_url", t.URL).
+				Msg("Failed initialising target")
+		}
+
+		targets = append(targets, tp)
+	}
+
 	for _, t := range c.Targets.Plex {
 		tp, err := plex.New(t)
 		if err != nil {
@@ -322,17 +353,44 @@ func main() {
 		targets = append(targets, tp)
 	}
 
+	for _, t := range c.Targets.Jellyfin {
+		tp, err := jellyfin.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("target", "jellyfin").
+				Str("target_url", t.URL).
+				Msg("Failed initialising target")
+		}
+
+		targets = append(targets, tp)
+	}
+
 	log.Info().
+		Int("autoscan", len(c.Targets.Autoscan)).
 		Int("plex", len(c.Targets.Plex)).
 		Int("emby", len(c.Targets.Emby)).
+		Int("jellyfin", len(c.Targets.Jellyfin)).
 		Msg("Initialised targets")
+
+	// scan stats
+	if c.ScanStats.Seconds() > 0 {
+		go scanStats(proc, c.ScanStats)
+	}
 
 	// processor
 	log.Info().Msg("Processor started")
 
 	targetsAvailable := false
-
+	targetsSize := len(targets)
 	for {
+		// sleep indefinitely when no targets setup
+		if targetsSize == 0 {
+			log.Warn().Msg("No targets initialised, processor stopped, triggers will continue...")
+			select {}
+		}
+
+		// target availability checker
 		if !targetsAvailable {
 			err = proc.CheckAvailability(targets)
 			switch {
@@ -355,6 +413,7 @@ func main() {
 			}
 		}
 
+		// process scans
 		err = proc.Process(targets)
 		switch {
 		case err == nil:

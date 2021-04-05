@@ -1,28 +1,34 @@
 package main
 
 import (
-	"github.com/kirsle/configdir"
-	"golang.org/x/sys/unix"
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
-func defaultConfigPath() string {
-	// get binary path
-	bp := getBinaryPath()
-	if dirIsWriteable(bp) == nil {
-		return bp
+func defaultConfigDirectory(app string, filename string) string {
+	// binary path
+	bcd := getBinaryPath()
+	if _, err := os.Stat(filepath.Join(bcd, filename)); err == nil {
+		// there is a config file in the binary path
+		// so use this directory as the default
+		return bcd
 	}
 
-	// binary path is not write-able, use alternative path
-	cp := configdir.LocalConfig("autoscan")
-	if _, err := os.Stat(cp); os.IsNotExist(err) {
-		if e := os.MkdirAll(cp, os.ModePerm); e != nil {
-			panic("failed to create autoscan config directory")
+	// config dir
+	ucd, err := os.UserConfigDir()
+	if err != nil {
+		panic(fmt.Sprintf("userconfigdir: %v", err))
+	}
+
+	acd := filepath.Join(ucd, app)
+	if _, err := os.Stat(acd); os.IsNotExist(err) {
+		if err := os.MkdirAll(acd, os.ModePerm); err != nil {
+			panic(fmt.Sprintf("mkdirall: %v", err))
 		}
 	}
 
-	return cp
+	return acd
 }
 
 func getBinaryPath() string {
@@ -31,14 +37,9 @@ func getBinaryPath() string {
 	if err != nil {
 		// get current working dir
 		if dir, err = os.Getwd(); err != nil {
-			panic("failed to determine current binary location")
+			panic(fmt.Sprintf("getwd: %v", err))
 		}
 	}
 
 	return dir
-}
-
-func dirIsWriteable(dir string) error {
-	// credits: https://stackoverflow.com/questions/20026320/how-to-tell-if-folder-exists-and-is-writable
-	return unix.Access(dir, unix.W_OK)
 }

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func GetDefaultConfigDirectory(app string, filename string) string {
+func defaultConfigDirectory(app string, filename string) string {
 	// binary path
 	bcd := getBinaryPath()
 	if _, err := os.Stat(filepath.Join(bcd, filename)); err == nil {

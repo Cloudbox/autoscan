@@ -378,6 +378,11 @@ func main() {
 		go scanStats(proc, c.ScanStats)
 	}
 
+	// display initialised banner
+	log.Info().
+		Str("version", fmt.Sprintf("%s (%s@%s)", Version, GitCommit, Timestamp)).
+		Msg("Initialised")
+
 	// processor
 	log.Info().Msg("Processor started")
 

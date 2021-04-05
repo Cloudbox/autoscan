@@ -112,9 +112,9 @@ func main() {
 		}),
 		kong.Vars{
 			"version":       fmt.Sprintf("%s (%s@%s)", Version, GitCommit, Timestamp),
-			"config_file":   filepath.Join(defaultConfigPath(), "config.yml"),
-			"log_file":      filepath.Join(defaultConfigPath(), "activity.log"),
-			"database_file": filepath.Join(defaultConfigPath(), "autoscan.db"),
+			"config_file":   filepath.Join(GetDefaultConfigDirectory("autoscan", "config.yml"), "config.yml"),
+			"log_file":      filepath.Join(GetDefaultConfigDirectory("autoscan", "config.yml"), "activity.log"),
+			"database_file": filepath.Join(GetDefaultConfigDirectory("autoscan", "config.yml"), "autoscan.db"),
 		},
 	)
 

@@ -132,7 +132,7 @@ Daemons run in the background and continuously fetch new changes based on a [cro
 
 The following daemons are currently provided by Autoscan:
 
-- Google Drive (Bernard)
+- DEPRECATED: Google Drive (Bernard)
 - Inotify
 
 #### Webhooks
@@ -150,6 +150,10 @@ The following webhooks are currently provided by Autoscan:
 - Sonarr
 - Radarr
 - Lidarr
+
+#### Bernard (Rust Edition)
+
+Autoscan can monitor Google Drive with Bernard (Rust Edition). The Rust Edition of Bernard is a stand-alone tool created by the Autoscan developers and is officially part of the Autoscan project. PROJECT TBA.
 
 #### Manual Webhook
 
@@ -196,8 +200,8 @@ triggers:
       cron: "*/5 * * * *" # every five minutes (the "" are important)
       priority: 0
       drives:
-        - id: Shared Drive 1
-        - id: Shared Drive 2
+        - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
+        - id: 0A2xxxxxxxxxUk9PVA # The ID of Shared Drive #2
 
       # rewrite drive to the local filesystem
       rewrite:
@@ -209,6 +213,19 @@ triggers:
         - ^/mnt/unionfs/Media/
       exclude:
         - '\.srt$'
+
+  # Bernard (Rust Edition)
+  bernard-rs:
+    - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
+      priority: 5
+      rewrite: # rewrite drive to the local filesystem
+        - from: ^/Media/
+          to: /mnt/unionfs/Media/
+    - id: 0A2xxxxxxxxxUk9PVA # The ID of Shared Drive #2
+      priority: 2
+      rewrite:
+        - from: ^/Media/
+          to: /mnt/unionfs/Media/
 
   inotify:
     - priority: 0

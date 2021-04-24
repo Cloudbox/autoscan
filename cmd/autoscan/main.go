@@ -25,6 +25,7 @@ import (
 	"github.com/cloudbox/autoscan/targets/plex"
 	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/bernard"
+	bernard_rs "github.com/cloudbox/autoscan/triggers/bernard-rs"
 	"github.com/cloudbox/autoscan/triggers/inotify"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/manual"
@@ -51,12 +52,13 @@ type config struct {
 
 	// autoscan.HTTPTrigger
 	Triggers struct {
-		Manual  manual.Config    `yaml:"manual"`
-		Bernard []bernard.Config `yaml:"bernard"`
-		Inotify []inotify.Config `yaml:"inotify"`
-		Lidarr  []lidarr.Config  `yaml:"lidarr"`
-		Radarr  []radarr.Config  `yaml:"radarr"`
-		Sonarr  []sonarr.Config  `yaml:"sonarr"`
+		Manual      manual.Config       `yaml:"manual"`
+		Bernard     []bernard.Config    `yaml:"bernard"`
+		BernardRust []bernard_rs.Config `yaml:"bernard-rs"`
+		Inotify     []inotify.Config    `yaml:"inotify"`
+		Lidarr      []lidarr.Config     `yaml:"lidarr"`
+		Radarr      []radarr.Config     `yaml:"radarr"`
+		Sonarr      []sonarr.Config     `yaml:"sonarr"`
 	} `yaml:"triggers"`
 
 	// autoscan.Target
@@ -254,6 +256,20 @@ func main() {
 	logHandler := triggers.WithLogger(autoscan.GetLogger(c.Triggers.Manual.Verbosity))
 	mux.Handle("/triggers/manual", logHandler(authHandler(manualTrigger(proc.Add))))
 
+	for _, t := range c.Triggers.BernardRust {
+		trigger, err := bernard_rs.New(t)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("trigger", "bernard-rs").
+				Str("drive", t.ID).
+				Msg("Failed initialising trigger")
+		}
+
+		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
+		mux.Handle("/triggers/bernard/"+t.ID, logHandler(authHandler(trigger(proc.Add))))
+	}
+
 	for _, t := range c.Triggers.Lidarr {
 		trigger, err := lidarr.New(t)
 		if err != nil {
@@ -305,6 +321,7 @@ func main() {
 	log.Info().
 		Int("manual", 1).
 		Int("bernard", len(c.Triggers.Bernard)).
+		Int("bernard-rs", len(c.Triggers.BernardRust)).
 		Int("inotify", len(c.Triggers.Inotify)).
 		Int("lidarr", len(c.Triggers.Lidarr)).
 		Int("sonarr", len(c.Triggers.Sonarr)).

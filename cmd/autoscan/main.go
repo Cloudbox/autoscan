@@ -242,6 +242,7 @@ func main() {
 
 	// http triggers
 	mux := http.NewServeMux()
+	mux.HandleFunc("/health", healthHandler)
 
 	manualTrigger, err := manual.New(c.Triggers.Manual)
 	if err != nil {

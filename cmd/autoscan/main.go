@@ -23,7 +23,6 @@ import (
 	"github.com/cloudbox/autoscan/targets/emby"
 	"github.com/cloudbox/autoscan/targets/jellyfin"
 	"github.com/cloudbox/autoscan/targets/plex"
-	"github.com/cloudbox/autoscan/triggers"
 	"github.com/cloudbox/autoscan/triggers/bernard"
 	bernard_rs "github.com/cloudbox/autoscan/triggers/bernard-rs"
 	"github.com/cloudbox/autoscan/triggers/inotify"
@@ -52,13 +51,13 @@ type config struct {
 
 	// autoscan.HTTPTrigger
 	Triggers struct {
-		Manual      manual.Config       `yaml:"manual"`
-		Bernard     []bernard.Config    `yaml:"bernard"`
-		BernardRust []bernard_rs.Config `yaml:"bernard-rs"`
-		Inotify     []inotify.Config    `yaml:"inotify"`
-		Lidarr      []lidarr.Config     `yaml:"lidarr"`
-		Radarr      []radarr.Config     `yaml:"radarr"`
-		Sonarr      []sonarr.Config     `yaml:"sonarr"`
+		Manual      manual.Config     `yaml:"manual"`
+		Bernard     []bernard.Config  `yaml:"bernard"`
+		BernardRust bernard_rs.Config `yaml:"bernard-rs"`
+		Inotify     []inotify.Config  `yaml:"inotify"`
+		Lidarr      []lidarr.Config   `yaml:"lidarr"`
+		Radarr      []radarr.Config   `yaml:"radarr"`
+		Sonarr      []sonarr.Config   `yaml:"sonarr"`
 	} `yaml:"triggers"`
 
 	// autoscan.Target
@@ -211,8 +210,7 @@ func main() {
 		Strs("anchors", c.Anchors).
 		Msg("Initialised processor")
 
-	// Set authentication. If none and running at least one webhook -> warn user.
-	authHandler := triggers.WithAuth(c.Auth.Username, c.Auth.Password)
+	// Check authentication. If no auth -> warn user.
 	if c.Auth.Username == "" || c.Auth.Password == "" {
 		log.Warn().Msg("Webhooks running without authentication")
 	}
@@ -243,86 +241,18 @@ func main() {
 	}
 
 	// http triggers
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", healthHandler)
-
-	manualTrigger, err := manual.New(c.Triggers.Manual)
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Str("trigger", "manual").
-			Msg("Failed initialising trigger")
-	}
-
-	logHandler := triggers.WithLogger(autoscan.GetLogger(c.Triggers.Manual.Verbosity))
-	mux.Handle("/triggers/manual", logHandler(authHandler(manualTrigger(proc.Add))))
-
-	for _, t := range c.Triggers.BernardRust {
-		trigger, err := bernard_rs.New(t)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("trigger", "bernard-rs").
-				Str("drive", t.ID).
-				Msg("Failed initialising trigger")
-		}
-
-		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
-		mux.Handle("/triggers/bernard/"+t.ID, logHandler(authHandler(trigger(proc.Add))))
-	}
-
-	for _, t := range c.Triggers.Lidarr {
-		trigger, err := lidarr.New(t)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("trigger", t.Name).
-				Msg("Failed initialising trigger")
-		}
-
-		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
-		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
-	}
-
-	for _, t := range c.Triggers.Radarr {
-		trigger, err := radarr.New(t)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("trigger", t.Name).
-				Msg("Failed initialising trigger")
-		}
-
-		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
-		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
-	}
-
-	for _, t := range c.Triggers.Sonarr {
-		trigger, err := sonarr.New(t)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("trigger", t.Name).
-				Msg("Failed initialising trigger")
-		}
-
-		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
-		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
-	}
+	router := getRouter(c, proc)
 
 	go func() {
 		log.Info().Msgf("Starting server on port %d", c.Port)
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), mux); err != nil {
-			log.Fatal().
-				Err(err).
-				Msg("Failed starting web server")
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), router); err != nil {
+			log.Fatal().Err(err).Msg("Failed starting web server")
 		}
 	}()
 
 	log.Info().
 		Int("manual", 1).
 		Int("bernard", len(c.Triggers.Bernard)).
-		Int("bernard-rs", len(c.Triggers.BernardRust)).
 		Int("inotify", len(c.Triggers.Inotify)).
 		Int("lidarr", len(c.Triggers.Lidarr)).
 		Int("sonarr", len(c.Triggers.Sonarr)).

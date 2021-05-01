@@ -6,21 +6,48 @@ import (
 	"time"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/hlog"
 )
 
+type Drive struct {
+	ID      string             `yaml:"id"`
+	Rewrite []autoscan.Rewrite `yaml:"rewrite"`
+}
+
 type Config struct {
-	ID        string             `yaml:"id"`
+	Drives    []Drive            `yaml:"drives"`
 	Priority  int                `yaml:"priority"`
 	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
 	Verbosity string             `yaml:"verbosity"`
 }
 
-// New creates an autoscan-compatible HTTP Trigger for Bernard (Rust edition) webhooks.
+type BernardRewriter = func(drive string, input string) string
+
+// // New creates an autoscan-compatible HTTP Trigger for Bernard (Rust edition) webhooks.
 func New(c Config) (autoscan.HTTPTrigger, error) {
-	rewriter, err := autoscan.NewRewriter(c.Rewrite)
+	rewrites := make(map[string]autoscan.Rewriter)
+	for _, drive := range c.Drives {
+		rewriter, err := autoscan.NewRewriter(append(drive.Rewrite, c.Rewrite...))
+		if err != nil {
+			return nil, err
+		}
+
+		rewrites[drive.ID] = rewriter
+	}
+
+	globalRewriter, err := autoscan.NewRewriter(c.Rewrite)
 	if err != nil {
 		return nil, err
+	}
+
+	rewriter := func(drive string, input string) string {
+		driveRewriter, ok := rewrites[drive]
+		if !ok {
+			return globalRewriter(input)
+		}
+
+		return driveRewriter(input)
 	}
 
 	trigger := func(callback autoscan.ProcessorFunc) http.Handler {
@@ -36,7 +63,7 @@ func New(c Config) (autoscan.HTTPTrigger, error) {
 
 type handler struct {
 	priority int
-	rewrite  autoscan.Rewriter
+	rewrite  BernardRewriter
 	callback autoscan.ProcessorFunc
 }
 
@@ -48,6 +75,8 @@ type bernardEvent struct {
 func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var err error
 	rlog := hlog.FromRequest(r)
+
+	drive := chi.URLParam(r, "drive")
 
 	event := new(bernardEvent)
 	err = json.NewDecoder(r.Body).Decode(event)
@@ -63,7 +92,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	for _, path := range event.Created {
 		scans = append(scans, autoscan.Scan{
-			Folder:   h.rewrite(path),
+			Folder:   h.rewrite(drive, path),
 			Priority: h.priority,
 			Time:     now(),
 		})
@@ -71,7 +100,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	for _, path := range event.Deleted {
 		scans = append(scans, autoscan.Scan{
-			Folder:   h.rewrite(path),
+			Folder:   h.rewrite(drive, path),
 			Priority: h.priority,
 			Time:     now(),
 		})
@@ -85,9 +114,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, scan := range scans {
-		rlog.Info().
-			Str("path", scan.Folder).
-			Msg("Scan moved to processor")
+		rlog.Info().Str("path", scan.Folder).Msg("Scan moved to processor")
 	}
 
 	rw.WriteHeader(http.StatusOK)

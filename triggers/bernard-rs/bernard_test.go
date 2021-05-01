@@ -2,6 +2,7 @@ package bernard_rs
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,11 +11,13 @@ import (
 	"time"
 
 	"github.com/cloudbox/autoscan"
+	"github.com/go-chi/chi/v5"
 )
 
 func TestHandler(t *testing.T) {
 	type Given struct {
 		Config  Config
+		ID      string
 		Fixture string
 	}
 
@@ -30,10 +33,16 @@ func TestHandler(t *testing.T) {
 	}
 
 	standardConfig := Config{
-		ID:       "123VA",
+		Drives: []Drive{{
+			ID: "1234VA",
+			Rewrite: []autoscan.Rewrite{{
+				From: "^/TV/*",
+				To:   "/mnt/unionfs/Media/TV/$1",
+			}},
+		}},
 		Priority: 5,
 		Rewrite: []autoscan.Rewrite{{
-			From: "/Movies/*",
+			From: "^/Movies/*",
 			To:   "/mnt/unionfs/Media/Movies/$1",
 		}},
 	}
@@ -48,6 +57,7 @@ func TestHandler(t *testing.T) {
 			"Multiple created and deleted",
 			Given{
 				Config:  standardConfig,
+				ID:      "1234VA",
 				Fixture: "testdata/full.json",
 			},
 			Expected{
@@ -59,7 +69,7 @@ func TestHandler(t *testing.T) {
 						Time:     currentTime,
 					},
 					{
-						Folder:   "/TV/Legion/Season 1",
+						Folder:   "/mnt/unionfs/Media/TV/Legion/Season 1",
 						Priority: 5,
 						Time:     currentTime,
 					},
@@ -80,6 +90,7 @@ func TestHandler(t *testing.T) {
 			"Duplicate (parent is given in both create and delete)",
 			Given{
 				Config:  standardConfig,
+				ID:      "anotherVA",
 				Fixture: "testdata/modified.json",
 			},
 			Expected{
@@ -118,7 +129,10 @@ func TestHandler(t *testing.T) {
 				t.Fatalf("Could not create Bernard (Rust Edition) Trigger: %v", err)
 			}
 
-			server := httptest.NewServer(trigger(callback))
+			r := chi.NewRouter()
+			r.Post("/triggers/bernard/{drive}", trigger(callback).ServeHTTP)
+
+			server := httptest.NewServer(r)
 			defer server.Close()
 
 			request, err := os.Open(tc.Given.Fixture)
@@ -126,7 +140,8 @@ func TestHandler(t *testing.T) {
 				t.Fatalf("Could not open the fixture: %s", tc.Given.Fixture)
 			}
 
-			res, err := http.Post(server.URL, "application/json", request)
+			url := fmt.Sprintf("%s/triggers/bernard/%s", server.URL, tc.Given.ID)
+			res, err := http.Post(url, "application/json", request)
 			if err != nil {
 				t.Fatalf("Request failed: %v", err)
 			}

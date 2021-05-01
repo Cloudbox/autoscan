@@ -216,16 +216,16 @@ triggers:
 
   # Bernard (Rust Edition)
   bernard-rs:
-    - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
-      priority: 5
-      rewrite: # rewrite drive to the local filesystem
-        - from: ^/Media/
-          to: /mnt/unionfs/Media/
-    - id: 0A2xxxxxxxxxUk9PVA # The ID of Shared Drive #2
-      priority: 2
-      rewrite:
-        - from: ^/Media/
-          to: /mnt/unionfs/Media/
+    priority: 5
+    rewrite: # Global rewrites
+      - from: ^/Media/
+        to: /mnt/unionfs/Media/
+    # Drives only need to be given when Drive-specific rewrites are used
+    drives: 
+      - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
+        rewrite: # Drive-specific rewrite (has priority over global rewrite)
+          - from: ^/TV/
+            to: /mnt/unionfs/TV/
 
   inotify:
     - priority: 0

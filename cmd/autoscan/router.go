@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/cloudbox/autoscan/processor"
-	bernard_rs "github.com/cloudbox/autoscan/triggers/bernard-rs"
+	"github.com/cloudbox/autoscan/triggers/a_train"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/manual"
 	"github.com/cloudbox/autoscan/triggers/radarr"
@@ -56,11 +56,11 @@ func getRouter(c config, proc *processor.Processor) chi.Router {
 			r.Use(middleware.BasicAuth("Autoscan 1.x", createCredentials(c)))
 		}
 
-		// 2.0-style Bernard (Rust Edition) HTTP-trigger
-		r.Route("/bernard", func(r chi.Router) {
-			trigger, err := bernard_rs.New(c.Triggers.BernardRust)
+		// A-Train HTTP-trigger
+		r.Route("/a-train", func(r chi.Router) {
+			trigger, err := a_train.New(c.Triggers.ATrain)
 			if err != nil {
-				log.Fatal().Err(err).Str("trigger", "bernard-rs").Msg("Failed initialising trigger")
+				log.Fatal().Err(err).Str("trigger", "a-train").Msg("Failed initialising trigger")
 			}
 
 			r.Post("/{drive}", trigger(proc.Add).ServeHTTP)

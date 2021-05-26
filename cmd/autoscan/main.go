@@ -23,8 +23,8 @@ import (
 	"github.com/cloudbox/autoscan/targets/emby"
 	"github.com/cloudbox/autoscan/targets/jellyfin"
 	"github.com/cloudbox/autoscan/targets/plex"
+	"github.com/cloudbox/autoscan/triggers/a_train"
 	"github.com/cloudbox/autoscan/triggers/bernard"
-	bernard_rs "github.com/cloudbox/autoscan/triggers/bernard-rs"
 	"github.com/cloudbox/autoscan/triggers/inotify"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/manual"
@@ -51,13 +51,13 @@ type config struct {
 
 	// autoscan.HTTPTrigger
 	Triggers struct {
-		Manual      manual.Config     `yaml:"manual"`
-		Bernard     []bernard.Config  `yaml:"bernard"`
-		BernardRust bernard_rs.Config `yaml:"bernard-rs"`
-		Inotify     []inotify.Config  `yaml:"inotify"`
-		Lidarr      []lidarr.Config   `yaml:"lidarr"`
-		Radarr      []radarr.Config   `yaml:"radarr"`
-		Sonarr      []sonarr.Config   `yaml:"sonarr"`
+		Manual  manual.Config    `yaml:"manual"`
+		ATrain  a_train.Config   `yaml:"a-train"`
+		Bernard []bernard.Config `yaml:"bernard"`
+		Inotify []inotify.Config `yaml:"inotify"`
+		Lidarr  []lidarr.Config  `yaml:"lidarr"`
+		Radarr  []radarr.Config  `yaml:"radarr"`
+		Sonarr  []sonarr.Config  `yaml:"sonarr"`
 	} `yaml:"triggers"`
 
 	// autoscan.Target

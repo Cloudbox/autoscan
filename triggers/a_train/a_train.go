@@ -1,4 +1,4 @@
-package bernard_rs
+package a_train
 
 import (
 	"encoding/json"
@@ -22,9 +22,9 @@ type Config struct {
 	Verbosity string             `yaml:"verbosity"`
 }
 
-type BernardRewriter = func(drive string, input string) string
+type ATrainRewriter = func(drive string, input string) string
 
-// // New creates an autoscan-compatible HTTP Trigger for Bernard (Rust edition) webhooks.
+// // New creates an autoscan-compatible HTTP Trigger for A-Train webhooks.
 func New(c Config) (autoscan.HTTPTrigger, error) {
 	rewrites := make(map[string]autoscan.Rewriter)
 	for _, drive := range c.Drives {
@@ -63,11 +63,11 @@ func New(c Config) (autoscan.HTTPTrigger, error) {
 
 type handler struct {
 	priority int
-	rewrite  BernardRewriter
+	rewrite  ATrainRewriter
 	callback autoscan.ProcessorFunc
 }
 
-type bernardEvent struct {
+type atrainEvent struct {
 	Created []string
 	Deleted []string
 }
@@ -78,7 +78,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	drive := chi.URLParam(r, "drive")
 
-	event := new(bernardEvent)
+	event := new(atrainEvent)
 	err = json.NewDecoder(r.Body).Decode(event)
 	if err != nil {
 		rlog.Error().Err(err).Msg("Failed decoding request")

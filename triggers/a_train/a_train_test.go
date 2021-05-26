@@ -1,4 +1,4 @@
-package bernard_rs
+package a_train
 
 import (
 	"errors"
@@ -126,11 +126,11 @@ func TestHandler(t *testing.T) {
 
 			trigger, err := New(tc.Given.Config)
 			if err != nil {
-				t.Fatalf("Could not create Bernard (Rust Edition) Trigger: %v", err)
+				t.Fatalf("Could not create A-Train Trigger: %v", err)
 			}
 
 			r := chi.NewRouter()
-			r.Post("/triggers/bernard/{drive}", trigger(callback).ServeHTTP)
+			r.Post("/triggers/a-train/{drive}", trigger(callback).ServeHTTP)
 
 			server := httptest.NewServer(r)
 			defer server.Close()
@@ -140,7 +140,7 @@ func TestHandler(t *testing.T) {
 				t.Fatalf("Could not open the fixture: %s", tc.Given.Fixture)
 			}
 
-			url := fmt.Sprintf("%s/triggers/bernard/%s", server.URL, tc.Given.ID)
+			url := fmt.Sprintf("%s/triggers/a-train/%s", server.URL, tc.Given.ID)
 			res, err := http.Post(url, "application/json", request)
 			if err != nil {
 				t.Fatalf("Request failed: %v", err)

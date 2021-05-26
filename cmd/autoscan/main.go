@@ -23,7 +23,7 @@ import (
 	"github.com/cloudbox/autoscan/targets/emby"
 	"github.com/cloudbox/autoscan/targets/jellyfin"
 	"github.com/cloudbox/autoscan/targets/plex"
-	"github.com/cloudbox/autoscan/triggers"
+	"github.com/cloudbox/autoscan/triggers/a_train"
 	"github.com/cloudbox/autoscan/triggers/bernard"
 	"github.com/cloudbox/autoscan/triggers/inotify"
 	"github.com/cloudbox/autoscan/triggers/lidarr"
@@ -52,6 +52,7 @@ type config struct {
 	// autoscan.HTTPTrigger
 	Triggers struct {
 		Manual  manual.Config    `yaml:"manual"`
+		ATrain  a_train.Config   `yaml:"a-train"`
 		Bernard []bernard.Config `yaml:"bernard"`
 		Inotify []inotify.Config `yaml:"inotify"`
 		Lidarr  []lidarr.Config  `yaml:"lidarr"`
@@ -209,8 +210,7 @@ func main() {
 		Strs("anchors", c.Anchors).
 		Msg("Initialised processor")
 
-	// Set authentication. If none and running at least one webhook -> warn user.
-	authHandler := triggers.WithAuth(c.Auth.Username, c.Auth.Password)
+	// Check authentication. If no auth -> warn user.
 	if c.Auth.Username == "" || c.Auth.Password == "" {
 		log.Warn().Msg("Webhooks running without authentication")
 	}
@@ -241,65 +241,12 @@ func main() {
 	}
 
 	// http triggers
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", healthHandler)
-
-	manualTrigger, err := manual.New(c.Triggers.Manual)
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Str("trigger", "manual").
-			Msg("Failed initialising trigger")
-	}
-
-	logHandler := triggers.WithLogger(autoscan.GetLogger(c.Triggers.Manual.Verbosity))
-	mux.Handle("/triggers/manual", logHandler(authHandler(manualTrigger(proc.Add))))
-
-	for _, t := range c.Triggers.Lidarr {
-		trigger, err := lidarr.New(t)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("trigger", t.Name).
-				Msg("Failed initialising trigger")
-		}
-
-		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
-		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
-	}
-
-	for _, t := range c.Triggers.Radarr {
-		trigger, err := radarr.New(t)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("trigger", t.Name).
-				Msg("Failed initialising trigger")
-		}
-
-		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
-		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
-	}
-
-	for _, t := range c.Triggers.Sonarr {
-		trigger, err := sonarr.New(t)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("trigger", t.Name).
-				Msg("Failed initialising trigger")
-		}
-
-		logHandler := triggers.WithLogger(autoscan.GetLogger(t.Verbosity))
-		mux.Handle("/triggers/"+t.Name, logHandler(authHandler(trigger(proc.Add))))
-	}
+	router := getRouter(c, proc)
 
 	go func() {
 		log.Info().Msgf("Starting server on port %d", c.Port)
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), mux); err != nil {
-			log.Fatal().
-				Err(err).
-				Msg("Failed starting web server")
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), router); err != nil {
+			log.Fatal().Err(err).Msg("Failed starting web server")
 		}
 	}()
 

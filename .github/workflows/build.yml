@@ -11,33 +11,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # dependencies
-      - name: goreleaser
-        run: |
-          curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sudo sh -s -- -b /usr/local/bin
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
 
       - name: qemu
         uses: docker/setup-qemu-action@v1
 
       - name: buildx
         uses: docker/setup-buildx-action@v1
-
-      # checkout
-      - name: checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      # setup go
-      - name: go
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.16
-
-      - name: go info
-        run: |
-          go version
-          go env
 
       # cache
       - name: cache
@@ -62,20 +50,26 @@ jobs:
       - name: git status
         run: git status
 
-      # build
-      - name: build
-        if: startsWith(github.ref, 'refs/tags/') == false
-        run: |
-          make snapshot
-
-      # publish
-      - name: publish
+      - name: Snapshot (GoReleaser)
         if: startsWith(github.ref, 'refs/tags/')
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --snapshot --skip-publish --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REF: ${{ github.ref }}
-        run: |
-          make publish
+
+      # publish
+      - name: Publish (GoReleaser)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF: ${{ github.ref }}
 
       # artifacts
       - name: artifact_linux

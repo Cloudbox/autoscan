@@ -27,6 +27,8 @@ builds:
     ignore:
       - goos: freebsd
         goarch: arm64
+      - goos: freebsd
+        goarch: arm
 
 # MacOS Universal Binaries
 universal_binaries:

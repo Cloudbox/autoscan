@@ -50,7 +50,8 @@ jobs:
       - name: git status
         run: git status
 
-      - name: Snapshot (GoReleaser)
+      # publish
+      - name: snapshot
         if: startsWith(github.ref, 'refs/tags/') == false
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -61,7 +62,7 @@ jobs:
           GITHUB_REF: ${{ github.ref }}
 
       # publish
-      - name: Publish (GoReleaser)
+      - name: publish
         if: startsWith(github.ref, 'refs/tags/')
         uses: goreleaser/goreleaser-action@v2
         with:

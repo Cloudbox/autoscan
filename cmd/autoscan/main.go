@@ -30,6 +30,7 @@ import (
 	"github.com/cloudbox/autoscan/triggers/manual"
 	"github.com/cloudbox/autoscan/triggers/radarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
+	"github.com/cloudbox/autoscan/triggers/readarr"
 
 	// sqlite3 driver
 	_ "modernc.org/sqlite"
@@ -57,6 +58,7 @@ type config struct {
 		Lidarr  []lidarr.Config  `yaml:"lidarr"`
 		Radarr  []radarr.Config  `yaml:"radarr"`
 		Sonarr  []sonarr.Config  `yaml:"sonarr"`
+		Readarr []readarr.Config `yaml:"readarr"`
 	} `yaml:"triggers"`
 
 	// autoscan.Target

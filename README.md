@@ -1,7 +1,7 @@
 # Autoscan
 
 Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.
-Autoscan integrates with Sonarr, Radarr, Lidarr and Google Drive to fetch changes in near real-time without relying on the file system.
+Autoscan integrates with Sonarr, Radarr, Lidarr, Readarr, and Google Drive to fetch changes in near real-time without relying on the file system.
 
 Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
 Well, Autoscan is a rewrite of the original Plex Autoscan written in the Go language.
@@ -61,7 +61,7 @@ It is important that all three modules can have access to a file. When a trigger
 
 #### Simple example
 
-- Sonarr running in a Docker container (same example works for Lidarr and Radarr)
+- Sonarr running in a Docker container (same example works for Lidarr, Readarr, and Radarr)
 - Autoscan running on the host OS (not in a container)
 - Plex running in a Docker container
 
@@ -150,6 +150,7 @@ The following webhooks are currently provided by Autoscan:
 - Sonarr
 - Radarr
 - Lidarr
+- Readarr
 
 #### Manual Webhook
 
@@ -246,13 +247,16 @@ triggers:
   lidarr:
     - name: lidarr   # /triggers/lidarr
       priority: 1
+  readarr:
+    - name: readarr # /triggers/readarr
+      priority: 6
 ```
 
 #### Connecting the -arrs
 
-To add your webhook to Sonarr, Radarr or Lidarr, do:
+To add your webhook to Sonarr, Radarr, Readarr or Lidarr, do:
 
-1. Open the `settings` page in Sonarr/Radarr/Lidarr
+1. Open the `settings` page in Sonarr/Radarr/Lidarr/Readarr
 2. Select the tab `connect`
 3. Click on the big plus sign
 4. Select `webhook`
@@ -479,6 +483,9 @@ triggers:
   lidarr:
     - name: lidarr   # /triggers/lidarr
       priority: 1
+  readarr:
+    - name: readarr # /triggers/readarr
+      priority: 6
 
 # <- targets ->
 

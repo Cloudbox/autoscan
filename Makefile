@@ -11,6 +11,11 @@ TIMESTAMP      := $(shell date +%s)
 VERSION        ?= 0.0.0-dev
 CGO            := 0
 
+# Deps
+.PHONY: check_goreleaser
+check_goreleaser:
+	@command -v goreleaser >/dev/null || (echo "goreleaser is required."; exit 1)
+
 .PHONY: test
 test: ## Run tests
 	go test ./... -cover -v -race ${GO_PACKAGES}
@@ -38,3 +43,15 @@ ${BUILD_PATH}/${CMD}: ${GO_FILES} ${HTML_FILES} ${SQL_FILES} go.sum
 		-ldflags "-s -w -X main.Version=${VERSION} -X main.GitCommit=${GIT_COMMIT} -X main.Timestamp=${TIMESTAMP}" \
 		-o ${BUILD_PATH}/${CMD} \
 		./cmd/autoscan
+
+.PHONY: release
+release: check_goreleaser ## Generate a release, but don't publish
+	goreleaser --skip-validate --skip-publish --rm-dist
+
+.PHONY: publish
+publish: check_goreleaser ## Generate a release, and publish
+	goreleaser --rm-dist
+
+.PHONY: snapshot
+snapshot: check_goreleaser ## Generate a snapshot release
+	goreleaser --snapshot --skip-publish --rm-dist

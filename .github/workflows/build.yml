@@ -11,21 +11,34 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v2
+      # dependencies
+      - name: goreleaser
+        uses: goreleaser/goreleaser-action@v2
         with:
-          fetch-depth: 0
-
-      - name: go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
+          install-only: true
 
       - name: qemu
         uses: docker/setup-qemu-action@v1
 
       - name: buildx
         uses: docker/setup-buildx-action@v1
+
+      # checkout
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # setup go
+      - name: go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.17
+
+      - name: go info
+        run: |
+          go version
+          go env
 
       # cache
       - name: cache
@@ -50,27 +63,20 @@ jobs:
       - name: git status
         run: git status
 
-      # publish
-      - name: snapshot
+      # build
+      - name: build
         if: startsWith(github.ref, 'refs/tags/') == false
-        uses: goreleaser/goreleaser-action@v2
-        with:
-          version: 0.182.1
-          args: release --snapshot --skip-publish --rm-dist
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REF: ${{ github.ref }}
+        run: |
+          make snapshot
 
       # publish
       - name: publish
         if: startsWith(github.ref, 'refs/tags/')
-        uses: goreleaser/goreleaser-action@v2
-        with:
-          version: 0.182.1
-          args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REF: ${{ github.ref }}
+        run: |
+          make publish
 
       # artifacts
       - name: artifact_linux

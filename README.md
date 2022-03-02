@@ -7,17 +7,17 @@ Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
 Well, Autoscan is a rewrite of the original Plex Autoscan written in the Go language.
 In addition, this rewrite introduces a more modular approach and should be easy to extend in the future.
 
-## Table of contents
+## Comparison to Plex Autoscan
 
-- [Installing autoscan](#installing-autoscan)
-- [Introduction](#introduction)
-  - [Rewriting paths](#rewriting-paths)
-  - [Triggers](#triggers)
-  - [Processor](#processor)
-  - [Targets](#targets)
-  - [Full config file](#full-config-file)
-- [Other installation options](#other-installation-options)
-  - [Docker](#docker)
+- [A-Train](https://github.com/m-rots/a-train/pkgs/container/a-train), Autoscan's Google Drive integration, only supports Shared Drives and requires Service Account authentication.
+- A-Train does not support RClone Crypt remotes.
+- Autoscan does not rely on manual trash deletion when connected to Plex. Therefore, you should re-enable the `Empty trash automatically after every scan` setting in Plex.
+
+Autoscan also improves upon [Plex Autoscan](https://github.com/l3uddz/plex_autoscan) by adding the following features:
+
+- Autoscan supports Plex music libraries.
+- Autoscan adds additional support for Emby and Jellyfin.
+- Autoscan can send _scans_ to multiple Plex, Emby and Jellyfin servers.
 
 ## Installing autoscan
 
@@ -36,7 +36,7 @@ To start autoscan, simply run `./autoscan`. If you want autoscan to be globally 
 
 If you need to debug certain Autoscan behaviour, either add the `-v` flag for debug mode or the `-vv` flag for trace mode to get even more details about internal behaviour.
 
-## Introduction
+## Overview
 
 Autoscan is split into three distinct modules:
 
@@ -101,24 +101,26 @@ Let's take a look at the journey of the path `/tv/Westworld/Season 1/s01e01.mkv`
 
 This should be all that's needed to get you going. Good luck!
 
-### Triggers
+## Triggers
 
 Triggers are the 'input' of Autoscan.
 They translate incoming data into a common data format called the Scan.
 
-Autoscan supports two kinds of triggers:
+Autoscan currently supports the following triggers:
 
-- Daemon processes.
-  These triggers run in the background and fetch resources based on a cron schedule or in real-time. \
+- [A-Train](https://github.com/m-rots/a-train/pkgs/container/a-train): The official Google Drive trigger for Autoscan. \
+  _A-Train is [available separately](https://github.com/m-rots/a-train/pkgs/container/a-train)._
+
+- Inotify: Listens for changes on the file system. \
+  **This should not be used on top of RClone mounts.** \
   *Bugs may still exist.*
 
-- Webhooks.
-  These triggers expose HTTP handlers which can be added to the trigger's software.
+- Manual: When you want to scan a path manually.
 
-Each trigger consists of at least:
+- The -arrs: Lidarr, Sonarr and Radarr. \
+  Webhook support for Lidarr, Sonarrr and Radarr.
 
-- A unique identifier: think of Drive IDs and HTTP routes. \
-  *Webhooks use /triggers/ + their name to uniquely identify themselves.*
+All triggers support:
 
 - Trigger-wide priority: higher priorities are processed sooner. \
   *Defaults to 0.*
@@ -126,32 +128,34 @@ Each trigger consists of at least:
 - RegExp-based rewriting rules: translate a path given by the trigger to a path on the local file system. \
   *If the paths are identical between the trigger and the local file system, then the `rewrite` field should be ignored.*
 
-#### Daemons
+### A-Train
 
-Daemons run in the background and continuously fetch new changes based on a [cron expression](https://crontab.guru).
+Autoscan can monitor Google Drive through [A-Train](https://github.com/m-rots/a-train/pkgs/container/a-train). A-Train is a stand-alone tool created by the Autoscan developers and is officially part of the Autoscan project.
 
-The following daemons are currently provided by Autoscan:
+The A-Train trigger configuration is not required, as Autoscan automatically listens for A-Train requests. However, to configure global and drive-specific rewrite rules, you could add A-Train to your config:
 
-- Google Drive (Bernard)
-- Inotify
+```yaml
+triggers:
+  a-train:
+    priority: 5
+    rewrite: # Global rewrites
+      - from: ^/Media/
+        to: /mnt/unionfs/Media/
+    # Drives only need to be given when Drive-specific rewrites are used
+    drives: 
+      - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
+        rewrite: # Drive-specific rewrite (has priority over global rewrite)
+          - from: ^/TV/
+            to: /mnt/unionfs/TV/
+      - id: 0A2xxxxxxxxxUk9PVA # The ID of Shared Drive #2
+        rewrite: # Drive-specific rewrite (has priority over global rewrite)
+          - from: ^/Movies/
+            to: /mnt/unionfs/Movies/
+```
 
-#### Webhooks
+### Manual
 
-Webhooks, also known as HTTPTriggers internally, process HTTP requests on their exposed endpoints.
-They should be tailor-made for the software they plan to support.
-
-Each instance of a webhook exposes a route which is added to Autoscan's main router.
-
-If one wants to configure a HTTPTrigger with multiple distinct configurations, then these configurations MUST provide a field called `Name` which uniquely identifies the trigger.
-The name field is then used to create the route: `/triggers/:name`.
-
-The following webhooks are currently provided by Autoscan:
-
-- Sonarr
-- Radarr
-- Lidarr
-
-#### Manual Webhook
+**Note: You can visit `/triggers/manual` within a browser to manually submit requests**
 
 Autoscan also supports a `manual` webhook for custom scripts or for software which is not supported by Autoscan directly. The manual endpoint is available at `/triggers/manual`.
 
@@ -167,9 +171,41 @@ curl --request POST \
   --header 'Authorization: Basic aGVsbG8gdGhlcmU6Z2VuZXJhbCBrZW5vYmk='
 ```
 
-**Note: You can visit `/triggers/manual` within a browser to manually submit requests**
+### The -arrs
 
-#### Configuration
+If one wants to configure a HTTPTrigger with multiple distinct configurations, then these configurations MUST provide a field called `Name` which uniquely identifies the trigger.
+The name field is then used to create the route: `/triggers/:name`.
+
+The following -arrs are currently provided by Autoscan:
+
+- Lidarr
+- Radarr
+- Sonarr
+
+#### Connecting the -arrs
+
+To add your webhook to Sonarr, Radarr or Lidarr, do:
+
+1. Open the `settings` page in Sonarr/Radarr/Lidarr
+2. Select the tab `connect`
+3. Click on the big plus sign
+4. Select `webhook`
+5. Use `Autoscan` as name (or whatever you prefer)
+6. Select `On Import` and `On Upgrade`
+7. Set the URL to Autoscan's URL and add `/triggers/:name` where name is the name set in the trigger's config.
+8. Optional: set username and password.
+
+#### The latest events
+
+Autoscan also supports the following events in the latest versions of Radarr and Sonarr:
+- `Rename`
+- `On Movie Delete` and `On Series Delete`
+- `On Movie File Delete` and `On Episode File Delete`
+
+We are not 100% sure whether these three events cover all the possible file system interactions.
+So for now, please do keep using Bernard or the Inotify trigger to fetch all scans.
+
+### Configuration
 
 A snippet of the `config.yml` file showcasing what is possible.
 You can mix and match exactly the way you like:
@@ -191,24 +227,17 @@ triggers:
       - from: ^/Media/
         to: /mnt/unionfs/Media/
 
-  bernard:
-    - account: service-account.json
-      cron: "*/5 * * * *" # every five minutes (the "" are important)
-      priority: 0
-      drives:
-        - id: Shared Drive 1
-        - id: Shared Drive 2
-
-      # rewrite drive to the local filesystem
-      rewrite:
-        - from: ^/Media/
-          to: /mnt/unionfs/Media/
-
-      # filter with regular expressions
-      include:
-        - ^/mnt/unionfs/Media/
-      exclude:
-        - '\.srt$'
+  a-train:
+    priority: 5
+    rewrite: # Global rewrites
+      - from: ^/Media/
+        to: /mnt/unionfs/Media/
+    # Drives only need to be given when Drive-specific rewrites are used
+    drives: 
+      - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
+        rewrite: # Drive-specific rewrite (has priority over global rewrite)
+          - from: ^/TV/
+            to: /mnt/unionfs/TV/
 
   inotify:
     - priority: 0
@@ -228,6 +257,16 @@ triggers:
       paths:
         - path: /mnt/local/Media
 
+  lidarr:
+    - name: lidarr   # /triggers/lidarr
+      priority: 1
+
+  radarr:
+    - name: radarr   # /triggers/radarr
+      priority: 2
+    - name: radarr4k # /triggers/radarr4k
+      priority: 5
+
   sonarr:
     - name: sonarr-docker # /triggers/sonarr-docker
       priority: 2
@@ -237,41 +276,9 @@ triggers:
       rewrite:
         - from: /tv/
           to: /mnt/unionfs/Media/TV/
-
-  radarr:
-    - name: radarr   # /triggers/radarr
-      priority: 2
-    - name: radarr4k # /triggers/radarr4k
-      priority: 5
-  lidarr:
-    - name: lidarr   # /triggers/lidarr
-      priority: 1
 ```
 
-#### Connecting the -arrs
-
-To add your webhook to Sonarr, Radarr or Lidarr, do:
-
-1. Open the `settings` page in Sonarr/Radarr/Lidarr
-2. Select the tab `connect`
-3. Click on the big plus sign
-4. Select `webhook`
-5. Use `Autoscan` as name (or whatever you prefer)
-6. Select `On Import` and `On Upgrade`
-7. Set the URL to Autoscan's URL and add `/triggers/:name` where name is the name set in the trigger's config.
-8. Optional: set username and password.
-
-##### Experimental support for more events
-
-Autoscan also supports the following events in the latest versions of Radarr and Sonarr:
-- `Rename`
-- `On Movie Delete` and `On Series Delete`
-- `On Movie File Delete` and `On Episode File Delete`
-
-We are not 100% sure whether these three events cover all the possible file system interactions.
-So for now, please do keep using Bernard or the Inotify trigger to fetch all scans.
-
-### Processor
+## Processor
 
 Triggers pass the Scans they receive to the processor.
 The processor then saves the Scans to its datastore.
@@ -283,7 +290,7 @@ It will always group files belonging to the same folder together and it waits un
 
 When all files are older than the minimum age, then the processor will call all the configured targets in parallel to request a folder scan.
 
-#### Anchor files
+### Anchor files
 
 To prevent the processor from calling targets when a remote mount is offline, you can define a list of so called `anchor files`.
 These anchor files do not have any special properties and often have no content.
@@ -297,14 +304,14 @@ Each remote mount MUST have its own anchor file and its own name for that anchor
 In addition, make sure to define the 'merged' path to the file and not the remote mount path.
 This helps check whether the union-software is working correctly as well.
 
-#### Minimum age
+### Minimum age
 
 Autoscan does not check whether scan requests received by triggers exist on the file system.
 Therefore, to make sure a file exists before it reaches the targets, you should set a minimum age.
 The minimum age delays the scan from being send to the targets after it has been added to the queue by a trigger.
 The default minimum age is set at 10 minutes to prevent common synchronisation issues.
 
-#### Customising the processor
+### Customising the processor
 
 The processor allows you to set the minimum age of a Scan.
 In addition, you can also define a list of anchor files.
@@ -343,7 +350,7 @@ Scan stats will print the following information at a configured interval:
 - Scans processed
 - Scans remaining
 
-### Targets
+## Targets
 
 While collecting Scans is fun and all, they need to have a final destination.
 Targets are these final destinations and are given Scans from the processor, one batch at a time.
@@ -355,7 +362,7 @@ Autoscan currently supports the following targets:
 - Jellyfin
 - Autoscan
 
-#### Plex
+### Plex
 
 Autoscan replaces Plex's default behaviour of updating the Plex library automatically.
 Therefore, it is advised to turn off Plex's `Update my library automatically` feature.
@@ -378,7 +385,7 @@ There are a couple of things to take note of in the config:
 - Token. We need a Plex API Token to make requests on your behalf. [This article](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/) should help you out.
 - Rewrite. If Plex is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
 
-#### Emby
+### Emby
 
 While Emby provides much better behaviour out of the box than Plex, it still might be useful to use Autoscan for even better performance.
 
@@ -399,7 +406,7 @@ targets:
   *It's a bit out of date, but I'm sure you will manage!*
 - Rewrite. If Emby is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
 
-#### Jellyfin
+### Jellyfin
 
 While Jellyfin provides much better behaviour out of the box than Plex, it still might be useful to use Autoscan for even better performance.
 
@@ -420,7 +427,7 @@ targets:
   *It's a bit out of date, but I'm sure you will manage!*
 - Rewrite. If Jellyfin is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
 
-#### Autoscan
+### Autoscan
 
 You can also send scan requests to other instances of autoscan!
 
@@ -435,7 +442,7 @@ targets:
           to: /mnt/nfs/Media/ # path accessible by the remote autoscan instance (if applicable)
 ```
 
-### Full config file
+## Full config file
 
 With the examples given in the [triggers](#triggers), [processor](#processor) and [targets](#targets) sections, here is what your full config file *could* look like:
 
@@ -452,7 +459,7 @@ anchors:
 
 # <- triggers ->
 
-# Optionally, protect your webhooks with authentication
+# Protect your webhooks with authentication
 authentication:
   username: hello there
   password: general kenobi
@@ -461,6 +468,16 @@ authentication:
 port: 3030
 
 triggers:
+  lidarr:
+    - name: lidarr   # /triggers/lidarr
+      priority: 1
+
+  radarr:
+    - name: radarr   # /triggers/radarr
+      priority: 2
+    - name: radarr4k # /triggers/radarr4k
+      priority: 5
+
   sonarr:
     - name: sonarr-docker # /triggers/sonarr-docker
       priority: 2
@@ -470,15 +487,6 @@ triggers:
       rewrite:
         - from: /tv/
           to: /mnt/unionfs/Media/TV/
-
-  radarr:
-    - name: radarr   # /triggers/radarr
-      priority: 2
-    - name: radarr4k # /triggers/radarr4k
-      priority: 5
-  lidarr:
-    - name: lidarr   # /triggers/lidarr
-      priority: 1
 
 # <- targets ->
 

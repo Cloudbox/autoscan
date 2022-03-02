@@ -13,8 +13,9 @@ jobs:
     steps:
       # dependencies
       - name: goreleaser
-        run: |
-          curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sudo sh -s -- -b /usr/local/bin
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          install-only: true
 
       - name: qemu
         uses: docker/setup-qemu-action@v1
@@ -32,7 +33,7 @@ jobs:
       - name: go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.16
+          go-version: 1.17
 
       - name: go info
         run: |

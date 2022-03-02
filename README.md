@@ -7,17 +7,17 @@ Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
 Well, Autoscan is a rewrite of the original Plex Autoscan written in the Go language.
 In addition, this rewrite introduces a more modular approach and should be easy to extend in the future.
 
-## Table of contents
+## Comparison to Plex Autoscan
 
-- [Installing autoscan](#installing-autoscan)
-- [Introduction](#introduction)
-  - [Rewriting paths](#rewriting-paths)
-  - [Triggers](#triggers)
-  - [Processor](#processor)
-  - [Targets](#targets)
-  - [Full config file](#full-config-file)
-- [Other installation options](#other-installation-options)
-  - [Docker](#docker)
+- [A-Train](https://github.com/m-rots/a-train/pkgs/container/a-train), Autoscan's Google Drive integration, only supports Shared Drives and requires Service Account authentication.
+- A-Train does not support RClone Crypt remotes.
+- Autoscan does not rely on manual trash deletion when connected to Plex. Therefore, you should re-enable the `Empty trash automatically after every scan` setting in Plex.
+
+Autoscan also improves upon [Plex Autoscan](https://github.com/l3uddz/plex_autoscan) by adding the following features:
+
+- Autoscan supports Plex music libraries.
+- Autoscan adds additional support for Emby and Jellyfin.
+- Autoscan can send _scans_ to multiple Plex, Emby and Jellyfin servers.
 
 ## Installing autoscan
 
@@ -108,8 +108,8 @@ They translate incoming data into a common data format called the Scan.
 
 Autoscan currently supports the following triggers:
 
-- A-Train: The official Google Drive trigger for Autoscan. \
-  _A-Train is available separately._
+- [A-Train](https://github.com/m-rots/a-train/pkgs/container/a-train): The official Google Drive trigger for Autoscan. \
+  _A-Train is [available separately](https://github.com/m-rots/a-train/pkgs/container/a-train)._
 
 - Inotify: Listens for changes on the file system. \
   **This should not be used on top of RClone mounts.** \
@@ -130,9 +130,9 @@ All triggers support:
 
 ### A-Train
 
-Autoscan can monitor Google Drive through A-Train. A-Train is a stand-alone tool created by the Autoscan developers and is officially part of the Autoscan project.
+Autoscan can monitor Google Drive through [A-Train](https://github.com/m-rots/a-train/pkgs/container/a-train). A-Train is a stand-alone tool created by the Autoscan developers and is officially part of the Autoscan project.
 
-The A-Train trigger configuration is not required, as Autoscan automatically listens for A-Train requests. However, to configure global and drive-specific rewrite rules, you should add A-Train to your config:
+The A-Train trigger configuration is not required, as Autoscan automatically listens for A-Train requests. However, to configure global and drive-specific rewrite rules, you could add A-Train to your config:
 
 ```yaml
 triggers:

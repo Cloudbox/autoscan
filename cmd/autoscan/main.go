@@ -248,9 +248,9 @@ func main() {
 	for _, h := range c.Host {
 		go func(host string) {
 			log.Info().Msgf("Starting server on %s:%d", host, c.Port)
-			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", c.Host, c.Port), router); err != nil {
+			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", host, c.Port), router); err != nil {
 				log.Fatal().
-					Str("addr", fmt.Sprintf("%s:%d", c.Host, c.Port)).
+					Str("addr", fmt.Sprintf("%s:%d", host, c.Port)).
 					Err(err).
 					Msg("Failed starting web server")
 			}

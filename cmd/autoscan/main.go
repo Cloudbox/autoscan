@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -247,10 +248,15 @@ func main() {
 
 	for _, h := range c.Host {
 		go func(host string) {
-			log.Info().Msgf("Starting server on %s:%d", host, c.Port)
-			if err := http.ListenAndServe(fmt.Sprintf("%s:%d", host, c.Port), router); err != nil {
+			addr := host
+			if !strings.Contains(addr, ":") {
+				addr = fmt.Sprintf("%s:%d", host, c.Port)
+			}
+
+			log.Info().Msgf("Starting server on %s", addr)
+			if err := http.ListenAndServe(addr, router); err != nil {
 				log.Fatal().
-					Str("addr", fmt.Sprintf("%s:%d", host, c.Port)).
+					Str("addr", addr).
 					Err(err).
 					Msg("Failed starting web server")
 			}

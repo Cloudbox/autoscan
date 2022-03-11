@@ -506,6 +506,24 @@ targets:
           to: /data/ # path accessible by the Emby docker container (if applicable)
 ```
 
+## Other configuration options
+
+```yaml
+# Specify the port to listen on (3030 is the default when not specified)
+port: 3030
+```
+
+```yaml
+# Specify the host interface(s) to listen on (0.0.0.0 is the default when not specified)
+host:
+  - 127.0.0.1
+  - 172.19.185.13
+  - 192.168.0.1:5959
+```
+
+- If no port is specified, it will use the default port configured.
+- This configuration option is only needed if you have a requirement to listen to multiple interfaces.
+
 ## Other installation options
 
 ### Docker

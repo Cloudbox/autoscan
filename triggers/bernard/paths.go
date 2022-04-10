@@ -2,10 +2,11 @@ package bernard
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/l3uddz/bernard"
 	"github.com/l3uddz/bernard/datastore"
 	"github.com/l3uddz/bernard/datastore/sqlite"
-	"path/filepath"
 )
 
 type Paths struct {

@@ -3,10 +3,11 @@ package processor
 import (
 	"database/sql"
 	"errors"
-	"github.com/cloudbox/autoscan/migrate"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/cloudbox/autoscan/migrate"
 
 	"github.com/cloudbox/autoscan"
 

@@ -2,14 +2,15 @@ package inotify
 
 import (
 	"fmt"
-	"github.com/cloudbox/autoscan"
-	"github.com/fsnotify/fsnotify"
-	"github.com/rs/zerolog"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cloudbox/autoscan"
+	"github.com/fsnotify/fsnotify"
+	"github.com/rs/zerolog"
 )
 
 type Config struct {

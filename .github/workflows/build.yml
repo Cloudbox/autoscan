@@ -17,6 +17,15 @@ jobs:
         with:
           install-only: true
 
+      - name: goreleaser info
+        run: goreleaser -v
+
+      - name: task
+        uses: arduino/setup-task@v1
+
+      - name: task info
+        run: task --version
+
       - name: qemu
         uses: docker/setup-qemu-action@v1
 
@@ -33,7 +42,7 @@ jobs:
       - name: go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.17
+          go-version: 1.18
 
       - name: go info
         run: |
@@ -41,23 +50,39 @@ jobs:
           go env
 
       # cache
-      - name: cache
-        uses: actions/cache@v1
+      - name: cache-paths
+        id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+
+      - name: cache-build
+        uses: actions/cache@v2
         with:
-          path: vendor
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+
+      - name: cache-mod
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+
+      - name: cache-task
+        uses: actions/cache@v2
+        with:
+          path: .task/**/*
+          key: ${{ runner.os }}-go-task
 
       # vendor
       - name: vendor
         run: |
-          make vendor
+          task vendor
 
       # test
       - name: tests
         run: |
-          make test
+          task test
 
       # git status
       - name: git status
@@ -67,7 +92,7 @@ jobs:
       - name: build
         if: startsWith(github.ref, 'refs/tags/') == false
         run: |
-          make snapshot
+          task snapshot
 
       # publish
       - name: publish
@@ -76,7 +101,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REF: ${{ github.ref }}
         run: |
-          make publish
+          task publish
 
       # artifacts
       - name: artifact_linux
@@ -116,6 +141,8 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             cloudb0x/autoscan:${{ steps.releasetag.outputs.tag }}
             cloudb0x/autoscan:latest
@@ -145,6 +172,8 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           pull: true
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             cloudb0x/autoscan:${{ steps.dockertag.outputs.replaced }}
 

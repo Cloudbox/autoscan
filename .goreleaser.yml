@@ -48,7 +48,7 @@ checksum:
 
 # Snapshot
 snapshot:
-  name_template: "{{ .Major }}.{{ .Minor }}.{{ .Patch }}-dev+{{ .ShortCommit }}"
+  name_template: "{{ .Major }}.{{ .Minor }}.{{ .Patch }}-dev+{{ .Branch  }}"
 
 # Changelog
 changelog:

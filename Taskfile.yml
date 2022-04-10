@@ -1,0 +1,66 @@
+version: '3'
+
+vars:
+  APP: autoscan
+  CGO_ENABLED: 0
+  GOOS:
+    sh: go env GOOS
+  GOARCH:
+    sh: go env GOARCH
+  DIST_PATH: dist
+  BUILD_PATH: "{{.DIST_PATH}}/{{.APP}}_{{.GOOS}}_{{.GOARCH}}"
+
+env:
+  GIT_COMMIT:
+    sh: git rev-parse --short HEAD
+  TIMESTAMP: '{{now | unixEpoch}}'
+  VERSION: 0.0.0-dev
+
+tasks:
+  test:
+    desc: Go tests
+    cmds:
+      - go test ./... -cover -v -race ${GO_PACKAGES}
+
+  vendor:
+    desc: Go vendor
+    sources:
+      - '**/*.go'
+      - ./go.sum
+    cmds:
+      - go mod vendor
+      - go mod tidy
+
+  vendor_update:
+    desc: Go vendor update
+    cmds:
+      - go get -u ./...
+      - task: vendor
+
+  build:
+    desc: Generate a development binary
+    dir: '{{.BUILD_PATH}}'
+    deps: [ vendor ]
+    cmds:
+      - | 
+        CGO_ENABLED={{.CGO_ENABLED}} \
+        go build \
+        -mod vendor \
+        -trimpath \
+        -ldflags "-s -w -X main.Version=${VERSION} -X main.GitCommit=${GIT_COMMIT} -X main.Timestamp=${TIMESTAMP}" \
+        ../../cmd/{{.APP}}
+
+  release:
+    desc: Generate a release, but don't publish
+    cmds:
+      - goreleaser --skip-validate --skip-publish --rm-dist
+
+  snapshot:
+    desc: Generate a snapshot release
+    cmds:
+      - goreleaser --snapshot --skip-publish --rm-dist
+
+  publish:
+    desc: Generate a release, and publish
+    cmds:
+      - goreleaser --rm-dist

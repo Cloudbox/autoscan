@@ -8,9 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudbox/autoscan"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type Config struct {

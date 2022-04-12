@@ -1,8 +1,9 @@
 package autoscan
 
 import (
-	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type Config struct {

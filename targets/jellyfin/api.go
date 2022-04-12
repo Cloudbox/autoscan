@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type apiClient struct {

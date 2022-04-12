@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type apiClient struct {

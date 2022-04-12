@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog/hlog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type Config struct {

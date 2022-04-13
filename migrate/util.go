@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"path/filepath"
+	"sort"
 )
 
 type migration struct {
@@ -77,7 +78,7 @@ func (m *Migrator) exec(component string, migration *migration) (err error) {
 	return nil
 }
 
-func (m *Migrator) parse(fs *embed.FS) (map[int]*migration, error) {
+func (m *Migrator) parse(fs *embed.FS) ([]*migration, error) {
 	// parse migrations from filesystem
 	files, err := fs.ReadDir(m.dir)
 	if err != nil {
@@ -85,7 +86,7 @@ func (m *Migrator) parse(fs *embed.FS) (map[int]*migration, error) {
 	}
 
 	// parse migrations
-	migrations := make(map[int]*migration)
+	migrations := make([]*migration, 0)
 	for _, f := range files {
 		// skip dirs
 		if f.IsDir() {
@@ -106,8 +107,13 @@ func (m *Migrator) parse(fs *embed.FS) (map[int]*migration, error) {
 		md.Filename = f.Name()
 
 		// set migration
-		migrations[md.Version] = md
+		migrations = append(migrations, md)
 	}
+
+	// sort migrations
+	sort.Slice(migrations, func(i, j int) bool {
+		return migrations[i].Version < migrations[j].Version
+	})
 
 	return migrations, nil
 }

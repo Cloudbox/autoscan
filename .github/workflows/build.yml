@@ -16,6 +16,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v2
         with:
           install-only: true
+          version: 1.7.0
 
       - name: goreleaser info
         run: goreleaser -v

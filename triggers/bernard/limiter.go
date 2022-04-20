@@ -2,10 +2,11 @@ package bernard
 
 import (
 	"context"
-	"golang.org/x/sync/semaphore"
-	"golang.org/x/time/rate"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/semaphore"
+	"golang.org/x/time/rate"
 )
 
 const (

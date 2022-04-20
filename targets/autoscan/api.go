@@ -2,10 +2,12 @@ package autoscan
 
 import (
 	"fmt"
-	"github.com/cloudbox/autoscan"
-	"github.com/rs/zerolog"
 	"net/http"
 	"net/url"
+
+	"github.com/rs/zerolog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type apiClient struct {

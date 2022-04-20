@@ -7,3 +7,5 @@ dist/
 *.log
 /autoscan
 /config.yml
+
+/.task/

@@ -2,10 +2,12 @@ package main
 
 import (
 	"errors"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
 	"github.com/cloudbox/autoscan"
 	"github.com/cloudbox/autoscan/processor"
-	"github.com/rs/zerolog/log"
-	"time"
 )
 
 func scanStats(proc *processor.Processor, interval time.Duration) {

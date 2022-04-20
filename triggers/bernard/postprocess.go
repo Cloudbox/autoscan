@@ -2,6 +2,7 @@ package bernard
 
 import (
 	"fmt"
+
 	"github.com/l3uddz/bernard"
 	"github.com/l3uddz/bernard/datastore"
 	"github.com/l3uddz/bernard/datastore/sqlite"

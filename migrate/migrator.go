@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+
 	"github.com/oriser/regroup"
 	"modernc.org/sqlite"
 )
@@ -63,15 +64,15 @@ func (m *Migrator) Migrate(fs *embed.FS, component string) error {
 	}
 
 	// migrate
-	for _, migration := range migrations {
+	for _, mg := range migrations {
 		// already have this version?
-		if _, exists := versions[migration.Version]; exists {
+		if _, exists := versions[mg.Version]; exists {
 			continue
 		}
 
 		// migrate
-		if err := m.exec(component, migration); err != nil {
-			return fmt.Errorf("migrate: %v: %w", migration.Filename, err)
+		if err := m.exec(component, mg); err != nil {
+			return fmt.Errorf("migrate: %v: %w", mg.Filename, err)
 		}
 	}
 

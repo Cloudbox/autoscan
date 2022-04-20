@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -37,6 +38,7 @@ import (
 
 type config struct {
 	// General configuration
+	Host       []string      `yaml:"host"`
 	Port       int           `yaml:"port"`
 	MinimumAge time.Duration `yaml:"minimum-age"`
 	ScanDelay  time.Duration `yaml:"scan-delay"`
@@ -171,6 +173,7 @@ func main() {
 		MinimumAge: 10 * time.Minute,
 		ScanDelay:  5 * time.Second,
 		ScanStats:  1 * time.Hour,
+		Host:       []string{""},
 		Port:       3030,
 	}
 
@@ -243,12 +246,22 @@ func main() {
 	// http triggers
 	router := getRouter(c, proc)
 
-	go func() {
-		log.Info().Msgf("Starting server on port %d", c.Port)
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", c.Port), router); err != nil {
-			log.Fatal().Err(err).Msg("Failed starting web server")
-		}
-	}()
+	for _, h := range c.Host {
+		go func(host string) {
+			addr := host
+			if !strings.Contains(addr, ":") {
+				addr = fmt.Sprintf("%s:%d", host, c.Port)
+			}
+
+			log.Info().Msgf("Starting server on %s", addr)
+			if err := http.ListenAndServe(addr, router); err != nil {
+				log.Fatal().
+					Str("addr", addr).
+					Err(err).
+					Msg("Failed starting web server")
+			}
+		}(h)
+	}
 
 	log.Info().
 		Int("manual", 1).

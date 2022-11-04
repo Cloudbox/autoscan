@@ -1,0 +1,13 @@
+{
+  "eventType": "Download",
+  "isUpgrade": false,
+  "bookFiles": [
+    {
+      "path": "/Books/Brandon Sanderson/The Way of Kings (2010)/The Way of Kings - Brandon Sanderson.epub"
+    }
+  ],
+  "author": {
+    "name": "Brandon Sanderson",
+    "path": "/Books/Brandon Sanderson"
+  }
+}

@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudbox/autoscan"
 	"github.com/rs/zerolog/hlog"
+
+	"github.com/cloudbox/autoscan"
 )
 
 type Config struct {
@@ -78,8 +79,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var unique = map[string]bool{}
-	var scans []autoscan.Scan
+	unique := make(map[string]bool)
+	scans := make([]autoscan.Scan, 0)
 
 	for _, f := range event.Files {
 		folderPath := path.Dir(h.rewrite(f.Path))
@@ -89,13 +90,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 		// add scan
 		unique[folderPath] = true
-		scan := autoscan.Scan{
+		scans = append(scans, autoscan.Scan{
 			Folder:   folderPath,
 			Priority: h.priority,
 			Time:     now(),
-		}
-
-		scans = append(scans, scan)
+		})
 	}
 
 	err = h.callback(scans...)
@@ -105,14 +104,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, scan := range scans {
-		l.Info().
-			Str("path", scan.Folder).
-			Str("event", event.Type).
-			Msg("Scan moved to processor")
-	}
-
 	rw.WriteHeader(http.StatusOK)
+	l.Info().
+		Str("path", scans[0].Folder).
+		Str("event", event.Type).
+		Msg("Scan moved to processor")
 }
 
 var now = time.Now

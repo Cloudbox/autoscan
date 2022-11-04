@@ -31,9 +31,11 @@ jobs:
         run: task --version
 
       - name: qemu
+        if: github.event.pull_request.head.repo.fork == false
         uses: docker/setup-qemu-action@v2
 
       - name: buildx
+        if: github.event.pull_request.head.repo.fork == false
         uses: docker/setup-buildx-action@v2
 
       # checkout

@@ -1,7 +1,7 @@
 # Autoscan
 
 Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.
-Autoscan integrates with Sonarr, Radarr, Lidarr, Readarr, and Google Drive to fetch changes in near real-time without relying on the file system.
+Autoscan integrates with Sonarr, Radarr, Readarr, Lidarr and Google Drive to fetch changes in near real-time without relying on the file system.
 
 Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
 Well, Autoscan is a rewrite of the original Plex Autoscan written in the Go language.
@@ -61,7 +61,7 @@ It is important that all three modules can have access to a file. When a trigger
 
 #### Simple example
 
-- Sonarr running in a Docker container (same example works for Lidarr, Readarr, and Radarr)
+- Sonarr running in a Docker container (same example works for Lidarr, Radarr and Readarr)
 - Autoscan running on the host OS (not in a container)
 - Plex running in a Docker container
 
@@ -117,8 +117,8 @@ Autoscan currently supports the following triggers:
 
 - Manual: When you want to scan a path manually.
 
-- The -arrs: Lidarr, Readarr, Sonarr and Radarr. \
-  Webhook support for Lidarr, Readarr, Sonarrr and Radarr.
+- The -arrs: Lidarr, Sonarr, Radarr and Readarr. \
+  Webhook support for Lidarr, Sonarr, Radarr and Readarr.
 
 All triggers support:
 
@@ -185,7 +185,7 @@ The following -arrs are currently provided by Autoscan:
 
 #### Connecting the -arrs
 
-To add your webhook to Sonarr, Radarr, Readarr, or Lidarr, do:
+To add your webhook to Sonarr, Radarr, Readarr or Lidarr, do:
 
 1. Open the `settings` page in Sonarr/Radarr/Readarr/Lidarr
 2. Select the tab `connect`
@@ -262,15 +262,15 @@ triggers:
     - name: lidarr   # /triggers/lidarr
       priority: 1
 
-  readarr:
-    - name: readarr   # /triggers/readarr
-      priority: 1      
-
   radarr:
     - name: radarr   # /triggers/radarr
       priority: 2
     - name: radarr4k # /triggers/radarr4k
       priority: 5
+
+  readarr:
+    - name: readarr  # /triggers/readarr
+      priority: 1
 
   sonarr:
     - name: sonarr-docker # /triggers/sonarr-docker
@@ -477,15 +477,15 @@ triggers:
     - name: lidarr   # /triggers/lidarr
       priority: 1
 
-  readarr:
-    - name: readarr   # /triggers/readarr
-      priority: 1      
-
   radarr:
     - name: radarr   # /triggers/radarr
       priority: 2
     - name: radarr4k # /triggers/radarr4k
       priority: 5
+
+  readarr:
+    - name: readarr  # /triggers/readarr
+      priority: 1
 
   sonarr:
     - name: sonarr-docker # /triggers/sonarr-docker

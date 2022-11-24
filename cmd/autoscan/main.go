@@ -30,6 +30,7 @@ import (
 	"github.com/cloudbox/autoscan/triggers/lidarr"
 	"github.com/cloudbox/autoscan/triggers/manual"
 	"github.com/cloudbox/autoscan/triggers/radarr"
+	"github.com/cloudbox/autoscan/triggers/readarr"
 	"github.com/cloudbox/autoscan/triggers/sonarr"
 
 	// sqlite3 driver
@@ -59,6 +60,7 @@ type config struct {
 		Inotify []inotify.Config `yaml:"inotify"`
 		Lidarr  []lidarr.Config  `yaml:"lidarr"`
 		Radarr  []radarr.Config  `yaml:"radarr"`
+		Readarr []readarr.Config `yaml:"readarr"`
 		Sonarr  []sonarr.Config  `yaml:"sonarr"`
 	} `yaml:"triggers"`
 
@@ -268,8 +270,9 @@ func main() {
 		Int("bernard", len(c.Triggers.Bernard)).
 		Int("inotify", len(c.Triggers.Inotify)).
 		Int("lidarr", len(c.Triggers.Lidarr)).
-		Int("sonarr", len(c.Triggers.Sonarr)).
 		Int("radarr", len(c.Triggers.Radarr)).
+		Int("readarr", len(c.Triggers.Readarr)).
+		Int("sonarr", len(c.Triggers.Sonarr)).
 		Msg("Initialised triggers")
 
 	// targets

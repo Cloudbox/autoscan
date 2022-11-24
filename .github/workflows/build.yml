@@ -6,6 +6,9 @@ on:
       - '*'
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
@@ -13,7 +16,7 @@ jobs:
     steps:
       # dependencies
       - name: goreleaser
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v3
         with:
           install-only: true
           version: 1.7.0
@@ -28,20 +31,22 @@ jobs:
         run: task --version
 
       - name: qemu
-        uses: docker/setup-qemu-action@v1
+        if: github.event.pull_request.head.repo.fork == false
+        uses: docker/setup-qemu-action@v2
 
       - name: buildx
-        uses: docker/setup-buildx-action@v1
+        if: github.event.pull_request.head.repo.fork == false
+        uses: docker/setup-buildx-action@v2
 
       # checkout
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       # setup go
       - name: go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19
 
@@ -51,26 +56,18 @@ jobs:
           go env
 
       # cache
-      - name: cache-paths
-        id: go-cache-paths
-        run: |
-          echo "::set-output name=go-build::$(go env GOCACHE)"
-          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
-
-      - name: cache-build
-        uses: actions/cache@v2
+      - name: cache-go
+        uses: actions/cache@v3
         with:
-          path: ${{ steps.go-cache-paths.outputs.go-build }}
-          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
-
-      - name: cache-mod
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.go-cache-paths.outputs.go-mod }}
-          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-cache-mod
 
       - name: cache-task
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .task/**/*
           key: ${{ runner.os }}-go-task
@@ -106,19 +103,20 @@ jobs:
 
       # artifacts
       - name: artifact_linux
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v3
         with:
           name: build_linux
           path: dist/*linux*
 
       - name: artifact_darwin
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v3
         with:
           name: build_darwin
           path: dist/*darwin*
 
       # docker login
       - name: docker login
+        if: github.event.pull_request.head.repo.fork == false
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -127,15 +125,15 @@ jobs:
 
       # docker build (latest & tag)
       - name: release tag
-        if: startsWith(github.ref, 'refs/tags/') == true
+        if: startsWith(github.ref, 'refs/tags/') == true && github.event.pull_request.head.repo.fork == false
         uses: little-core-labs/get-git-tag@v3.0.2
         id: releasetag
         with:
           tagRegex: "v?(.+)"
 
       - name: docker - build release
-        if: startsWith(github.ref, 'refs/tags/') == true
-        uses: docker/build-push-action@v2
+        if: startsWith(github.ref, 'refs/tags/') == true && github.event.pull_request.head.repo.fork == false
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: ./docker/Dockerfile
@@ -150,13 +148,13 @@ jobs:
 
       # docker build (branch)
       - name: branch name
-        if: startsWith(github.ref, 'refs/tags/') == false
+        if: startsWith(github.ref, 'refs/tags/') == false && github.event.pull_request.head.repo.fork == false
         id: branch-name
-        uses: tj-actions/branch-names@v2.2
+        uses: tj-actions/branch-names@v6.2
 
       - name: docker tag
-        if: startsWith(github.ref, 'refs/tags/') == false
-        uses: frabert/replace-string-action@master
+        if: startsWith(github.ref, 'refs/tags/') == false && github.event.pull_request.head.repo.fork == false
+        uses: frabert/replace-string-action@v2.3
         id: dockertag
         with:
           pattern: '[:\.\/]+'
@@ -165,8 +163,8 @@ jobs:
           flags: 'g'
 
       - name: docker - build branch
-        if: startsWith(github.ref, 'refs/tags/') == false
-        uses: docker/build-push-action@v2
+        if: startsWith(github.ref, 'refs/tags/') == false && github.event.pull_request.head.repo.fork == false
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: ./docker/Dockerfile
@@ -180,5 +178,6 @@ jobs:
 
       # cleanup
       - name: cleanup
+        if: github.event.pull_request.head.repo.fork == false
         run: |
           rm -f ${HOME}/.docker/config.json

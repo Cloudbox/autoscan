@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	URL       string             `yaml:"url"`
-	User      string             `yaml:"username"`
-	Pass      string             `yaml:"password"`
-	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
-	Verbosity string             `yaml:"verbosity"`
+	URL            string             `yaml:"url"`
+	User           string             `yaml:"username"`
+	Pass           string             `yaml:"password"`
+	Rewrite        []autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity      string             `yaml:"verbosity"`
+	SlashDirection string             `yaml:"slash-direction"`
 }
 
 type target struct {
@@ -29,7 +30,7 @@ func New(c Config) (autoscan.Target, error) {
 		Str("target", "autoscan").
 		Str("url", c.URL).Logger()
 
-	rewriter, err := autoscan.NewRewriter(c.Rewrite)
+	rewriter, err := autoscan.NewRewriter(c.Rewrite, "forward", c.SlashDirection)
 	if err != nil {
 		return nil, err
 	}

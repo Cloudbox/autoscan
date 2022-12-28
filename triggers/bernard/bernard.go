@@ -37,6 +37,7 @@ type Config struct {
 		Include    []string           `yaml:"include"`
 		Exclude    []string           `yaml:"exclude"`
 	} `yaml:"drives"`
+	SlashDirection string `yaml:"slash-direction"`
 }
 
 func New(c Config, db *sql.DB) (autoscan.Trigger, error) {
@@ -68,7 +69,7 @@ func New(c Config, db *sql.DB) (autoscan.Trigger, error) {
 	for _, d := range c.Drives {
 		d := d
 
-		rewriter, err := autoscan.NewRewriter(append(d.Rewrite, c.Rewrite...))
+		rewriter, err := autoscan.NewRewriter(append(d.Rewrite, c.Rewrite...), c.SlashDirection, "forward")
 		if err != nil {
 			return nil, err
 		}

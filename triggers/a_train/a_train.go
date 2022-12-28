@@ -17,10 +17,11 @@ type Drive struct {
 }
 
 type Config struct {
-	Drives    []Drive            `yaml:"drives"`
-	Priority  int                `yaml:"priority"`
-	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
-	Verbosity string             `yaml:"verbosity"`
+	Drives         []Drive            `yaml:"drives"`
+	Priority       int                `yaml:"priority"`
+	Rewrite        []autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity      string             `yaml:"verbosity"`
+	SlashDirection string             `yaml:"slash-direction"`
 }
 
 type ATrainRewriter = func(drive string, input string) string
@@ -29,7 +30,7 @@ type ATrainRewriter = func(drive string, input string) string
 func New(c Config) (autoscan.HTTPTrigger, error) {
 	rewrites := make(map[string]autoscan.Rewriter)
 	for _, drive := range c.Drives {
-		rewriter, err := autoscan.NewRewriter(append(drive.Rewrite, c.Rewrite...))
+		rewriter, err := autoscan.NewRewriter(append(drive.Rewrite, c.Rewrite...), c.SlashDirection, "forward")
 		if err != nil {
 			return nil, err
 		}
@@ -37,7 +38,7 @@ func New(c Config) (autoscan.HTTPTrigger, error) {
 		rewrites[drive.ID] = rewriter
 	}
 
-	globalRewriter, err := autoscan.NewRewriter(c.Rewrite)
+	globalRewriter, err := autoscan.NewRewriter(c.Rewrite, c.SlashDirection, "forward")
 	if err != nil {
 		return nil, err
 	}

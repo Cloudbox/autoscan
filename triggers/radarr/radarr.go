@@ -13,15 +13,16 @@ import (
 )
 
 type Config struct {
-	Name      string             `yaml:"name"`
-	Priority  int                `yaml:"priority"`
-	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
-	Verbosity string             `yaml:"verbosity"`
+	Name           string             `yaml:"name"`
+	Priority       int                `yaml:"priority"`
+	Rewrite        []autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity      string             `yaml:"verbosity"`
+	SlashDirection string             `yaml:"slash-direction"`
 }
 
 // New creates an autoscan-compatible HTTP Trigger for Radarr webhooks.
 func New(c Config) (autoscan.HTTPTrigger, error) {
-	rewriter, err := autoscan.NewRewriter(c.Rewrite)
+	rewriter, err := autoscan.NewRewriter(c.Rewrite, c.SlashDirection, "forward")
 	if err != nil {
 		return nil, err
 	}

@@ -34,13 +34,13 @@ func newDatastore(db *sql.DB, mg *migrate.Migrator) (*datastore, error) {
 	return &datastore{db}, nil
 }
 
-const sqlUpsert = `
+const sqlUpsert = fmt.Sprintf(`
 INSERT INTO scan (folder, priority, time)
-VALUES (?, ?, ?)
+VALUES (%s, %s, %s)
 ON CONFLICT (folder) DO UPDATE SET
 	priority = MAX(excluded.priority, scan.priority),
 	time = excluded.time
-`
+`, "?")
 
 func (store *datastore) upsert(tx *sql.Tx, scan autoscan.Scan) error {
 	_, err := tx.Exec(sqlUpsert, scan.Folder, scan.Priority, scan.Time)
@@ -83,12 +83,12 @@ func (store *datastore) GetScansRemaining() (int, error) {
 	return remaining, nil
 }
 
-const sqlGetAvailableScan = `
+const sqlGetAvailableScan = fmt.Sprintf(`
 SELECT folder, priority, time FROM scan
-WHERE time < ?
+WHERE time < %s
 ORDER BY priority DESC, time ASC
 LIMIT 1
-`
+`, "?")
 
 func (store *datastore) GetAvailableScan(minAge time.Duration) (autoscan.Scan, error) {
 	row := store.QueryRow(sqlGetAvailableScan, now().Add(-1*minAge))
@@ -129,9 +129,9 @@ func (store *datastore) GetAll() (scans []autoscan.Scan, err error) {
 	return scans, rows.Err()
 }
 
-const sqlDelete = `
-DELETE FROM scan WHERE folder=?
-`
+const sqlDelete = fmt.Sprintf(`
+DELETE FROM scan WHERE folder=%s
+`, "?")
 
 func (store *datastore) Delete(scan autoscan.Scan) error {
 	_, err := store.Exec(sqlDelete, scan.Folder)

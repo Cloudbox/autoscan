@@ -16,10 +16,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const sqlGetScan = `
+const sqlGetScan = fmt.Sprintf(`
 SELECT folder, priority, time FROM scan
-WHERE folder = ?
-`
+WHERE folder = %s
+`, "?")
 
 func (store *datastore) GetScan(folder string) (autoscan.Scan, error) {
 	row := store.QueryRow(sqlGetScan, folder)

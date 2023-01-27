@@ -55,8 +55,9 @@ type config struct {
 	} `yaml:"authentication"`
 
 	// Database configuration
+	DatabaseType string  `yaml:"database-type"`
+
 	Database struct {
-		Type string     `yaml:"type"`
 		Host string     `yaml:"host"`
 		Port string     `yaml:"port"`
 		Name string     `yaml:"name"`
@@ -184,11 +185,12 @@ func main() {
 
 	// set default values
 	c := config{
-		MinimumAge: 10 * time.Minute,
-		ScanDelay:  5 * time.Second,
-		ScanStats:  1 * time.Hour,
-		Host:       []string{""},
-		Port:       3030,
+		MinimumAge:   10 * time.Minute,
+		ScanDelay:    5 * time.Second,
+		ScanStats:    1 * time.Hour,
+		Host:         []string{""},
+		Port:         3030,
+		DatabaseType: "sqlite",
 	}
 
 	decoder := yaml.NewDecoder(file)

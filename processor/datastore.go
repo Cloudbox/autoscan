@@ -34,7 +34,7 @@ func newDatastore(db *sql.DB, mg *migrate.Migrator) (*datastore, error) {
 	return &datastore{db}, nil
 }
 
-const sqlUpsert = fmt.Sprintf(`
+var sqlUpsert = fmt.Sprintf(`
 INSERT INTO scan (folder, priority, time)
 VALUES (%s, %s, %s)
 ON CONFLICT (folder) DO UPDATE SET
@@ -83,7 +83,7 @@ func (store *datastore) GetScansRemaining() (int, error) {
 	return remaining, nil
 }
 
-const sqlGetAvailableScan = fmt.Sprintf(`
+var sqlGetAvailableScan = fmt.Sprintf(`
 SELECT folder, priority, time FROM scan
 WHERE time < %s
 ORDER BY priority DESC, time ASC
@@ -129,7 +129,7 @@ func (store *datastore) GetAll() (scans []autoscan.Scan, err error) {
 	return scans, rows.Err()
 }
 
-const sqlDelete = fmt.Sprintf(`
+var sqlDelete = fmt.Sprintf(`
 DELETE FROM scan WHERE folder=%s
 `, "?")
 

@@ -1,4 +1,4 @@
-module github.com/cloudbox/autoscan
+module github.com/aleksasiriski/autoscan
 
 go 1.19
 
@@ -24,6 +24,7 @@ require (
 	modernc.org/cc/v3 v3.38.1 // indirect
 	modernc.org/sqlite v1.18.2
 	modernc.org/strutil v1.1.3 // indirect
+	github.com/lib/pg v1.10.7
 )
 
 require (

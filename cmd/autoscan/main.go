@@ -58,7 +58,7 @@ type config struct {
 	Database struct {
 		Type string `yaml:"type"`
 		Host string `yaml:"host"`
-		Port string `yaml:"port"`
+		Port int `yaml:"port"`
 		Name string `yaml:"name"`
 		Username string `yaml:"username"`
 		Password string `yaml:"password"`
@@ -184,11 +184,18 @@ func main() {
 
 	// set default values
 	c := config{
-		MinimumAge: 10 * time.Minute,
-		ScanDelay:  5 * time.Second,
-		ScanStats:  1 * time.Hour,
-		Host:       []string{""},
-		Port:       3030,
+		MinimumAge:   10 * time.Minute,
+		ScanDelay:    5 * time.Second,
+		ScanStats:    1 * time.Hour,
+		Host:         []string{""},
+		Port:         3031,
+		Database: {
+			Type:     "sqlite",
+			Host:     "localhost",
+			Port:     5432,
+			Name:     "autoscan",
+			Username: "postgres",
+		}
 	}
 
 	decoder := yaml.NewDecoder(file)

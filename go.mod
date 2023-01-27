@@ -8,6 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/l3uddz/bernard v0.5.1
+	github.com/lib/pq v1.10.7
 	github.com/m-rots/stubbs v1.1.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible
@@ -24,7 +25,6 @@ require (
 	modernc.org/cc/v3 v3.38.1 // indirect
 	modernc.org/sqlite v1.18.2
 	modernc.org/strutil v1.1.3 // indirect
-	github.com/lib/pg v1.10.7
 )
 
 require (

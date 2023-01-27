@@ -36,7 +36,7 @@ import (
 	// sqlite3 driver
 	_ "modernc.org/sqlite"
 	// postgresql driver
-	_ "github.com/lib/pg"
+	_ "github.com/lib/pq"
 )
 
 type config struct {

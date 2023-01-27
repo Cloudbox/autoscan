@@ -8,7 +8,7 @@ import (
 
 	"github.com/oriser/regroup"
 	"modernc.org/sqlite"
-	"github.com/lib/pg"
+	"github.com/lib/pq"
 )
 
 type Migrator struct {

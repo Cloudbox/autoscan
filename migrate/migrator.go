@@ -8,7 +8,7 @@ import (
 
 	"github.com/oriser/regroup"
 	"modernc.org/sqlite"
-//	"github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 type Migrator struct {
@@ -20,7 +20,7 @@ type Migrator struct {
 
 /* Credits to https://github.com/Boostport/migration */
 
-func New(db *sql.DB, dir string) (*Migrator, error) {
+func New(db *sql.DB, databaseType string, dir string) (*Migrator, error) {
 	var err error
 
 	m := &Migrator{
@@ -29,8 +29,14 @@ func New(db *sql.DB, dir string) (*Migrator, error) {
 	}
 
 	// validate supported driver
-	if _, ok := db.Driver().(*sqlite.Driver); !ok {
-		return nil, errors.New("database instance is not using the sqlite driver")
+	if databaseType == "sqlite" {
+		if _, ok := db.Driver().(*sqlite.Driver); !ok {
+			return nil, errors.New("database instance is not using the sqlite driver")
+		}
+	} else {
+		if _, ok := db.Driver().(*pq.Driver); !ok {
+			return nil, errors.New("database instance is not using the sqlite driver")
+		}
 	}
 
 	// verify schema

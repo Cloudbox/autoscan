@@ -55,11 +55,12 @@ type config struct {
 	} `yaml:"authentication"`
 
 	// Database configuration
-	DatabaseType string  `yaml:"database-type"`
+	DbType string `yaml:"database-type"`
+	DbSign string `yaml:"database-sign"`
 
 	Database struct {
 		Host string     `yaml:"host"`
-		Port string     `yaml:"port"`
+		Port int        `yaml:"port"`
 		Name string     `yaml:"name"`
 		Username string `yaml:"username"`
 		Password string `yaml:"password"`
@@ -165,15 +166,6 @@ func main() {
 		log.Logger = logger.Level(zerolog.InfoLevel)
 	}
 
-	// datastore
-	db, err := sql.Open("sqlite", cli.Database)
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Msg("Failed opening datastore")
-	}
-	db.SetMaxOpenConns(1)
-
 	// config
 	file, err := os.Open(cli.Config)
 	if err != nil {
@@ -185,12 +177,13 @@ func main() {
 
 	// set default values
 	c := config{
-		MinimumAge:   10 * time.Minute,
-		ScanDelay:    5 * time.Second,
-		ScanStats:    1 * time.Hour,
-		Host:         []string{""},
-		Port:         3030,
-		DatabaseType: "sqlite",
+		MinimumAge: 10 * time.Minute,
+		ScanDelay:  5 * time.Second,
+		ScanStats:  1 * time.Hour,
+		Host:       []string{""},
+		Port:       3030,
+		DbType:     "sqlite",
+		DbSign:     "?",
 	}
 
 	decoder := yaml.NewDecoder(file)
@@ -202,8 +195,25 @@ func main() {
 			Msg("Failed decoding config")
 	}
 
+	// datastore
+	dbconn := cli.Database
+	if c.DbType == "postgres" {
+		dbconn = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", c.Database.Host, c.Database.Port, c.Database.Username, c.Database.Password, c.Database.Name)
+		c.DbSign = "%s"
+	} else if c.DbType != "sqlite" {
+		log.Fatal().
+			Msg("Wrong database type")
+	}
+	db, err := sql.Open(c.DbType, dbconn)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed opening datastore")
+	}
+	db.SetMaxOpenConns(1)
+
 	// migrator
-	mg, err := migrate.New(db, "migrations")
+	mg, err := migrate.New(db, c.DbType, "migrations")
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -215,6 +225,7 @@ func main() {
 		Anchors:    c.Anchors,
 		MinimumAge: c.MinimumAge,
 		Db:         db,
+		DbSign:     c.DbSign,
 		Mg:         mg,
 	})
 

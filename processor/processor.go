@@ -18,6 +18,7 @@ type Config struct {
 	MinimumAge time.Duration
 
 	Db *sql.DB
+	DbSign string
 	Mg *migrate.Migrator
 }
 

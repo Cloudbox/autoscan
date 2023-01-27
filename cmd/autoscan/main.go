@@ -54,6 +54,16 @@ type config struct {
 		Password string `yaml:"password"`
 	} `yaml:"authentication"`
 
+	// Database configuration
+	Database struct {
+		Type string `yaml:"type"`
+		Host string `yaml:"host"`
+		Port string `yaml:"port"`
+		Name string `yaml:"name"`
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+	} `yaml:"database"`
+
 	// autoscan.HTTPTrigger
 	Triggers struct {
 		Manual  manual.Config    `yaml:"manual"`

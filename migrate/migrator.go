@@ -12,29 +12,31 @@ import (
 )
 
 type Migrator struct {
-	db  *sql.DB
-	dir string
+	db     *sql.DB
+	dbType string
+	dir    string
 
 	re *regroup.ReGroup
 }
 
 /* Credits to https://github.com/Boostport/migration */
 
-func New(db *sql.DB, databaseType string, dir string) (*Migrator, error) {
+func New(db *sql.DB, dbType string, dir string) (*Migrator, error) {
 	var err error
 
 	m := &Migrator{
-		db:  db,
-		dir: dir,
+		db:     db,
+		dbType: dbType,
+		dir:    dir,
 	}
 
 	// validate supported driver
-	if databaseType == "sqlite" {
-		if _, ok := db.Driver().(*sqlite.Driver); !ok {
-			return nil, errors.New("database instance is not using the sqlite driver")
+	if dbType == "postgres" {
+		if _, ok := db.Driver().(*pq.Driver); !ok {
+			return nil, errors.New("database instance is not using the postgres driver")
 		}
 	} else {
-		if _, ok := db.Driver().(*pq.Driver); !ok {
+		if _, ok := db.Driver().(*sqlite.Driver); !ok {
 			return nil, errors.New("database instance is not using the sqlite driver")
 		}
 	}
@@ -65,7 +67,7 @@ func (m *Migrator) Migrate(fs *embed.FS, component string) error {
 	}
 
 	// get current migration versions
-	versions, err := m.versions(component)
+	versions, err := m.versions(component, m.dbType)
 	if err != nil {
 		return fmt.Errorf("versions: %v: %w", component, err)
 	}
@@ -78,7 +80,7 @@ func (m *Migrator) Migrate(fs *embed.FS, component string) error {
 		}
 
 		// migrate
-		if err := m.exec(component, mg); err != nil {
+		if err := m.exec(component, m.dbType, mg); err != nil {
 			return fmt.Errorf("migrate: %v: %w", mg.Filename, err)
 		}
 	}

@@ -39,6 +39,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type database struct {
+	Type string     `yaml:"type"`
+	Host string     `yaml:"host"`
+	Port int        `yaml:"port"`
+	Name string     `yaml:"name"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
 type config struct {
 	// General configuration
 	Host       []string      `yaml:"host"`
@@ -55,10 +64,8 @@ type config struct {
 	} `yaml:"authentication"`
 
 	// Database configuration
-	DbType string `yaml:"database-type"`
-	DbSign string `yaml:"database-sign"`
-
 	Database struct {
+		Type string     `yaml:"type"`
 		Host string     `yaml:"host"`
 		Port int        `yaml:"port"`
 		Name string     `yaml:"name"`
@@ -177,13 +184,18 @@ func main() {
 
 	// set default values
 	c := config{
-		MinimumAge: 10 * time.Minute,
-		ScanDelay:  5 * time.Second,
-		ScanStats:  1 * time.Hour,
-		Host:       []string{""},
-		Port:       3030,
-		DbType:     "sqlite",
-		DbSign:     "?",
+		MinimumAge:   10 * time.Minute,
+		ScanDelay:    5 * time.Second,
+		ScanStats:    1 * time.Hour,
+		Host:         []string{""},
+		Port:         3030,
+		Database: database{
+			Type:     "sqlite",
+			Host:     "localhost",
+			Port:     5432,
+			Name:     "autoscan",
+			Username: "postgres",
+		},
 	}
 
 	decoder := yaml.NewDecoder(file)
@@ -197,14 +209,13 @@ func main() {
 
 	// datastore
 	dbconn := cli.Database
-	if c.DbType == "postgres" {
+	if c.Database.Type == "postgres" {
 		dbconn = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", c.Database.Host, c.Database.Port, c.Database.Username, c.Database.Password, c.Database.Name)
-		c.DbSign = "%s"
-	} else if c.DbType != "sqlite" {
+	} else if c.Database.Type != "sqlite" {
 		log.Fatal().
 			Msg("Wrong database type")
 	}
-	db, err := sql.Open(c.DbType, dbconn)
+	db, err := sql.Open(c.Database.Type, dbconn)
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -213,7 +224,7 @@ func main() {
 	db.SetMaxOpenConns(1)
 
 	// migrator
-	mg, err := migrate.New(db, c.DbType, "migrations")
+	mg, err := migrate.New(db, c.Database.Type, "migrations")
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -225,7 +236,7 @@ func main() {
 		Anchors:    c.Anchors,
 		MinimumAge: c.MinimumAge,
 		Db:         db,
-		DbSign:     c.DbSign,
+		DbType:     c.Database.Type,
 		Mg:         mg,
 	})
 

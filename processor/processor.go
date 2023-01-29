@@ -18,12 +18,12 @@ type Config struct {
 	MinimumAge time.Duration
 
 	Db *sql.DB
-	DbSign string
+	DbType string
 	Mg *migrate.Migrator
 }
 
 func New(c Config) (*Processor, error) {
-	store, err := newDatastore(c.Db, c.DbSign, c.Mg)
+	store, err := newDatastore(c.Db, c.DbType, c.Mg)
 	if err != nil {
 		return nil, err
 	}

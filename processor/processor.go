@@ -23,7 +23,7 @@ type Config struct {
 }
 
 func New(c Config) (*Processor, error) {
-	store, err := newDatastore(c.Db, c.Mg)
+	store, err := newDatastore(c.Db, c.DbSign, c.Mg)
 	if err != nil {
 		return nil, err
 	}

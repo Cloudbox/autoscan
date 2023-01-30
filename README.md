@@ -7,6 +7,28 @@ Currently there's only this image:
 ghcr.io/aleksasiriski/autoscan:master
 ```
 
+Config file should look like this:
+```yaml
+triggers:
+  radarr:
+    - name: radarr
+      priority: 2
+  sonarr:
+    - name: sonarr
+      priority: 2
+targets:
+  jellyfin:
+    - url: https://jellyfin.example.tld
+      token: your_token_here
+database:
+  type: postgres # optional, default is sqlite
+  host: localhost #optional, default is localhost
+  port: 5432 #optional, default is 5432
+  name: autoscan #optional, default is autoscan
+  username: postgres #optional, default is postgres
+  password: your_password_here #optional only when type is sqlite
+```
+
 # Autoscan
 
 Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.

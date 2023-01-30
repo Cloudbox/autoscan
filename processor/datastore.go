@@ -40,7 +40,7 @@ func sqlUpsert(dbType string) (string) {
 				INSERT INTO scan (folder, priority, time)
 				VALUES ($1, $2, $3)
 				ON CONFLICT (folder) DO UPDATE SET
-					priority = MAX(excluded.priority, scan.priority),
+					priority = GREATEST(excluded.priority, scan.priority),
 					time = excluded.time
 				`
 		} else {

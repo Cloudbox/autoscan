@@ -1,3 +1,12 @@
+# Autoscan with Postgres support
+
+It works flawlessly with Postgres as of now, but SQLite is broken since I had to hardcode `TIMESTAMP` instead of `DATETIME` in `1_init.sql`. Until I find a way to work around this issue, it will only work with Postgres. When that is fixed it can be merged upstream.
+
+Currently there's only this image:
+```sh
+ghcr.io/aleksasiriski/autoscan:master
+```
+
 # Autoscan
 
 Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.

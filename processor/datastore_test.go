@@ -39,12 +39,12 @@ func getDatastore(t *testing.T) *datastore {
 		t.Fatal(err)
 	}
 
-	mg, err := migrate.New(db, "migrations")
+	mg, err := migrate.New(db, "sqlite", "migrations")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ds, err := newDatastore(db, mg)
+	ds, err := newDatastore(db, "sqlite", mg)
 	if err != nil {
 		t.Fatal(err)
 	}

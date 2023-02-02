@@ -22,14 +22,26 @@ type datastore struct {
 }
 
 var (
-	//go:embed migrations
-	migrations embed.FS
+	//go:embed migrations/sqlite
+	migrationsSqlite embed.FS
+)
+
+var (
+	//go:embed migrations/postgres
+	migrationsPostgres embed.FS
 )
 
 func newDatastore(db *sql.DB, dbType string, mg *migrate.Migrator) (*datastore, error) {
-	// migrations
-	if err := mg.Migrate(&migrations, "processor"); err != nil {
-		return nil, fmt.Errorf("migrate: %w", err)
+	if dbType == "postgres" {
+		// migrations/postgres
+		if err := mg.Migrate(&migrationsPostgres, "processor"); err != nil {
+			return nil, fmt.Errorf("migrate: %w", err)
+		}
+	} else {
+		// migrations/sqlite
+		if err := mg.Migrate(&migrationsSqlite, "processor"); err != nil {
+			return nil, fmt.Errorf("migrate: %w", err)
+		}
 	}
 	return &datastore{db, dbType}, nil
 }

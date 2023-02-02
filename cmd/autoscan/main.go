@@ -224,7 +224,11 @@ func main() {
 	db.SetMaxOpenConns(1)
 
 	// migrator
-	mg, err := migrate.New(db, c.Database.Type, "migrations")
+	migratorDir := "migrations/sqlite"
+	if c.Database.Type == "postgres" {
+		migratorDir = "migrations/postgres"
+	}
+	mg, err := migrate.New(db, c.Database.Type, migratorDir)
 	if err != nil {
 		log.Fatal().
 			Err(err).

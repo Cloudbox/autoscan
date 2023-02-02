@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Autoscan with Postgres support
 
 It works flawlessly with Postgres as of now, it can be merged upstream.
@@ -29,6 +30,8 @@ database:
   password: your_password_here #optional only when type is sqlite
 ```
 
+=======
+>>>>>>> b6304ad (Full support for both SQLite and Postgres)
 # Autoscan
 
 Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.
@@ -237,6 +240,20 @@ Autoscan also supports the following events in the latest versions of Radarr and
 We are not 100% sure whether these three events cover all the possible file system interactions.
 So for now, please do keep using Bernard or the Inotify trigger to fetch all scans.
 
+### Postgresql support / Statelessness
+
+If you want this app to be stateless, for example when running on Kubernetes, you can use Postgresql. Simply add the following values to your config:
+
+```yaml
+  database:
+    type: postgres
+    host: localhost # optional, default is localhost
+    port: 5432 # optional, default is 5432
+    name: autoscan # optional, default is autoscan
+    username: postgres # optional, default is postgres
+    password: your_password_here
+```
+
 ### Configuration
 
 A snippet of the `config.yml` file showcasing what is possible.
@@ -312,6 +329,14 @@ triggers:
       rewrite:
         - from: /tv/
           to: /mnt/unionfs/Media/TV/
+  
+  database:
+    type: postgres # optional, default is sqlite
+    host: localhost # optional, default is localhost
+    port: 5432 # optional, default is 5432
+    name: autoscan # optional, default is autoscan
+    username: postgres # optional, default is postgres
+    password: your_password_here # optional only when type is sqlite
 ```
 
 ## Processor

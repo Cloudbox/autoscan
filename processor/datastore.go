@@ -46,24 +46,24 @@ func newDatastore(db *sql.DB, dbType string, mg *migrate.Migrator) (*datastore, 
 	return &datastore{db, dbType}, nil
 }
 
-func sqlUpsert(dbType string) (string) {
-		if dbType == "postgres" {
-			return `
+func sqlUpsert(dbType string) string {
+	if dbType == "postgres" {
+		return `
 				INSERT INTO scan (folder, priority, time)
 				VALUES ($1, $2, $3)
 				ON CONFLICT (folder) DO UPDATE SET
 					priority = GREATEST(excluded.priority, scan.priority),
 					time = excluded.time
 				`
-		} else {
-			return `
+	} else {
+		return `
 				INSERT INTO scan (folder, priority, time)
 				VALUES (?, ?, ?)
 				ON CONFLICT (folder) DO UPDATE SET
 					priority = MAX(excluded.priority, scan.priority),
 					time = excluded.time
 				`
-		}
+	}
 }
 
 func (store *datastore) upsert(tx *sql.Tx, dbType string, scan autoscan.Scan) error {
@@ -107,7 +107,7 @@ func (store *datastore) GetScansRemaining() (int, error) {
 	return remaining, nil
 }
 
-func sqlGetAvailableScan(dbType string) (string) {
+func sqlGetAvailableScan(dbType string) string {
 	if dbType == "postgres" {
 		return `
 			SELECT folder, priority, time FROM scan
@@ -164,7 +164,7 @@ func (store *datastore) GetAll() (scans []autoscan.Scan, err error) {
 	return scans, rows.Err()
 }
 
-func sqlDelete(dbType string) (string) {
+func sqlDelete(dbType string) string {
 	if dbType == "postgres" {
 		return `DELETE FROM scan WHERE folder=$1`
 	} else {

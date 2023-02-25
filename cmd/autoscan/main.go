@@ -39,16 +39,44 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type database struct {
-	Type string     `yaml:"type"`
-	Host string     `yaml:"host"`
-	Port int        `yaml:"port"`
-	Name string     `yaml:"name"`
+// Authentication for autoscan.HTTPTrigger
+type Auth struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 }
 
-type config struct {
+// Database configuration
+type Database struct {
+	Type     string `yaml:"type"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+// autoscan.HTTPTrigger
+type Triggers struct {
+	Manual  manual.Config    `yaml:"manual"`
+	ATrain  a_train.Config   `yaml:"a-train"`
+	Bernard []bernard.Config `yaml:"bernard"`
+	Inotify []inotify.Config `yaml:"inotify"`
+	Lidarr  []lidarr.Config  `yaml:"lidarr"`
+	Radarr  []radarr.Config  `yaml:"radarr"`
+	Readarr []readarr.Config `yaml:"readarr"`
+	Sonarr  []sonarr.Config  `yaml:"sonarr"`
+}
+
+// autoscan.Target
+type Targets struct {
+	Autoscan []ast.Config      `yaml:"autoscan"`
+	Emby     []emby.Config     `yaml:"emby"`
+	Jellyfin []jellyfin.Config `yaml:"jellyfin"`
+	Plex     []plex.Config     `yaml:"plex"`
+}
+
+// Configuration
+type Config struct {
 	// General configuration
 	Host       []string      `yaml:"host"`
 	Port       int           `yaml:"port"`
@@ -58,40 +86,16 @@ type config struct {
 	Anchors    []string      `yaml:"anchors"`
 
 	// Authentication for autoscan.HTTPTrigger
-	Auth struct {
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"authentication"`
+	Auth Auth `yaml:"authentication"`
 
 	// Database configuration
-	Database struct {
-		Type string     `yaml:"type"`
-		Host string     `yaml:"host"`
-		Port int        `yaml:"port"`
-		Name string     `yaml:"name"`
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"database"`
+	Database Database `yaml:"database"`
 
 	// autoscan.HTTPTrigger
-	Triggers struct {
-		Manual  manual.Config    `yaml:"manual"`
-		ATrain  a_train.Config   `yaml:"a-train"`
-		Bernard []bernard.Config `yaml:"bernard"`
-		Inotify []inotify.Config `yaml:"inotify"`
-		Lidarr  []lidarr.Config  `yaml:"lidarr"`
-		Radarr  []radarr.Config  `yaml:"radarr"`
-		Readarr []readarr.Config `yaml:"readarr"`
-		Sonarr  []sonarr.Config  `yaml:"sonarr"`
-	} `yaml:"triggers"`
+	Triggers Triggers `yaml:"triggers"`
 
 	// autoscan.Target
-	Targets struct {
-		Autoscan []ast.Config      `yaml:"autoscan"`
-		Emby     []emby.Config     `yaml:"emby"`
-		Jellyfin []jellyfin.Config `yaml:"jellyfin"`
-		Plex     []plex.Config     `yaml:"plex"`
-	} `yaml:"targets"`
+	Targets Targets `yaml:"targets"`
 }
 
 var (
@@ -183,12 +187,12 @@ func main() {
 	defer file.Close()
 
 	// set default values
-	c := config{
-		MinimumAge:   10 * time.Minute,
-		ScanDelay:    5 * time.Second,
-		ScanStats:    1 * time.Hour,
-		Host:         []string{""},
-		Port:         3030,
+	c := Config{
+		MinimumAge: 10 * time.Minute,
+		ScanDelay:  5 * time.Second,
+		ScanStats:  1 * time.Hour,
+		Host:       []string{""},
+		Port:       3030,
 		Database: database{
 			Type:     "sqlite",
 			Host:     "localhost",

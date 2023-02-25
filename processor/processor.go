@@ -17,9 +17,9 @@ type Config struct {
 	Anchors    []string
 	MinimumAge time.Duration
 
-	Db *sql.DB
+	Db     *sql.DB
 	DbType string
-	Mg *migrate.Migrator
+	Mg     *migrate.Migrator
 }
 
 func New(c Config) (*Processor, error) {

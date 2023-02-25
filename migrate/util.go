@@ -119,14 +119,15 @@ func (m *Migrator) parse(fs *embed.FS) ([]*migration, error) {
 }
 
 const sqlSchema = `CREATE TABLE IF NOT EXISTS schema_migration (component VARCHAR(255) NOT NULL, version INTEGER NOT NULL, PRIMARY KEY (component, version))`
-func sqlVersions(dbType string) (string) {
+
+func sqlVersions(dbType string) string {
 	if dbType == "postgres" {
 		return `SELECT version FROM schema_migration WHERE component = $1`
 	} else {
 		return `SELECT version FROM schema_migration WHERE component = ?`
 	}
 }
-func sqlInsertVersion(dbType string) (string) {
+func sqlInsertVersion(dbType string) string {
 	if dbType == "postgres" {
 		return `INSERT INTO schema_migration (component, version) VALUES ($1, $2)`
 	} else {

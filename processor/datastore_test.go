@@ -16,7 +16,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func sqlGetScan(dbType string) (string) {
+func sqlGetScan(dbType string) string {
 	if dbType == "postgres" {
 		return `SELECT folder, priority, time FROM scan WHERE folder = $1`
 	} else {

@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/oriser/regroup"
 	"modernc.org/sqlite"
-	"github.com/lib/pq"
 )
 
 type Migrator struct {

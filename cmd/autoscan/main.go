@@ -77,7 +77,7 @@ type Targets struct {
 }
 
 // Configuration
-type Config struct {
+type config struct {
 	// General configuration
 	Host       []string      `yaml:"host"`
 	Port       int           `yaml:"port"`
@@ -188,13 +188,13 @@ func main() {
 	defer file.Close()
 
 	// set default values
-	c := Config{
+	c := config{
 		MinimumAge: 10 * time.Minute,
 		ScanDelay:  5 * time.Second,
 		ScanStats:  1 * time.Hour,
 		Host:       []string{""},
 		Port:       3030,
-		Database: database{
+		Database: Database{
 			Type:        "sqlite",
 			MigratorDir: "migrations/sqlite",
 			Host:        "localhost",

@@ -47,13 +47,12 @@ type Auth struct {
 
 // Database configuration
 type Database struct {
-	Type        string `yaml:"type"`
-	MigratorDir string `yaml:"migratordir"`
-	Host        string `yaml:"host"`
-	Port        int    `yaml:"port"`
-	Name        string `yaml:"name"`
-	Username    string `yaml:"username"`
-	Password    string `yaml:"password"`
+	Type     string `yaml:"type"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 // autoscan.HTTPTrigger
@@ -195,13 +194,12 @@ func main() {
 		Host:       []string{""},
 		Port:       3030,
 		Database: Database{
-			Type:        "sqlite",
-			MigratorDir: "migrations/sqlite",
-			Host:        "localhost",
-			Port:        5432,
-			Name:        "autoscan",
-			Username:    "postgres",
-			Password:    "",
+			Type:     "sqlite",
+			Host:     "localhost",
+			Port:     5432,
+			Name:     "autoscan",
+			Username: "postgres",
+			Password: "",
 		},
 	}
 
@@ -233,7 +231,11 @@ func main() {
 	}
 
 	// migrator
-	mg, err := migrate.New(db, c.Database.Type, c.Database.MigratorDir)
+	migratorDir := "migrations/sqlite"
+	if c.Database.Type == "postgres" {
+		migratorDir = "migrations/postgres"
+	}
+	mg, err := migrate.New(db, c.Database.Type, migratorDir)
 	if err != nil {
 		log.Fatal().
 			Err(err).

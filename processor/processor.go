@@ -43,6 +43,11 @@ type Processor struct {
 	processed  int64
 }
 
+// version
+func (p *Processor) GetVersion() (string, error) {
+	return p.store.SelectVersion()
+}
+
 func (p *Processor) Add(scans ...autoscan.Scan) error {
 	return p.store.Upsert(scans)
 }

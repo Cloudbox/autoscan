@@ -262,6 +262,14 @@ func main() {
 		Strs("anchors", c.Anchors).
 		Msg("Initialised processor")
 
+	// database connection
+	databaseVersion, err := proc.GetVersion()
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed getting database version:")
+	}
+
 	// Check authentication. If no auth -> warn user.
 	if c.Auth.Username == "" || c.Auth.Password == "" {
 		log.Warn().Msg("Webhooks running without authentication")
@@ -392,6 +400,7 @@ func main() {
 	// display initialised banner
 	log.Info().
 		Str("version", fmt.Sprintf("%s (%s@%s)", Version, GitCommit, Timestamp)).
+		Str("database", databaseVersion).
 		Msg("Initialised")
 
 	// processor

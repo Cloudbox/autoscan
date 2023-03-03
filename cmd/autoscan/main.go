@@ -271,7 +271,7 @@ func main() {
 	}
 
 	log.Info().
-		Str("database", databaseVersion).
+		Str("version", databaseVersion).
 		Msg("Initialised database")
 
 	// Check authentication. If no auth -> warn user.

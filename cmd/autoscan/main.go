@@ -270,6 +270,10 @@ func main() {
 			Msg("Failed getting database version:")
 	}
 
+	log.Info().
+		Str("database", databaseVersion).
+		Msg("Initialised database")
+
 	// Check authentication. If no auth -> warn user.
 	if c.Auth.Username == "" || c.Auth.Password == "" {
 		log.Warn().Msg("Webhooks running without authentication")
@@ -400,7 +404,6 @@ func main() {
 	// display initialised banner
 	log.Info().
 		Str("version", fmt.Sprintf("%s (%s@%s)", Version, GitCommit, Timestamp)).
-		Str("database", databaseVersion).
 		Msg("Initialised")
 
 	// processor

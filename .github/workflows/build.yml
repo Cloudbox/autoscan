@@ -132,13 +132,13 @@ jobs:
           task snapshot
 
       # publish
-      #- name: publish
+      - name: publish
       #  if: startsWith(github.ref, 'refs/tags/')
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #    GITHUB_REF: ${{ github.ref }}
-      #  run: |
-      #    task publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          task publish
 
       # artifacts
       - name: artifact_linux

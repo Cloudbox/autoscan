@@ -10,6 +10,7 @@ builds:
       - linux
       - darwin
       - freebsd
+      - windows
     main: ./cmd/autoscan
     goarch:
       - amd64
@@ -28,6 +29,10 @@ builds:
       - goos: freebsd
         goarch: arm64
       - goos: freebsd
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: windows
         goarch: arm
 
 # MacOS Universal Binaries

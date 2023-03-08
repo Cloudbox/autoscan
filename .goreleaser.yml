@@ -16,7 +16,7 @@ builds:
       - arm64
       - arm
     goarm:
-      - 7
+      - "7"
     ldflags:
       - -s -w
       - -X "main.Version={{ .Version }}"

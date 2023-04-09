@@ -553,13 +553,13 @@ host:
 ```
 
 ```yaml
-  database:
-    type: postgres
-    host: localhost # optional, default is localhost
-    port: 5432 # optional, default is 5432
-    name: autoscan # optional, default is autoscan
-    username: postgres # optional, default is postgres
-    password: your_password_here # optional, default is empty
+database:
+  type: postgres
+  host: localhost # optional, default is localhost
+  port: 5432 # optional, default is 5432
+  name: autoscan # optional, default is autoscan
+  username: postgres # optional, default is postgres
+  password: your_password_here # optional, default is empty
 ```
 
 - If no port is specified, it will use the default port configured.

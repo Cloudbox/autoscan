@@ -552,6 +552,16 @@ host:
   - 192.168.0.1:5959
 ```
 
+```yaml
+  database:
+    type: postgres
+    host: localhost # optional, default is localhost
+    port: 5432 # optional, default is 5432
+    name: autoscan # optional, default is autoscan
+    username: postgres # optional, default is postgres
+    password: your_password_here # optional, default is empty
+```
+
 - If no port is specified, it will use the default port configured.
 - This configuration option is only needed if you have a requirement to listen to multiple interfaces.
 
@@ -559,7 +569,7 @@ host:
 
 ### Docker
 
-Autoscan has an accompanying docker image which can be found in this [repo](https://github.com/aleksasiriski/autoscan/pkgs/container/autoscan/73627885?tag=latest).
+Autoscan has an accompanying docker image which can be found in this [repo](https://github.com/aleksasiriski/autoscan/pkgs/container/autoscan).
 
 Autoscan requires access to all files being passed between the triggers and the targets. \
 *Just mount the source directory, for many people this is `/mnt/unionfs`.*
@@ -574,7 +584,7 @@ Autoscan's Docker image provides various versions that are available via tags. T
 | Tag | Description |
 | :----: | --- |
 | latest | Latest stable version from a tagged GitHub release |
-| master | Most recent GitHub master commit |
+| main | Most recent GitHub main commit |
 
 #### Usage
 

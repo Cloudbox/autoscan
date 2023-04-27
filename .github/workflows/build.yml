@@ -153,6 +153,11 @@ jobs:
           name: build_darwin
           path: dist/*darwin*
       
+      - name: artifact_windows
+        uses: actions/upload-artifact@v3
+        with:
+          name: build_windows
+          path: dist/*windows*      
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image

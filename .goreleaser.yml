@@ -60,6 +60,8 @@ dockers:
   dockerfile: ./apps/{{ .ProjectName }}/Dockerfile
   build_flag_templates:
   - --platform=linux/amd64
+  extra_files:
+  - apps
 - image_templates:
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-arm64"
   use: buildx
@@ -67,6 +69,8 @@ dockers:
   dockerfile: ./apps/{{ .ProjectName }}/Dockerfile
   build_flag_templates:
   - --platform=linux/arm64
+  extra_files:
+  - apps
 
 docker_manifests:
 - name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}"

@@ -607,8 +607,6 @@ Autoscan's Docker image supports the following parameters.
 | Parameter | Function |
 | :----: | --- |
 | `-p 3030:3030` | The port used by Autoscan's webhook triggers |
-| `-e PUID=1000` | The UserID to run the Autoscan binary as |
-| `-e PGID=1000` | The GroupID to run the Autoscan binary as |
 | `-e AUTOSCAN_VERBOSITY=0` | The Autoscan logging verbosity level to use. (0 = info, 1 = debug, 2 = trace) |
 | `-v /config` | Autoscan's config and database file |
 
@@ -625,8 +623,6 @@ Make sure to replace `DOMAIN.TLD` with your domain and `YOUR_EMAIL` with your em
 ```bash
 docker run \
   --name=autoscan \
-  -e "PUID=1000" \
-  -e "PGID=1001" \
   -e "VIRTUAL_HOST=autoscan.DOMAIN.TLD" \
   -e "VIRTUAL_PORT=3030" \
   -e "LETSENCRYPT_HOST=autoscan.DOMAIN.TLD" \

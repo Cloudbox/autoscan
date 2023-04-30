@@ -16,4 +16,6 @@ USER kah
 
 CMD ["/app/autoscan"]
 
+EXPOSE 3030
+
 LABEL org.opencontainers.image.source="https://github.com/aleksasiriski/autoscan"

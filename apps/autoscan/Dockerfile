@@ -21,7 +21,6 @@ RUN \
     && \
     curl -fsSL -o /app/autoscan \
         "https://github.com/aleksasiriski/autoscan/releases/download/v${VERSION}/autoscan_v${VERSION}_linux_${ARCH}" \
-    && \
     && chown -R root:root /app \
     && chmod -R 755 /app \
     && rm -rf /tmp/*

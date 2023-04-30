@@ -7,11 +7,13 @@ ENV \
     AUTOSCAN_VERBOSITY="0"
 
 COPY autoscan /app/autoscan
+
 RUN chown -R root:root /app && \
     chmod -R 755 /app && \
     rm -rf /tmp/*
 
 USER kah
+
 CMD ["/app/autoscan"]
 
 LABEL org.opencontainers.image.source="https://github.com/aleksasiriski/autoscan"

@@ -6,17 +6,12 @@ ENV \
     AUTOSCAN_LOG="/config/activity.log" \
     AUTOSCAN_VERBOSITY="0"
 
-#hadolint ignore=DL3018
-RUN apk add --no-cache ca-certificates
-#hadolint ignore=DL3059
 COPY autoscan /app/autoscan
-RUN \
-    chown -R root:root /app && \
+RUN chown -R root:root /app && \
     chmod -R 755 /app && \
     rm -rf /tmp/*
 
 USER kah
-
 CMD ["/app/autoscan"]
 
 LABEL org.opencontainers.image.source="https://github.com/aleksasiriski/autoscan"

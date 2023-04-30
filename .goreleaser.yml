@@ -9,7 +9,7 @@ builds:
       - darwin
       - freebsd
       - windows
-    main: ./cmd/autoscan
+    main: ./cmd/{{ .ProjectName }}
     goarch:
       - amd64
       - arm64
@@ -57,14 +57,14 @@ dockers:
 - image_templates:
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-amd64"
   use: buildx
-  dockerfile: ./apps/autoscan/Dockerfile
+  dockerfile: ./apps/{{ .ProjectName }}/Dockerfile
   build_flag_templates:
   - --platform=linux/amd64
 - image_templates:
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-arm64"
   use: buildx
   goarch: arm64
-  dockerfile: ./apps/autoscan/Dockerfile
+  dockerfile: ./apps/{{ .ProjectName }}/Dockerfile
   build_flag_templates:
   - --platform=linux/arm64
 

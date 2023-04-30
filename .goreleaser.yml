@@ -42,7 +42,7 @@ checksum:
 
 # Snapshot
 snapshot:
-  name_template: "{{ .Major }}.{{ .Minor }}.{{ .Patch }}-dev+{{ .Branch  }}"
+  name_template: "v{{ .Major }}.{{ .Minor }}.{{ .Patch }}-dev+{{ .Branch }}"
 
 # Changelog
 changelog:

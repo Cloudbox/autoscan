@@ -55,3 +55,28 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^Merge branch"
+
+# Docker
+dockers:
+- image_templates:
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:latest"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Tag }}"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}"
+  use: buildx
+  dockerfile: ./apps/autoscan/Dockerfile
+  build_flag_templates:
+  - "--platform=linux/amd64"
+- image_templates:
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:latest"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Tag }}"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}"
+  use: buildx
+  goarch: arm64
+  dockerfile: ./apps/autoscan/Dockerfile
+  build_flag_templates:
+  - "--platform=linux/arm64"
+docker_manifests:
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}"
+  image_templates:
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64"

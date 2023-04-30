@@ -17,7 +17,6 @@ RUN \
 
 USER kah
 
-COPY ./apps/autoscan/entrypoint.sh /entrypoint.sh
-CMD ["/entrypoint.sh"]
+CMD ["/app/autoscan"]
 
 LABEL org.opencontainers.image.source="https://github.com/aleksasiriski/autoscan"

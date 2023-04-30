@@ -1,11 +1,9 @@
-# https://goreleaser.com
+# .goreleaser.yml
 project_name: autoscan
 
 # Build
 builds:
-  -
-    env:
-      - CGO_ENABLED=0
+  - env: [CGO_ENABLED=0]
     goos:
       - linux
       - darwin
@@ -30,13 +28,11 @@ builds:
 
 # MacOS Universal Binaries
 universal_binaries:
-  -
-    replace: true
+  - replace: true
 
 # Archive
 archives:
-  -
-    name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+  - name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format: "binary"
 
 # Checksum
@@ -59,24 +55,29 @@ changelog:
 # Docker
 dockers:
 - image_templates:
-  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:latest"
-  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Tag }}"
-  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"
   use: buildx
   dockerfile: ./apps/autoscan/Dockerfile
   build_flag_templates:
-  - "--platform=linux/amd64"
+  - --platform=linux/amd64
 - image_templates:
-  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:latest"
-  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Tag }}"
-  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64"
   use: buildx
   goarch: arm64
   dockerfile: ./apps/autoscan/Dockerfile
   build_flag_templates:
-  - "--platform=linux/arm64"
+  - --platform=linux/arm64
+
 docker_manifests:
 - name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}"
+  image_templates:
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64"
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:latest"
+  image_templates:
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64"
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}"
   image_templates:
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-amd64"
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Version }}-arm64"

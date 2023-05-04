@@ -40,10 +40,6 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha512
 
-# Snapshot
-snapshot:
-  name_template: "v{{ .Major }}.{{ .Minor }}.{{ .Patch }}-dev+{{ .Branch }}"
-
 # Changelog
 changelog:
   filters:
@@ -77,11 +73,15 @@ docker_manifests:
   image_templates:
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-amd64"
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-arm64"
-- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:latest"
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}"
   image_templates:
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-amd64"
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-arm64"
-- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}"
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Major }}.{{ .Minor }}"
+  image_templates:
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-amd64"
+  - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-arm64"
+- name_template: "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ if .IsSnapshot }}{{ .Branch }}{{ else }}latest{{ end }}"
   image_templates:
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-amd64"
   - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:v{{ .Version }}-arm64"

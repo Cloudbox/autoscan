@@ -51,7 +51,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') == false
         with:
           version: latest
-          args: release --snapshot --skip-docker --clean
+          args: release --snapshot --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

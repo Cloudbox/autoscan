@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"path/filepath"
+	"path"
 	"sort"
 )
 
@@ -99,7 +99,7 @@ func (m *Migrator) parse(fs *embed.FS) ([]*migration, error) {
 			return nil, fmt.Errorf("parse migration: %w", err)
 		}
 
-		b, err := fs.ReadFile(filepath.Join(m.dir, f.Name()))
+		b, err := fs.ReadFile(path.Join(m.dir, f.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("read migration: %w", err)
 		}

@@ -21,15 +21,11 @@ type datastore struct {
 	dbType string
 }
 
-var (
-	//go:embed migrations/sqlite
-	migrationsSqlite embed.FS
-)
+//go:embed migrations/sqlite
+var migrationsSqlite embed.FS
 
-var (
-	//go:embed migrations/postgres
-	migrationsPostgres embed.FS
-)
+//go:embed migrations/postgres
+var migrationsPostgres embed.FS
 
 func newDatastore(db *sql.DB, dbType string, mg *migrate.Migrator) (*datastore, error) {
 	switch dbType {

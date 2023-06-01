@@ -27,7 +27,7 @@ Alternatively, you can build the Autoscan binary yourself.
 To build the autoscan CLI on your system, make sure:
 
 1. Your machine runs Linux, macOS or WSL2
-2. You have [Go](https://golang.org/doc/install) installed (1.16 or later)
+2. You have [Go](https://golang.org/doc/install) installed (1.19 or later)
 3. Clone this repository and cd into it from the terminal
 4. Run `go build -o autoscan ./cmd/autoscan` from the terminal
 

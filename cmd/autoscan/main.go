@@ -17,26 +17,65 @@ import (
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 
-	"github.com/cloudbox/autoscan"
-	"github.com/cloudbox/autoscan/migrate"
-	"github.com/cloudbox/autoscan/processor"
-	ast "github.com/cloudbox/autoscan/targets/autoscan"
-	"github.com/cloudbox/autoscan/targets/emby"
-	"github.com/cloudbox/autoscan/targets/jellyfin"
-	"github.com/cloudbox/autoscan/targets/plex"
-	"github.com/cloudbox/autoscan/triggers/a_train"
-	"github.com/cloudbox/autoscan/triggers/bernard"
-	"github.com/cloudbox/autoscan/triggers/inotify"
-	"github.com/cloudbox/autoscan/triggers/lidarr"
-	"github.com/cloudbox/autoscan/triggers/manual"
-	"github.com/cloudbox/autoscan/triggers/radarr"
-	"github.com/cloudbox/autoscan/triggers/readarr"
-	"github.com/cloudbox/autoscan/triggers/sonarr"
+	"github.com/aleksasiriski/autoscan"
+	"github.com/aleksasiriski/autoscan/migrate"
+	"github.com/aleksasiriski/autoscan/processor"
+	ast "github.com/aleksasiriski/autoscan/targets/autoscan"
+	"github.com/aleksasiriski/autoscan/targets/emby"
+	"github.com/aleksasiriski/autoscan/targets/jellyfin"
+	"github.com/aleksasiriski/autoscan/targets/plex"
+	"github.com/aleksasiriski/autoscan/triggers/a_train"
+	"github.com/aleksasiriski/autoscan/triggers/bernard"
+	"github.com/aleksasiriski/autoscan/triggers/inotify"
+	"github.com/aleksasiriski/autoscan/triggers/lidarr"
+	"github.com/aleksasiriski/autoscan/triggers/manual"
+	"github.com/aleksasiriski/autoscan/triggers/radarr"
+	"github.com/aleksasiriski/autoscan/triggers/readarr"
+	"github.com/aleksasiriski/autoscan/triggers/sonarr"
 
 	// sqlite3 driver
 	_ "modernc.org/sqlite"
+	// postgresql driver
+	_ "github.com/lib/pq"
 )
 
+// Authentication for autoscan.HTTPTrigger
+type Auth struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+// Database configuration
+type Database struct {
+	Type     string `yaml:"type"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+// autoscan.HTTPTrigger
+type Triggers struct {
+	Manual  manual.Config    `yaml:"manual"`
+	ATrain  a_train.Config   `yaml:"a-train"`
+	Bernard []bernard.Config `yaml:"bernard"`
+	Inotify []inotify.Config `yaml:"inotify"`
+	Lidarr  []lidarr.Config  `yaml:"lidarr"`
+	Radarr  []radarr.Config  `yaml:"radarr"`
+	Readarr []readarr.Config `yaml:"readarr"`
+	Sonarr  []sonarr.Config  `yaml:"sonarr"`
+}
+
+// autoscan.Target
+type Targets struct {
+	Autoscan []ast.Config      `yaml:"autoscan"`
+	Emby     []emby.Config     `yaml:"emby"`
+	Jellyfin []jellyfin.Config `yaml:"jellyfin"`
+	Plex     []plex.Config     `yaml:"plex"`
+}
+
+// Configuration
 type config struct {
 	// General configuration
 	Host       []string      `yaml:"host"`
@@ -47,30 +86,16 @@ type config struct {
 	Anchors    []string      `yaml:"anchors"`
 
 	// Authentication for autoscan.HTTPTrigger
-	Auth struct {
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"authentication"`
+	Auth Auth `yaml:"authentication"`
+
+	// Database configuration
+	Database Database `yaml:"database"`
 
 	// autoscan.HTTPTrigger
-	Triggers struct {
-		Manual  manual.Config    `yaml:"manual"`
-		ATrain  a_train.Config   `yaml:"a-train"`
-		Bernard []bernard.Config `yaml:"bernard"`
-		Inotify []inotify.Config `yaml:"inotify"`
-		Lidarr  []lidarr.Config  `yaml:"lidarr"`
-		Radarr  []radarr.Config  `yaml:"radarr"`
-		Readarr []readarr.Config `yaml:"readarr"`
-		Sonarr  []sonarr.Config  `yaml:"sonarr"`
-	} `yaml:"triggers"`
+	Triggers Triggers `yaml:"triggers"`
 
 	// autoscan.Target
-	Targets struct {
-		Autoscan []ast.Config      `yaml:"autoscan"`
-		Emby     []emby.Config     `yaml:"emby"`
-		Jellyfin []jellyfin.Config `yaml:"jellyfin"`
-		Plex     []plex.Config     `yaml:"plex"`
-	} `yaml:"targets"`
+	Targets Targets `yaml:"targets"`
 }
 
 var (
@@ -152,15 +177,6 @@ func main() {
 		log.Logger = logger.Level(zerolog.InfoLevel)
 	}
 
-	// datastore
-	db, err := sql.Open("sqlite", cli.Database)
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Msg("Failed opening datastore")
-	}
-	db.SetMaxOpenConns(1)
-
 	// config
 	file, err := os.Open(cli.Config)
 	if err != nil {
@@ -177,6 +193,14 @@ func main() {
 		ScanStats:  1 * time.Hour,
 		Host:       []string{""},
 		Port:       3030,
+		Database: Database{
+			Type:     "sqlite",
+			Host:     "localhost",
+			Port:     5432,
+			Name:     "autoscan",
+			Username: "postgres",
+			Password: "",
+		},
 	}
 
 	decoder := yaml.NewDecoder(file)
@@ -188,8 +212,27 @@ func main() {
 			Msg("Failed decoding config")
 	}
 
+	// datastore
+	dbconn := cli.Database
+	if c.Database.Type == "postgres" {
+		dbconn = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", c.Database.Host, c.Database.Port, c.Database.Username, c.Database.Password, c.Database.Name)
+	} else if c.Database.Type != "sqlite" {
+		log.Fatal().
+			Msg("Wrong database type")
+	}
+	db, err := sql.Open(c.Database.Type, dbconn)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed opening datastore")
+	}
+
 	// migrator
-	mg, err := migrate.New(db, "migrations")
+	migratorDir := "migrations/sqlite"
+	if c.Database.Type == "postgres" {
+		migratorDir = "migrations/postgres"
+	}
+	mg, err := migrate.New(db, c.Database.Type, migratorDir)
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -201,6 +244,7 @@ func main() {
 		Anchors:    c.Anchors,
 		MinimumAge: c.MinimumAge,
 		Db:         db,
+		DbType:     c.Database.Type,
 		Mg:         mg,
 	})
 
@@ -214,6 +258,18 @@ func main() {
 		Stringer("min_age", c.MinimumAge).
 		Strs("anchors", c.Anchors).
 		Msg("Initialised processor")
+
+	// database connection
+	databaseVersion, err := proc.GetVersion()
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Failed getting database version:")
+	}
+
+	log.Info().
+		Str("version", databaseVersion).
+		Msg("Initialised database")
 
 	// Check authentication. If no auth -> warn user.
 	if c.Auth.Username == "" || c.Auth.Password == "" {

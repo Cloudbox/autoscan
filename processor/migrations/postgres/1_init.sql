@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS scan (
+    "folder" TEXT NOT NULL PRIMARY KEY,
+    "priority" INTEGER NOT NULL,
+    "time" TIMESTAMP NOT NULL
+)

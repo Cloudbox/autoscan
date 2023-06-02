@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cloudbox/autoscan"
-	"github.com/cloudbox/autoscan/migrate"
+	"github.com/aleksasiriski/autoscan"
+	"github.com/aleksasiriski/autoscan/migrate"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -17,12 +17,13 @@ type Config struct {
 	Anchors    []string
 	MinimumAge time.Duration
 
-	Db *sql.DB
-	Mg *migrate.Migrator
+	Db     *sql.DB
+	DbType string
+	Mg     *migrate.Migrator
 }
 
 func New(c Config) (*Processor, error) {
-	store, err := newDatastore(c.Db, c.Mg)
+	store, err := newDatastore(c.Db, c.DbType, c.Mg)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +41,11 @@ type Processor struct {
 	minimumAge time.Duration
 	store      *datastore
 	processed  int64
+}
+
+// version
+func (p *Processor) GetVersion() (string, error) {
+	return p.store.SelectVersion()
 }
 
 func (p *Processor) Add(scans ...autoscan.Scan) error {

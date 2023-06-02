@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"path/filepath"
+	"path"
 	"sort"
 )
 
@@ -22,8 +22,8 @@ func (m *Migrator) verify() error {
 	return nil
 }
 
-func (m *Migrator) versions(component string) (map[int]bool, error) {
-	rows, err := m.db.Query(sqlVersions, component)
+func (m *Migrator) versions(component string, dbType string) (map[int]bool, error) {
+	rows, err := m.db.Query(sqlVersions(dbType), component)
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
 	}
@@ -42,7 +42,7 @@ func (m *Migrator) versions(component string) (map[int]bool, error) {
 	return versions, nil
 }
 
-func (m *Migrator) exec(component string, migration *migration) (err error) {
+func (m *Migrator) exec(component string, dbType string, migration *migration) (err error) {
 	// begin tx
 	tx, err := m.db.Begin()
 	if err != nil {
@@ -71,7 +71,7 @@ func (m *Migrator) exec(component string, migration *migration) (err error) {
 	}
 
 	// insert migration version
-	if _, err := tx.Exec(sqlInsertVersion, component, migration.Version); err != nil {
+	if _, err := tx.Exec(sqlInsertVersion(dbType), component, migration.Version); err != nil {
 		return fmt.Errorf("schema_migration: %w", err)
 	}
 
@@ -99,7 +99,7 @@ func (m *Migrator) parse(fs *embed.FS) ([]*migration, error) {
 			return nil, fmt.Errorf("parse migration: %w", err)
 		}
 
-		b, err := fs.ReadFile(filepath.Join(m.dir, f.Name()))
+		b, err := fs.ReadFile(path.Join(m.dir, f.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("read migration: %w", err)
 		}
@@ -118,8 +118,19 @@ func (m *Migrator) parse(fs *embed.FS) ([]*migration, error) {
 	return migrations, nil
 }
 
-const (
-	sqlSchema        = `CREATE TABLE IF NOT EXISTS schema_migration (component VARCHAR(255) NOT NULL, version INTEGER NOT NULL, PRIMARY KEY (component, version))`
-	sqlVersions      = `SELECT version FROM schema_migration WHERE component = ?`
-	sqlInsertVersion = `INSERT INTO schema_migration (component, version) VALUES (?, ?)`
-)
+const sqlSchema = `CREATE TABLE IF NOT EXISTS schema_migration (component VARCHAR(255) NOT NULL, version INTEGER NOT NULL, PRIMARY KEY (component, version))`
+
+func sqlVersions(dbType string) string {
+	if dbType == "postgres" {
+		return `SELECT version FROM schema_migration WHERE component = $1`
+	} else {
+		return `SELECT version FROM schema_migration WHERE component = ?`
+	}
+}
+func sqlInsertVersion(dbType string) string {
+	if dbType == "postgres" {
+		return `INSERT INTO schema_migration (component, version) VALUES ($1, $2)`
+	} else {
+		return `INSERT INTO schema_migration (component, version) VALUES (?, ?)`
+	}
+}

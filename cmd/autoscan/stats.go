@@ -6,8 +6,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/cloudbox/autoscan"
-	"github.com/cloudbox/autoscan/processor"
+	"github.com/aleksasiriski/autoscan"
+	"github.com/aleksasiriski/autoscan/processor"
 )
 
 func scanStats(proc *processor.Processor, interval time.Duration) {

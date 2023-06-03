@@ -12,9 +12,10 @@ import (
 )
 
 type Config struct {
-	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
-	Priority  int                `yaml:"priority"`
-	Verbosity string             `yaml:"verbosity"`
+	Rewrite        []autoscan.Rewrite `yaml:"rewrite"`
+	Priority       int                `yaml:"priority"`
+	Verbosity      string             `yaml:"verbosity"`
+	SlashDirection string             `yaml:"slash-direction"`
 }
 
 var (
@@ -24,7 +25,7 @@ var (
 
 // New creates an autoscan-compatible HTTP Trigger for manual webhooks.
 func New(c Config) (autoscan.HTTPTrigger, error) {
-	rewriter, err := autoscan.NewRewriter(c.Rewrite)
+	rewriter, err := autoscan.NewRewriter(c.Rewrite, c.SlashDirection, "forward")
 	if err != nil {
 		return nil, err
 	}

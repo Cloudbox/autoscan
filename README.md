@@ -211,13 +211,13 @@ So for now, please do keep using Bernard or the Inotify trigger to fetch all sca
 If you want this app to be stateless, for example when running on Kubernetes, you can use Postgresql. Simply add the following values to your config:
 
 ```yaml
-  database:
-    type: postgres
-    host: localhost # optional, default is localhost
-    port: 5432 # optional, default is 5432
-    name: autoscan # optional, default is autoscan
-    username: postgres # optional, default is postgres
-    password: your_password_here # optional, default is empty
+database:
+  type: postgres
+  host: localhost # optional, default is localhost
+  port: 5432 # optional, default is 5432
+  name: autoscan # optional, default is autoscan
+  username: postgres # optional, default is postgres
+  password: your_password_here # optional, default is empty
 ```
 
 ### Configuration
@@ -296,13 +296,13 @@ triggers:
         - from: /tv/
           to: /mnt/unionfs/Media/TV/
   
-  database:
-    type: postgres # optional, default is sqlite
-    host: localhost # optional, default is localhost
-    port: 5432 # optional, default is 5432
-    name: autoscan # optional, default is autoscan
-    username: postgres # optional, default is postgres
-    password: your_password_here # optional, default is empty
+database:
+  type: postgres # optional, default is sqlite
+  host: localhost # optional, default is localhost
+  port: 5432 # optional, default is 5432
+  name: autoscan # optional, default is autoscan
+  username: postgres # optional, default is postgres
+  password: your_password_here # optional, default is empty
 ```
 
 ## Processor
@@ -591,13 +591,11 @@ Autoscan's Docker image provides various versions that are available via tags. T
 ```bash
 docker run \
   --name=autoscan \
-  -e "PUID=1000" \
-  -e "PGID=1000" \
   -p 3030:3030 \
   -v "/opt/autoscan:/config" \
   -v "/mnt/unionfs:/mnt/unionfs:ro" \
   --restart=unless-stopped \
-  -d ghrc.io/aleksasiriski/autoscan
+  -d ghcr.io/aleksasiriski/autoscan
 ```
 
 #### Parameters

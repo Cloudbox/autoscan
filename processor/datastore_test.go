@@ -7,20 +7,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudbox/autoscan"
-	"github.com/cloudbox/autoscan/migrate"
+	"github.com/aleksasiriski/autoscan"
+	"github.com/aleksasiriski/autoscan/migrate"
 
 	// sqlite3 driver
 	_ "modernc.org/sqlite"
+	// postgresql driver
+	_ "github.com/lib/pq"
 )
 
-const sqlGetScan = `
-SELECT folder, priority, time FROM scan
-WHERE folder = ?
-`
+func sqlGetScan(dbType string) string {
+	if dbType == "postgres" {
+		return `SELECT folder, priority, time FROM scan WHERE folder = $1`
+	} else {
+		return `SELECT folder, priority, time FROM scan WHERE folder = ?`
+	}
+}
 
 func (store *datastore) GetScan(folder string) (autoscan.Scan, error) {
-	row := store.QueryRow(sqlGetScan, folder)
+	row := store.QueryRow(sqlGetScan(store.DbType), folder)
 
 	scan := autoscan.Scan{}
 	err := row.Scan(&scan.Folder, &scan.Priority, &scan.Time)
@@ -34,12 +39,12 @@ func getDatastore(t *testing.T) *datastore {
 		t.Fatal(err)
 	}
 
-	mg, err := migrate.New(db, "migrations")
+	mg, err := migrate.New(db, "sqlite", "migrations")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ds, err := newDatastore(db, mg)
+	ds, err := newDatastore(db, "sqlite", mg)
 	if err != nil {
 		t.Fatal(err)
 	}

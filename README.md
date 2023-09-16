@@ -1,6 +1,6 @@
 # Autoscan
 
-Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.
+Autoscan replaces the default Plex and Emby / Jellyfin behaviour for picking up file changes on the file system.
 Autoscan integrates with Sonarr, Radarr, Readarr, Lidarr and Google Drive to fetch changes in near real-time without relying on the file system.
 
 Wait, what happened to [Plex Autoscan](https://github.com/l3uddz/plex_autoscan)?
@@ -21,13 +21,13 @@ Autoscan also improves upon [Plex Autoscan](https://github.com/l3uddz/plex_autos
 
 ## Installing autoscan
 
-Autoscan offers [pre-compiled binaries](https://github.com/Cloudbox/autoscan/releases/latest) for both Linux and MacOS for each official release. In addition, we also offer a [Docker image](#docker)!
+Autoscan offers [pre-compiled binaries](https://github.com/aleksasiriski/autoscan/releases/latest) for both Linux and MacOS for each official release. In addition, there's also a [Docker image](#docker)!
 
 Alternatively, you can build the Autoscan binary yourself.
 To build the autoscan CLI on your system, make sure:
 
 1. Your machine runs Linux, macOS or WSL2
-2. You have [Go](https://golang.org/doc/install) installed (1.16 or later)
+2. You have [Go](https://golang.org/doc/install) installed (1.19 or later)
 3. Clone this repository and cd into it from the terminal
 4. Run `go build -o autoscan ./cmd/autoscan` from the terminal
 
@@ -206,6 +206,20 @@ Autoscan also supports the following events in the latest versions of Radarr and
 We are not 100% sure whether these three events cover all the possible file system interactions.
 So for now, please do keep using Bernard or the Inotify trigger to fetch all scans.
 
+### Postgresql
+
+If you want this app to be stateless, for example when running on Kubernetes, you can use Postgresql. Simply add the following values to your config:
+
+```yaml
+  database:
+    type: postgres
+    host: localhost # optional, default is localhost
+    port: 5432 # optional, default is 5432
+    name: autoscan # optional, default is autoscan
+    username: postgres # optional, default is postgres
+    password: your_password_here # optional, default is empty
+```
+
 ### Configuration
 
 A snippet of the `config.yml` file showcasing what is possible.
@@ -281,6 +295,14 @@ triggers:
       rewrite:
         - from: /tv/
           to: /mnt/unionfs/Media/TV/
+  
+  database:
+    type: postgres # optional, default is sqlite
+    host: localhost # optional, default is localhost
+    port: 5432 # optional, default is 5432
+    name: autoscan # optional, default is autoscan
+    username: postgres # optional, default is postgres
+    password: your_password_here # optional, default is empty
 ```
 
 ## Processor
@@ -530,6 +552,16 @@ host:
   - 192.168.0.1:5959
 ```
 
+```yaml
+database:
+  type: postgres
+  host: localhost # optional, default is localhost
+  port: 5432 # optional, default is 5432
+  name: autoscan # optional, default is autoscan
+  username: postgres # optional, default is postgres
+  password: your_password_here # optional, default is empty
+```
+
 - If no port is specified, it will use the default port configured.
 - This configuration option is only needed if you have a requirement to listen to multiple interfaces.
 
@@ -537,7 +569,7 @@ host:
 
 ### Docker
 
-Autoscan has an accompanying docker image which can be found on [Docker Hub](https://hub.docker.com/r/cloudb0x/autoscan).
+Autoscan has an accompanying docker image which can be found in this [repo](https://github.com/aleksasiriski/autoscan/pkgs/container/autoscan).
 
 Autoscan requires access to all files being passed between the triggers and the targets. \
 *Just mount the source directory, for many people this is `/mnt/unionfs`.*
@@ -552,7 +584,7 @@ Autoscan's Docker image provides various versions that are available via tags. T
 | Tag | Description |
 | :----: | --- |
 | latest | Latest stable version from a tagged GitHub release |
-| master | Most recent GitHub master commit |
+| main | Most recent GitHub main commit |
 
 #### Usage
 
@@ -560,12 +592,12 @@ Autoscan's Docker image provides various versions that are available via tags. T
 docker run \
   --name=autoscan \
   -e "PUID=1000" \
-  -e "PGID=1001" \
+  -e "PGID=1000" \
   -p 3030:3030 \
   -v "/opt/autoscan:/config" \
   -v "/mnt/unionfs:/mnt/unionfs:ro" \
   --restart=unless-stopped \
-  -d cloudb0x/autoscan
+  -d ghrc.io/aleksasiriski/autoscan
 ```
 
 #### Parameters
@@ -575,8 +607,6 @@ Autoscan's Docker image supports the following parameters.
 | Parameter | Function |
 | :----: | --- |
 | `-p 3030:3030` | The port used by Autoscan's webhook triggers |
-| `-e PUID=1000` | The UserID to run the Autoscan binary as |
-| `-e PGID=1000` | The GroupID to run the Autoscan binary as |
 | `-e AUTOSCAN_VERBOSITY=0` | The Autoscan logging verbosity level to use. (0 = info, 1 = debug, 2 = trace) |
 | `-v /config` | Autoscan's config and database file |
 
@@ -593,8 +623,6 @@ Make sure to replace `DOMAIN.TLD` with your domain and `YOUR_EMAIL` with your em
 ```bash
 docker run \
   --name=autoscan \
-  -e "PUID=1000" \
-  -e "PGID=1001" \
   -e "VIRTUAL_HOST=autoscan.DOMAIN.TLD" \
   -e "VIRTUAL_PORT=3030" \
   -e "LETSENCRYPT_HOST=autoscan.DOMAIN.TLD" \
@@ -605,5 +633,5 @@ docker run \
   --network=cloudbox \
   --network-alias=autoscan  \
   --restart=unless-stopped \
-  -d cloudb0x/autoscan
+  -d ghcr.io/aleksasiriski/autoscan
 ```

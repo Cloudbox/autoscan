@@ -25,7 +25,7 @@ func sqlGetScan(dbType string) string {
 }
 
 func (store *datastore) GetScan(folder string) (autoscan.Scan, error) {
-	row := store.QueryRow(sqlGetScan(store.DbType), folder)
+	row := store.QueryRow(sqlGetScan(store.dbType), folder)
 
 	scan := autoscan.Scan{}
 	err := row.Scan(&scan.Folder, &scan.Priority, &scan.Time)

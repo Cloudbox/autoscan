@@ -401,6 +401,7 @@ targets:
   plex:
     - url: https://plex.domain.tld # URL of your Plex server
       token: XXXX # Plex API Token
+      refresh-metadata: false # Whether to refresh all the metadata in the associated library
       rewrite:
         - from: /mnt/unionfs/Media/ # local file system
           to: /data/ # path accessible by the Plex docker container (if applicable)
@@ -410,6 +411,7 @@ There are a couple of things to take note of in the config:
 
 - URL. The URL can link to the docker container directly, the localhost or a reverse proxy sitting in front of Plex.
 - Token. We need a Plex API Token to make requests on your behalf. [This article](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/) should help you out.
+- Refresh Metadata. If you've added external subtitle files, Plex won't pick up on them without a metadata refresh.  This forces Plex to do that. Defaults to false.
 - Rewrite. If Plex is not running on the host OS, but in a Docker container (or Autoscan is running in a Docker container), then you need to rewrite paths accordingly. Check out our [rewriting section](#rewriting-paths) for more info.
 
 ### Emby
@@ -525,6 +527,7 @@ targets:
   plex:
     - url: https://plex.domain.tld # URL of your Plex server
       token: XXXX # Plex API Token
+      refresh-metadata: true # Force metadata refresh to pick up subtitles
       rewrite:
         - from: /mnt/unionfs/Media/ # local file system
           to: /data/ # path accessible by the Plex docker container (if applicable)

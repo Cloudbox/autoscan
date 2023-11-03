@@ -146,7 +146,7 @@ func (c apiClient) Libraries() ([]library, error) {
 	return libraries, nil
 }
 
-func (c apiClient) Scan(path string, libraryID int) error {
+func (c apiClient) Scan(path string, libraryID int, refreshMetadata bool) error {
 	reqURL := autoscan.JoinURL(c.baseURL, "library", "sections", strconv.Itoa(libraryID), "refresh")
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
@@ -155,6 +155,11 @@ func (c apiClient) Scan(path string, libraryID int) error {
 
 	q := url.Values{}
 	q.Add("path", path)
+	if refreshMetadata {
+		// Unfortunately, this needs to be a forced full metadata refresh,
+		// as Plex sometimes ignores un-forced refreshes
+		q.Add("force", "1")
+	}
 	req.URL.RawQuery = q.Encode()
 
 	res, err := c.do(req)

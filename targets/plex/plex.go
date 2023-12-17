@@ -7,20 +7,23 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/cloudbox/autoscan"
+	"github.com/aleksasiriski/autoscan"
 )
 
 type Config struct {
-	URL       string             `yaml:"url"`
-	Token     string             `yaml:"token"`
-	Rewrite   []autoscan.Rewrite `yaml:"rewrite"`
-	Verbosity string             `yaml:"verbosity"`
+	URL             string             `yaml:"url"`
+	Token           string             `yaml:"token"`
+	RefreshMetadata bool               `yaml:"refresh-metadata"`
+	Rewrite         []autoscan.Rewrite `yaml:"rewrite"`
+	Verbosity       string             `yaml:"verbosity"`
+	SlashDirection  string             `yaml:"slash-direction"`
 }
 
 type target struct {
-	url       string
-	token     string
-	libraries []library
+	url             string
+	token           string
+	refreshMetadata bool
+	libraries       []library
 
 	log     zerolog.Logger
 	rewrite autoscan.Rewriter
@@ -32,7 +35,7 @@ func New(c Config) (autoscan.Target, error) {
 		Str("target", "plex").
 		Str("url", c.URL).Logger()
 
-	rewriter, err := autoscan.NewRewriter(c.Rewrite)
+	rewriter, err := autoscan.NewRewriter(c.Rewrite, "forward", c.SlashDirection)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +62,10 @@ func New(c Config) (autoscan.Target, error) {
 		Msg("Retrieved libraries")
 
 	return &target{
-		url:       c.URL,
-		token:     c.Token,
-		libraries: libraries,
+		url:             c.URL,
+		token:           c.Token,
+		refreshMetadata: c.RefreshMetadata,
+		libraries:       libraries,
 
 		log:     l,
 		rewrite: rewriter,
@@ -96,7 +100,7 @@ func (t target) Scan(scan autoscan.Scan) error {
 
 		l.Trace().Msg("Sending scan request")
 
-		if err := t.api.Scan(scanFolder, lib.ID); err != nil {
+		if err := t.api.Scan(scanFolder, lib.ID, t.refreshMetadata); err != nil {
 			return err
 		}
 

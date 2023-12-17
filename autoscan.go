@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -61,7 +62,7 @@ type Rewrite struct {
 
 type Rewriter func(string) string
 
-func NewRewriter(rewriteRules []Rewrite) (Rewriter, error) {
+func NewRewriter(rewriteRules []Rewrite, inputSlashDirection string, outputSlashDirection string) (Rewriter, error) {
 	var rewrites []regexp.Regexp
 	for _, rule := range rewriteRules {
 		re, err := regexp.Compile(rule.From)
@@ -73,16 +74,37 @@ func NewRewriter(rewriteRules []Rewrite) (Rewriter, error) {
 	}
 
 	rewriter := func(input string) string {
+		input = handleSlashDirection(input, inputSlashDirection)
 		for i, r := range rewrites {
 			if r.MatchString(input) {
 				return r.ReplaceAllString(input, rewriteRules[i].To)
 			}
 		}
-
+		input = handleSlashDirection(input, outputSlashDirection)
 		return input
 	}
 
 	return rewriter, nil
+}
+
+func handleSlashDirection(input string, slashDirection string) string {
+	if slashDirection == "" {
+		slashDirection = "forward"
+	}
+
+	var output string
+
+	if slashDirection == "forward" {
+		// We want all slashes to become forward
+		output = strings.ReplaceAll(input, "\\", "/")
+	}
+
+	if slashDirection == "backward" {
+		// We want all slashes to become backward
+		output = strings.ReplaceAll(input, "/", "\\")
+	}
+
+	return output
 }
 
 type Filterer func(string) bool

@@ -11,7 +11,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog"
 
-	"github.com/cloudbox/autoscan"
+	"github.com/aleksasiriski/autoscan"
 )
 
 type Config struct {
@@ -26,6 +26,7 @@ type Config struct {
 		Include []string           `yaml:"include"`
 		Exclude []string           `yaml:"exclude"`
 	} `yaml:"paths"`
+	SlashDirection string `yaml:"slash-direction"`
 }
 
 type daemon struct {
@@ -51,7 +52,7 @@ func New(c Config) (autoscan.Trigger, error) {
 	for _, p := range c.Paths {
 		p := p
 
-		rewriter, err := autoscan.NewRewriter(append(p.Rewrite, c.Rewrite...))
+		rewriter, err := autoscan.NewRewriter(append(p.Rewrite, c.Rewrite...), c.SlashDirection, "forward")
 		if err != nil {
 			return nil, err
 		}

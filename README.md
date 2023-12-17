@@ -1,3 +1,6 @@
+# UNMAINTAINED
+This repo will be archived when I finish work on [morana](https://github.com/tminaorg/morana)
+
 # Autoscan
 
 Autoscan replaces the default Plex and Emby / Jellyfin behaviour for picking up file changes on the file system.

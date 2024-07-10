@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/natefinch/lumberjack"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
@@ -111,7 +109,6 @@ var (
 		// flags
 		Config    string `type:"path" default:"${config_file}" env:"AUTOSCAN_CONFIG" help:"Config file path"`
 		Database  string `type:"path" default:"${database_file}" env:"AUTOSCAN_DATABASE" help:"Database file path"`
-		Log       string `type:"path" default:"${log_file}" env:"AUTOSCAN_LOG" help:"Log file path"`
 		Verbosity int    `type:"counter" default:"0" short:"v" env:"AUTOSCAN_VERBOSITY" help:"Log level verbosity"`
 	}
 )
@@ -143,7 +140,6 @@ func main() {
 		kong.Vars{
 			"version":       fmt.Sprintf("%s (%s@%s)", Version, GitCommit, Timestamp),
 			"config_file":   filepath.Join(defaultConfigDirectory("autoscan", "config.yml"), "config.yml"),
-			"log_file":      filepath.Join(defaultConfigDirectory("autoscan", "config.yml"), "activity.log"),
 			"database_file": filepath.Join(defaultConfigDirectory("autoscan", "config.yml"), "autoscan.db"),
 		},
 	)
@@ -154,19 +150,10 @@ func main() {
 	}
 
 	// logger
-	logger := log.Output(io.MultiWriter(zerolog.ConsoleWriter{
+	logger := log.Output(zerolog.ConsoleWriter{
 		TimeFormat: time.Stamp,
 		Out:        os.Stderr,
-	}, zerolog.ConsoleWriter{
-		TimeFormat: time.Stamp,
-		Out: &lumberjack.Logger{
-			Filename:   cli.Log,
-			MaxSize:    5,
-			MaxAge:     14,
-			MaxBackups: 5,
-		},
-		NoColor: true,
-	}))
+	})
 
 	switch {
 	case cli.Verbosity == 1:

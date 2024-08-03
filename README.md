@@ -1,3 +1,6 @@
+Autoscan, [A-Train](https://github.com/m-rots/a-train) and [Bernard](https://github.com/m-rots/bernard-rs) are no longer actively maintained. All projects are considered feature frozen and when compatibility with Google Drive, Plex, Emby, Jellyfin and the -arrs inevitably breaks, no fixes will be provided and such an event will officially mark these projects as end of life.
+As all three projects have permissible open source licenses, feel free to start a fork and continue development. Ownership of these repositories as well as the Docker images will not be transferred.
+
 # Autoscan
 
 Autoscan replaces the default Plex and Emby behaviour for picking up file changes on the file system.
@@ -142,7 +145,7 @@ triggers:
       - from: ^/Media/
         to: /mnt/unionfs/Media/
     # Drives only need to be given when Drive-specific rewrites are used
-    drives: 
+    drives:
       - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
         rewrite: # Drive-specific rewrite (has priority over global rewrite)
           - from: ^/TV/
@@ -234,7 +237,7 @@ triggers:
       - from: ^/Media/
         to: /mnt/unionfs/Media/
     # Drives only need to be given when Drive-specific rewrites are used
-    drives: 
+    drives:
       - id: 0A1xxxxxxxxxUk9PVA # The ID of Shared Drive #1
         rewrite: # Drive-specific rewrite (has priority over global rewrite)
           - from: ^/TV/
